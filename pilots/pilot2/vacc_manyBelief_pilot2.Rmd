@@ -10,7 +10,7 @@ output:
 
 ```{r}
 library(ggplot2)
-df <- read.csv("data/vb_pilot2.csv")
+df <- read.csv("../data/vb_pilot2.csv")
 df <- df[which(df$parentDuty_check_3==3 & df$diseaseRare_check_5==5),]
 
 # first need to do some data cleaning

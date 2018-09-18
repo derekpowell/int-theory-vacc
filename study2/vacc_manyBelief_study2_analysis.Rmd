@@ -22,7 +22,7 @@ library(rms)
 
 ```{r tidy, include = F}
 # load data
-d_all <- read.csv("../study3/data/study3_data.csv")[-1]
+d_all <- read.csv("../data/study2_data.csv")[-1]
 
 # reformat to match previous analyses (i.e., 2 rows per participant)
 d_demo <- d_all %>% 

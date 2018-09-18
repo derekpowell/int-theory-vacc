@@ -109,3 +109,29 @@ broom::tidy(brm_fitodds) %>%
 
 The resulting evidence ratio is `r evid_ratio`. Reasonable CPT values would be .5 and `r .5*evid_ratio` That's not that huge really ...
 
+
+# maximum likelihood estimate with optim()
+
+WE can do this with optim too, which will work better when we go to do it 14 times.
+
+```{r}
+inv_logit <- plogis
+logit <- qlogis
+
+evid_score_func <- function(data, par) {
+  pred_y <- with(data,
+                 {
+                   inv_logit(logit(pre) + evid*par[2] + par[1])
+                 }
+       )
+  pred_beta_A <- pred_y * par[3]
+  pred_beta_B <- (1-pred_y) * par[3]
+  
+  ll <- -1 * sum(dbeta(data$post, pred_beta_A, pred_beta_B, log=TRUE)) # beta regression
+  return(ll)
+}
+
+result <- optim(par = c(0, 0, 5), fn = evid_score_func, data = d, method="BFGS")
+
+result
+```

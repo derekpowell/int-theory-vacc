@@ -9,7 +9,7 @@ output:
 
 ```{r}
 
-filename <- "data/vb_pilot6.csv"
+filename <- "../data/vb_pilot6.csv"
 
 headers <- as.matrix(read.csv(filename, skip = 0, header = F, nrows = 1, as.is = T ))
 df <- read.csv(filename, skip = 3, header = F)

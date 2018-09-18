@@ -12,8 +12,8 @@ output:
 ```{r load in existing objects, message=FALSE, warning=FALSE}
 # net.struct <- readRDS("net-struct-cogsci2018.rds")
 
-source("../../study1/vacc_import_data.R")
-source("../../Scripts/gmod_tools.R")
+source("../study1/vacc_import_data.R", chdir = TRUE)
+source("../scripts/gmod_tools.R")
 # source("../../Scripts/virtualEvidence.R")
 
 library(bnlearn)
@@ -23,7 +23,7 @@ library(BiDAG)
 library(HydeNet)
 library(bnlearn)
 
-source("cog-model-main.R")
+source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 ```
 
 ```{r set up training split}
