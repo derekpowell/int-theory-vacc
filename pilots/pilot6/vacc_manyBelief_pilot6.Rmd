@@ -1,0 +1,275 @@
+---
+title: "Vaccines: Many Beliefs Pilot 5"
+author: "Derek Powell"
+date: "July 14, 2017"
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+
+```{r}
+
+filename <- "data/vb_pilot6.csv"
+
+headers <- as.matrix(read.csv(filename, skip = 0, header = F, nrows = 1, as.is = T ))
+df <- read.csv(filename, skip = 3, header = F)
+colnames(df) <- headers
+
+df <- df[which(df$Status==0),] # remove survey previews
+
+# remove unused qualtrics variables
+remove_cols <- c("RecipientLastName",
+                 "RecipientFirstName",
+                 "RecipientEmail",
+                 "Finished",
+                 "ResponseId",
+                 "ExternalReference",
+                 "DistributionChannel",
+                 "UserLanguage",
+                 "Status")
+
+df <- df[ , -which(names(df) %in% remove_cols)]
+df <- df[which(df$diseaseRarity_check_3==3),]
+```
+
+```{r}
+all_items <- c("diseaseSevere_1",
+"diseaseSevere_2",
+"diseaseSevere_3r",
+"diseaseSevere_4",
+"diseaseSevere_5r",
+"diseaseSevere_6",
+"diseaseSevere_7",
+"diseaseSevere_8r",
+"diseaseSevere_9r",
+"diseaseSevere_10",
+"diseaseSevere_11",
+"diseaseSevere_12r",
+"diseaseSevere_13r",
+"diseaseSevere_14r",
+"diseaseSevere_15r",
+"diseaseSevere_16r",
+"diseaseSevere_17",
+"diseaseRarity_1",
+"diseaseRarity_2",
+"diseaseRarity_3r",
+"diseaseRarity_4",
+"diseaseRarity_5r",
+"vaccIntent_1r",
+"vaccIntent_2",
+"vaccIntent_3r",
+"vaccIntent_4",
+"vaccIntent_5r")
+
+
+```
+
+
+```{r}
+library(ggplot2)
+# df <- read.csv("vb_pilot2.csv")
+
+reverse_items <- all_items[!sapply(
+  lapply(all_items, function (x) {
+  if (substr(x,nchar(x),nchar(x))=="r") {
+    return(x)
+  }
+}), is.null)]
+ 
+df[,reverse_items] <- lapply(df[,reverse_items], function(x) {
+  8-x
+})
+
+df_main <- df[,c("workerId",all_items)]
+
+```
+
+
+
+# Introduction
+
+This is a notebook for the 6th pilot experiment of our (Kara, Ellen, and Derek) first pilot experiment examining vaccine theories using multiple attitude measures. We recruited 120 and are left with 113.
+
+
+This pilot is specifically targetted at fixing our issues with reliability for disease severity scale.
+
+
+I'm splitting this data evenly into training and validation sets. The plan is to pick several candidate scales based on the "training" data and then ensure it remains reliable when tested on the validation set.
+
+```{r}
+
+library(dplyr)
+train <- df_main %>% sample_frac(.5)
+test  <- dplyr::anti_join(df_main, train, by = 'workerId')
+
+# train <- train[, all_items]
+```
+
+## Disease Severity
+
+Here's a correlation plot of all items sorted by hierarchical clustering.
+
+Looks like 2,4,7 are closely tied together. ALso, 15r, 8r, 16r and 17, 1, 11 
+
+```{r}
+diseaseSevere <- all_items[1:17]
+# diseaseSevere <- 
+
+
+# diseaseSevere.alpha <- psych::alpha(df[,diseaseSevere])
+# diseaseSevere.alpha$total$raw_alpha
+# diseaseSevere.alpha \
+
+corrplot(cor(train[,diseaseSevere]),
+         order="hclust",
+         # addrect=3,
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+
+```
+
+## proposed scales
+
+1. Items 2, 4, 7, 8r, 16r.
+2. Items 1, 4, 7, 8r, 3r.
+3. Items 4, 8r, 16r, 15r,  11
+5. Items 3r, 4, 7, 8r, 11 
+4. Items 1, 3r, 4, 9r, 11, 17 (6 items)
+
+
+### Scale 1
+
+1. Whooping cough often makes you sick for months. 
+1. Childhood diseases are serious diseases.
+1. Diseases like measles, mumps, and whooping cough can cause permanent damage to a child who contracts them.
+1. Childhood diseases are not that big a deal.*
+1. Measles, mumps, and whooping cough are mild enough that they don’t really deserve to be called “diseases.”*
+
+```{r}
+s1 <- all_items[c(2,4,7,8,16)]
+
+s1.alpha <- psych::alpha(train[,s1])
+s1.alpha$total$raw_alpha
+s1.alpha
+```
+
+### Scale 2
+
+1.  Measles can be life-threatening.
+1. Childhood diseases are serious diseases.
+1. Diseases like measles, mumps, and whooping cough can cause permanent damage to a child who contracts them.
+1. Childhood diseases are not that big a deal.*
+1. Measles, mumps, and whooping cough are no more severe than the flu.*
+
+```{r}
+s2 <- all_items[c(1,4,7,8,3)]
+
+s2.alpha <- psych::alpha(train[,s2])
+s2.alpha$total$raw_alpha
+s2.alpha
+```
+
+### Scale 3
+
+1. Childhood diseases are serious diseases.
+1. Childhood diseases are not that big a deal.*
+1.Whooping cough is much like any other cough.*
+1. Measles, mumps, and whooping cough are mild enough that they don’t really deserve to be called “diseases.”*
+1. Diseases like measles and whooping cough are extremely dangerous for young children.
+
+```{r}
+s3 <- all_items[c(4,8,16,15,11)]
+
+s3.alpha <- psych::alpha(train[,s3])
+s3.alpha$total$raw_alpha
+s3.alpha
+```
+
+
+### Scale 4
+
+1. Measles, mumps, and whooping cough are no more severe than the flu.*
+4. Childhood diseases are serious diseases.
+7. Diseases like measles, mumps, and whooping cough can cause permanent damage to a child who contracts them.
+8. Childhood diseases are not that big a deal.*
+11. Diseases like measles and whooping cough are extremely dangerous for young children.
+
+```{r}
+s4 <- all_items[c(3,4,7,8,11)]
+
+s4.alpha <- psych::alpha(train[,s4])
+s4.alpha$total$raw_alpha
+s4.alpha
+```
+
+###  Scale 5
+
+1. Measles can be life-threatening.
+3. Measles, mumps, and whooping cough are no more severe than the flu.*
+4. Childhood diseases are serious diseases.
+9. A child getting measles might be a hassle, but it would not be a cause for serious concern.*
+11. Diseases like measles and whooping cough are extremely dangerous for young children.
+17. Measles and whooping cough can be just as deadly as Polio.
+
+```{r}
+s5 <- all_items[c(1, 3, 4, 9, 11, 17)]
+
+s5.alpha <- psych::alpha(train[,s5])
+s5.alpha$total$raw_alpha
+s5.alpha
+```
+
+# Validation
+
+Now we'll test all 5 on the validation set and see how great the loss of reliability is.
+
+
+```{r}
+s1 <- all_items[c(2,4,7,8,16)]
+
+s1.alpha <- psych::alpha(test[,s1])
+s1.alpha$total$raw_alpha
+s1.alpha
+```
+
+```{r}
+s2 <- all_items[c(1,4,7,8,3)]
+
+s2.alpha <- psych::alpha(test[,s2])
+s2.alpha$total$raw_alpha
+# s2.alpha
+```
+
+```{r}
+s3 <- all_items[c(4,8,16,15,11)]
+
+s3.alpha <- psych::alpha(test[,s3])
+s3.alpha$total$raw_alpha
+s3.alpha
+```
+
+
+```{r}
+s4 <- all_items[c(3,4,7,8,11)]
+
+s4.alpha <- psych::alpha(test[,s4])
+s4.alpha$total$raw_alpha
+s4.alpha
+```
+
+```{r}
+s5 <- all_items[c(1, 3, 4, 9, 11, 17)]
+
+s5.alpha <- psych::alpha(test[,s5])
+s5.alpha$total$raw_alpha
+s5.alpha
+```
+
+## Result
+
+All are acceptably reliable! Scale 3 has the highest reliability at validation (and 95% confidence intervals don't go below .80), but I think we can feel reasonably safe picking from among these scales (and possibly recombining items).
+
+
+

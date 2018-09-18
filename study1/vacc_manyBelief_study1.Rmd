@@ -1,0 +1,780 @@
+---
+title: 'Vaccines: Many Beliefs Study 1'
+author: "Derek Powell, Kara Weisman"
+date: "September 7, 2017"
+output: html_notebook
+---
+
+```{r setup}
+library(tidyverse)
+library(stringr)
+library(corrplot)
+library(viridis)
+library(psych)
+library(glmpath)
+library(bnlearn)
+```
+
+
+```{r}
+# moved all data import/munging to a separate file 
+# so we can have multiple workbooks working withthe same data
+
+source("vacc_import_data.R", chdir = TRUE)
+```
+
+# Introduction
+
+This is a notebook for the first experiment of our (Kara, Ellen, and Derek) study examining vaccine theories using multiple attitude measures. We recruited 1200 and are left with `r length(d_demo$ResponseId)` after excluding any participants who failed at least 1 of the 2 attention checks.
+
+
+# Demographics
+
+A quick look at demographics variables...
+
+## Study duration
+
+```{r duration}
+ggplot(d_demo, aes(x = Duration/60)) +
+  geom_histogram() +
+  geom_vline(xintercept = median(d_demo$Duration/60), color = "blue") +
+  annotate("label", x = 0, y = 350, color = "blue", hjust = 0,
+           label = paste0("median: ", round(median(d_demo$Duration/60)), "min")) +
+  labs(x = "duration (min)") +
+  theme_bw()
+```
+
+## Gender
+
+```{r sex}
+ggplot(d_demo, aes(x = sex)) +
+  geom_bar() +
+  labs(x = "gender") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Age
+
+```{r age}
+ggplot(d_demo, aes(x = age)) +
+  geom_histogram() +
+  geom_vline(xintercept = median(d_demo$age), color = "blue") +
+  annotate("label", x = 0, y = 150, color = "blue", hjust = 0,
+           label = paste0("median: ", round(median(d_demo$age)), "y")) +
+  labs(x = "age (y)") +
+  theme_bw()
+```
+
+## Race
+
+```{r race}
+ggplot(d_demo, aes(x = race)) +
+  geom_bar() +
+  labs(x = "race") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Religion
+
+```{r religion}
+ggplot(d_demo, aes(x = religion)) +
+  geom_bar() +
+  labs(x = "religion") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Education
+
+```{r education}
+ggplot(d_demo, aes(x = educ)) +
+  geom_bar() +
+  labs(x = "educ") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Income
+
+```{r income}
+ggplot(d_demo, aes(x = income)) +
+  geom_bar() +
+  labs(x = "income") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Parent
+
+```{r parent}
+ggplot(d_demo, aes(x = parent)) +
+  geom_bar() +
+  labs(x = "parent") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Expecting
+
+```{r expecting}
+ggplot(d_demo, aes(x = expecting)) +
+  geom_bar() +
+  labs(x = "expecting") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Number of children
+
+```{r children}
+ggplot(d_demo, aes(x = factor(children))) +
+  geom_bar() +
+  labs(x = "number of children") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Age of youngest child
+
+```{r youngest_child}
+ggplot(d_demo, aes(x = factor(youngest_child))) +
+  geom_bar() +
+  labs(x = "age of youngest child") +
+  theme_bw() +
+  coord_flip()
+```
+
+## Comments on study experience
+
+```{r comments}
+d_demo %>% select(comments)
+```
+
+
+# Heatmap
+
+```{r heatmap, fig.width = 5, fig.height = 5}
+# make dataframe for heatmpa, efa, etc.
+d_efa <- d_wide %>% select(-c(StartDate, Duration, sex:comments)) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId")
+
+# make correlation plot heatmap
+# corrplot(cor(d_efa),
+#          tl.cex=.75,
+#          tl.col="black",
+#          method="color",
+#          col=viridis(128))
+
+# with clustering
+corrplot(cor(d_efa),
+         order="hclust",
+         # addrect=3,
+         tl.cex=.75,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+```
+
+
+
+# Exploratory factor analysis
+
+Just for fun, let's do exploratory factor analysis!
+
+```{r efa}
+# NEED TO AUTOMATE THIS: do maximal unrotated efa, retain factors with SS loadings > 1 and Prop Explained > 0.05
+fa_maximal <- fa(d_efa, nfactors = floor(length(levels(factor(d_long$question)))/3), rotate = "none")
+nfactors_efa <- 4
+
+# small rotated efa (oblimin rotation, doesn't have to be orthogonal)
+fa_small <- fa(d_efa, nfactors = nfactors_efa, rotate = "oblimin")
+fa.sort(fa_small$loadings)
+```
+
+By my typical factor retention criteria, we observe for 4 factors here:
+
+1. Beliefs/attitudes about vaccines and medical skepticism
+2. Beliefs/attitudes about infants
+3. Beliefs/attitudes about holistic balance and naturalism
+4. Beliefs/attitudes about childhood diseases
+
+```{r parallel analysis}
+# extract number of factors recommended by fa.parallel
+fa_parallel <- fa(d_efa, nfactors = fa.parallel(d_efa, plot = F)$nfact, rotate = "oblimin")
+fa.sort(fa_parallel$loadings)
+```
+
+By anoother criterion (parallel analysis) we observe 12ish factors. For the most part, these correspond to the 14 intended scales, with a little bit of combination in the factors related to vaccines per se:
+
+1. Vaccine intentions + some other beliefs/attitudes about vaccines (*vaccIntent* + *vaccEff* + some of *vaccDanger*)
+2. Disease severity (*diseaseSevere*)
+3. Vaccines strain the immune system + some other beliefs/attitudes about vaccines (*vaccStrain* + some of *vaccDanger*)
+4. Infant immune system is weak (*infantImmWeak*)
+5. Infant immune system has limited capacity (*infantImmLimCap*)
+6. Disease rarity (*diseaseRare*)
+7. Holistic balance (*hb*)
+8. Parent expertise (*parentExpert*)
+9. Overparenting (*overpar*)
+10. Vaccines are toxic (*vaccTox* + some of *vaccDanger*)
+11. Naturalism (*nat*)
+12. Medical skepticism (*medSkept*)
+
+Now let's leave the vaccIntent scale out of this (holding it out as our DV) and do traditional-style EFA for all the rest of the items:
+
+```{r efa without vaccIntent}
+# NEED TO AUTOMATE THIS: do maximal unrotated efa, retain factors with SS loadings > 1 and Prop Explained > 0.05
+fa_maximal2 <- fa(d_efa %>% select(-starts_with("vaccIntent")), 
+                 nfactors = floor(length(levels(factor(d_long$question)))/3), 
+                 rotate = "none")
+nfactors_efa2 <- 4
+
+# small rotated efa (oblimin rotation, doesn't have to be orthogonal)
+fa_small2 <- fa(d_efa %>% select(-starts_with("vaccIntent")), 
+                                 nfactors = nfactors_efa2, 
+                                 rotate = "oblimin")
+fa.sort(fa_small2$loadings)
+```
+
+By my typical factor retention criteria, we again observe for 4 factors here - very similar to the 4 factors we observed when we left the vaccIntent scale in:
+
+1. Beliefs/attitudes about vaccines, medical skepticism, parental expertise, and naturalism
+2. Beliefs/attitudes about infants' immune systems (and a little overparenting)
+3. Beliefs/attitudes about childhood diseases
+4. Beliefs/attitudes about holistic balance and overparenting (and a little naturalism)
+
+# Scale reliability analyses
+
+As a reminder, our goal was $\alpha$ >= 0.80 for each scale individually.
+
+## Alpha for each scale
+
+### Disease rarity (*diseaseRare*)
+
+```{r reliability diseaseRare}
+alpha_diseaseRare <- d_long %>%
+  filter(question_block == "diseaseRare") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_diseaseRare
+```
+
+For *diseaseRare*, $\alpha$ = `r round(alpha_diseaseRare$total$raw_alpha, 2)`. This is *just* under our cutoff (ok).
+
+### Disease severity (*diseaseSevere*)
+
+```{r reliability diseaseSevere}
+alpha_diseaseSevere <- d_long %>%
+  filter(question_block == "diseaseSevere") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_diseaseSevere
+```
+
+For *diseaseSevere*, $\alpha$ = `r round(alpha_diseaseSevere$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+### Holistic balance (*hb*)
+
+```{r reliability hb}
+alpha_hb <- d_long %>%
+  filter(question_block == "hb") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_hb
+```
+
+For *hb*, $\alpha$ = `r round(alpha_hb$total$raw_alpha, 2)`. This is a little over our cutoff (good).
+
+### Infant immune system has limited capacity (*infantImmLimCap*)
+
+```{r reliability infantImmLimCap}
+alpha_infantImmLimCap <- d_long %>%
+  filter(question_block == "infantImmLimCap") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_infantImmLimCap
+```
+
+For *infantImmLimCap*, $\alpha$ = `r round(alpha_infantImmLimCap$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+### Infant immune system is weak (*infantImmWeak*)
+
+```{r reliability infantImmWeak}
+alpha_infantImmWeak <- d_long %>%
+  filter(question_block == "infantImmWeak") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_infantImmWeak
+```
+
+For *infantImmWeak*, $\alpha$ = `r round(alpha_infantImmWeak$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+### Medical skepticism (*medSkept*)
+
+```{r reliability medSkept}
+alpha_medSkept <- d_long %>%
+  filter(question_block == "medSkept") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_medSkept
+```
+
+For *medSkept*, $\alpha$ = `r round(alpha_medSkept$total$raw_alpha, 2)`. This is just under our cutoff (ok).
+
+### Naturalism (*nat*)
+
+```{r reliability nat}
+alpha_nat <- d_long %>%
+  filter(question_block == "nat") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_nat
+```
+
+For *nat*, $\alpha$ = `r round(alpha_nat$total$raw_alpha, 2)`. This is just under our cutoff (ok).
+
+### Overparenting (*overpar*)
+
+```{r reliability overpar}
+alpha_overpar <- d_long %>%
+  filter(question_block == "overpar") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_overpar
+```
+
+For *overpar*, $\alpha$ = `r round(alpha_overpar$total$raw_alpha, 2)`. This is quite a bit under our cutoff (not great).
+
+### Parental expertise (*parentExpert*)
+
+```{r reliability parentExpert}
+alpha_parentExpert <- d_long %>%
+  filter(question_block == "parentExpert") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_parentExpert
+```
+
+For *parentExpert*, $\alpha$ = `r round(alpha_parentExpert$total$raw_alpha, 2)`. This is just over our cutoff (good).
+
+### Vaccines are dangerous (*vaccDanger*)
+
+```{r reliability vaccDanger}
+alpha_vaccDanger <- d_long %>%
+  filter(question_block == "vaccDanger") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_vaccDanger
+```
+
+For *vaccDanger*, $\alpha$ = `r round(alpha_vaccDanger$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+### Vaccines are effective (*vaccEff*)
+
+```{r reliability vaccEff}
+alpha_vaccEff <- d_long %>%
+  filter(question_block == "vaccEff") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_vaccEff
+```
+
+For *vaccEff*, $\alpha$ = `r round(alpha_vaccEff$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+### Vaccine intentions (*vaccIntent*)
+
+```{r reliability vaccIntent}
+alpha_vaccIntent <- d_long %>%
+  filter(question_block == "vaccIntent") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_vaccIntent
+```
+
+For *vaccIntent*, $\alpha$ = `r round(alpha_vaccIntent$total$raw_alpha, 2)`. This is just over our cutoff (good).
+
+### Vaccines strain the immune system (*vaccStrain*)
+
+```{r reliability vaccStrain}
+alpha_vaccStrain <- d_long %>%
+  filter(question_block == "vaccStrain") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_vaccStrain
+```
+
+For *vaccStrain*, $\alpha$ = `r round(alpha_vaccStrain$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+### Vaccines are toxic (*vaccTox*)
+
+```{r reliability vaccTox}
+alpha_vaccTox <- d_long %>%
+  filter(question_block == "vaccTox") %>%
+  select(ResponseId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  alpha()
+
+alpha_vaccTox
+```
+
+For *vaccTox*, $\alpha$ = `r round(alpha_vaccTox$total$raw_alpha, 2)`. This is well over our cutoff (good).
+
+## Scale reliability summary
+
+Things worked out pretty well:
+
+- 10 scales were above the $\alpha$ = 0.80 cutoff (*diseaseSevere*, *hb*,*infantImmLimCap*, *infantImmWeak*, *parentExpert*, *vaccDanger*, *vaccEff*, *vaccIntent*, *vaccStrain*, *vaccTox*)
+- 3 scales were just under the cutoff (*diseaseRare*: $\alpha$ = `r round(alpha_diseaseRare$total$raw_alpha, 2)`; *medSkept*: $\alpha$ = `r round(alpha_medSkept$total$raw_alpha, 2)`; *nat*: $\alpha$ = `r round(alpha_nat$total$raw_alpha, 2)`)
+- 1 scale was pretty well below the cutoff (*overpar*: $\alpha$ = `r round(alpha_overpar$total$raw_alpha, 2)`)
+
+So, we should probably be a little cautious in interpreting results related to overparenting (*overpar*) (though note that even that reliability is not terrible relative to what other research groups use!).
+
+
+# Scale score distributions
+
+Let's look at the distributions of scores on each scale. I scored each scale by taking the average of the participant's responses to items on that scale - so for each scale, scores could theoretically range from -3 (participant said "Strongly disagree" to all items after reverse-coding) to +3 (participant said "Strongly agree" to all items after reverse-coding).
+
+```{r score distributions, fig.width = 5, fig.asp = 0.67}
+score_medians <- d_sum %>%
+  mutate(scale = recode_factor(
+    question_block,
+    "vaccIntent" = "Vaccination Intentions",
+    "nat" = "Naturalism",
+    "hb" = "Holistic Balance",
+    "overpar" = "Protective Parenting",
+    "parentExpert" = "Parental Expertise",
+    "medSkept" = "Medical Skepticism",
+    "vaccDanger" = "Vaccine Danger",
+    "vaccTox" = "Toxic Additives in Vaccines",
+    "vaccEff" = "Vaccine Efficacy",
+    "diseaseRare" = "Disease Rarity",
+    "diseaseSevere" = "Disease Severity",
+    "infantImmWeak" = "Infant Immune System:\nWeakness",
+    "infantImmLimCap" = "Infant Immune System:\nLimited Capacity",
+    "vaccStrain" = "Infant Immune System:\nVaccines Strain")) %>%
+  group_by(scale) %>%
+  summarise(median_score = median(score))
+
+d_sum %>%
+  mutate(scale = recode_factor(
+    question_block,
+    "vaccIntent" = "Vaccination Intentions",
+    "nat" = "Naturalism",
+    "hb" = "Holistic Balance",
+    "overpar" = "Protective Parenting",
+    "parentExpert" = "Parental Expertise",
+    "medSkept" = "Medical Skepticism",
+    "vaccDanger" = "Vaccine Danger",
+    "vaccTox" = "Toxic Additives in Vaccines",
+    "vaccEff" = "Vaccine Efficacy",
+    "diseaseRare" = "Disease Rarity",
+    "diseaseSevere" = "Disease Severity",
+    "infantImmWeak" = "Infant Immune System:\nWeakness",
+    "infantImmLimCap" = "Infant Immune System:\nLimited Capacity",
+    "vaccStrain" = "Infant Immune System:\nVaccines Strain")) %>%
+  ggplot(aes(x = score)) +
+  facet_wrap(~ scale, ncol = 5) +
+  geom_histogram(binwidth = 0.25) +
+  scale_x_continuous(limits = c(-3, 3), breaks = seq(-3, 3, 1)) +
+  geom_vline(data = score_medians, aes(xintercept = median_score), 
+             color = "blue") +
+  geom_label(data = score_medians,
+             aes(x = -3, y = 200, 
+                 label = paste0("median: ", round(median_score, 2))),
+             color = "blue", hjust = 0) +
+  labs(x = "Score", y = "Number of participants") +
+  theme_bw()
+```
+
+Most of these scales are pretty normally distributed, with the major exceptions of *diseaseSevere* and *vaccIntent*, which are both severely skewed, and a few other more minor ceiling/floor issues (e.g., *vaccDanger*, *vaccEff*, *vaccTox*).
+
+
+# First-order correlations
+
+```{r}
+# with clustering
+corrplot(cor(d_bn),
+         order="hclust",
+         # addrect=3,
+         tl.cex=.75,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+```
+
+```{r, fig.width = 4, fig.asp = 0.8}
+temp_order <- corrMatOrder(cor(d_bn))
+
+temp_cor <- cor(d_bn)[temp_order, temp_order] %>%
+  data.frame() %>%
+  rownames_to_column("scale1") %>%
+  mutate(order1 = 1:14) %>%
+  gather(scale2, cor, -c(scale1, order1)) 
+
+temp_cor_df <- temp_cor %>%
+  full_join(temp_cor %>% 
+              distinct(scale1, order1) %>%
+              rename(scale2 = scale1, order2 = order1)) %>%
+  mutate_at(vars(scale1, scale2),
+            funs(recode(.,
+                        "diseaseRare" = "Disease Rarity",
+                        "diseaseSevere" = "Disease Severity",
+                        "hb" = "Holistic Balance",
+                        "infantImmLimCap" = "Infant Immune System: Limited Capacity",
+                        "infantImmWeak" = "Infant Immune System: Weakness",
+                        "medSkept" = "Medical Skepticism",
+                        "nat" = "Naturalism",
+                        "overpar" = "Protective Parenting",
+                        "parentExpert" = "Parental Expertise",
+                        "vaccDanger" = "Vaccine Danger",
+                        "vaccEff" = "Vaccine Efficacy",
+                        "vaccIntent" = "Vaccination Intentions",
+                        "vaccStrain" = "Infant Immune System: Vaccines Strain",
+                        "vaccTox" = "Toxic Additives in Vaccines")))
+
+ggplot(temp_cor_df,
+       aes(x = reorder(scale1, desc(order1)), 
+           y = reorder(scale2, order2), 
+           fill = cor)) +
+  geom_tile(color = "black") +
+  geom_text(aes(label = format(round(cor, 2), digits = 2)), size = 3) +
+  scale_fill_viridis("R", limits = c(-1, 1),
+                     guide = guide_colorbar(barheight = 15)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        axis.title = element_blank())
+```
+
+
+# Regularized regression
+
+Here's another thing I know how to do, so why not try it...
+
+```{r glmpath}
+# make a matrix for predictors
+predictors <- d_sum %>% 
+  select(ResponseId, question_block, score) %>%
+  arrange(ResponseId, question_block) %>%
+  filter(question_block != "vaccIntent") %>%
+  spread(question_block, score) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  as.matrix()
+
+# make a matrix for outcome
+outcome <- d_sum %>%
+  select(ResponseId, question_block, score) %>%
+  arrange(ResponseId, question_block) %>%
+  filter(question_block == "vaccIntent") %>%
+  spread(question_block, score) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId") %>%
+  as.matrix()
+  
+glm_fit <- glmpath(predictors, outcome, family = "gaussian"); glm_fit
+# plot(glm_fit, xvar = "lambda")
+
+d_glm <- glm_fit$b.predictor %>% # extract the coefficient estimates
+  data.frame() %>% # turn them into a dataframe
+  rownames_to_column(var = "step") %>% # add the rownames as a "step" variable
+  mutate(lambda = glm_fit$lambda, # add the lambda values for each step
+         aic = glm_fit$aic, # add AIC for each step
+         bic = glm_fit$bic) %>% # add BIC for each step
+  gather(scale, coeff, diseaseRare:vaccTox) %>% # turn into longform
+  arrange(step, scale) # arrange by step number and scale
+
+d_glm_labs <- d_glm %>% filter(lambda == 0) %>% select(scale, coeff)
+
+ggplot(data = d_glm, aes(x = lambda, y = coeff, color = scale)) +
+  geom_point() +
+  geom_line() + 
+  scale_x_reverse(limits = c(1200, -300)) +
+  geom_text(data = d_glm_labs, aes(x = -10, y = coeff, label = scale), hjust = 0) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  labs(title = "Order of predictors based on regularized regression",
+       subtitle = "Most important predictors' coefficients become non-zero first (when lambda is large)")
+```
+
+Regularized regression suggests that, in the aggregate, beliefs that vaccines are *not* dangerous (opposite of *vaccDanger*) and that vaccines are effective (*vaccEff*) are particularly strong predictors of intentions to vaccinate. 
+
+The next most important predictors is a belief that vaccines are *not* toxic (opposite of *vaccTox*), followed by a belief that do *not* strain the immune system (opposite of *vaccStrain*), a belief that childhood diseases are severe (*diseaseSevere*), and a *lack* of medical skepticism (opposite of *medSkept*). 
+
+Other predictors seem less important, according to this analysis. 
+
+**Important**: This does *not* take into account all the causal relationships among the different scales that we are primarily interested in - it just examines each scale and its direct relationship to our outcome variable (*vaccIntent*). (Perhaps these will end up being the most proximal causal relationships...?)
+
+
+# Bayesian network structure learning
+
+A first attempt!
+
+Resources used:
+
+- [package guide](https://cran.r-project.org/web/packages/bnlearn/bnlearn.pdf)
+- [hameddaily.blogspot.com](http://hameddaily.blogspot.com/2015/02/bayesian-network-in-r-introduction.html)
+- [UC Denver Biostatistics dept.](http://www.ucdenver.edu/academics/colleges/PublicHealth/Academics/departments/Biostatistics/WorkingGroups/Documents/Networks%20Presentation%20With%20Sachs%20-%20032317.pdf)
+
+```{r bn dataframe}
+d_bn <- d_sum %>%
+  select(ResponseId, question_block, score) %>%
+  spread(question_block, score) %>%
+  remove_rownames() %>%
+  column_to_rownames("ResponseId")
+```
+
+## Learning the structure
+
+There are lots of different methods... still figuring out what they mean.
+
+### Method 1: Grow-shrink
+
+From the package info: "Based on the Grow-Shrink Markov Blanket, the first (and simplest) Markov
+blanket detection algorithm used in a structure learning algorithm."
+
+```{r bn grow-shrink, fig.width = 6, fig.height = 6}
+res_bn_gs <- gs(d_bn)
+plot(res_bn_gs)
+```
+
+### Method 2: Incremental association
+
+From the package info: "based on the Markov blanket detection algorithm of the same name, which is based on a two-phase selection scheme (a forward selection followed by an attempt to remove false positives)."
+
+```{r bn iamb, fig.width = 6, fig.height = 6}
+res_bn_iamb <- iamb(d_bn)
+plot(res_bn_iamb)
+```
+
+### Method 3: Fast incremental association
+
+From the package info: "a variant of IAMB which uses speculative stepwise forward selection to reduce the number of conditional independence tests."
+
+```{r bn fast.iamb, fig.width = 6, fig.height = 6}
+res_bn_fast.iamb <- fast.iamb(d_bn)
+plot(res_bn_fast.iamb)
+```
+
+### Method 4: Interleaved incremental association
+
+From the package info: "another variant of IAMB which uses forward stepwise selection to avoid false positives in the Markov blanket detection phase."
+
+```{r bn inter.iamb, fig.width = 6, fig.height = 6}
+res_bn_inter.iamb <- inter.iamb(d_bn)
+plot(res_bn_inter.iamb)
+```
+
+### Method 5: Hill-climbing
+
+From the package info: "a hill climbing greedy search on the space of the directed graphs. The optimized implementation uses score caching, score decomposability and score equivalence to reduce the number of duplicated tests."
+
+```{r bn hc, fig.width = 6, fig.height = 6}
+res_bn_hc <- hc(d_bn)
+plot(res_bn_hc)
+```
+
+### Method 6: Tabu search
+
+From the package info: "a modified hill-climbing able to escape local optima by selecting a network
+that minimally decreases the score function."
+
+```{r bn tabu, fig.width = 6, fig.height = 6}
+res_bn_tabu <- tabu(d_bn)
+plot(res_bn_tabu)
+```
+
+### Method 7: Max-min hill-climbing
+
+From the package info: "a hybrid algorithm which combines the Max-Min Parents and Children algorithm (to restrict the search space) and the Hill-Climbing algorithm (to find the optimal network structure in the restricted space)."
+
+```{r bn mmhc, fig.width = 6, fig.height = 6}
+res_bn_mmhc <- mmhc(d_bn)
+plot(res_bn_mmhc)
+```
+
+### Method 8: Restricted maximization
+
+From the package info: "a more general implementation of the Max-Min Hill-Climbing, which can use any combination of constraint-based and score-based algorithms."
+
+```{r bn rsmax2, fig.width = 6, fig.height = 6}
+res_bn_rsmax2 <- rsmax2(d_bn)
+plot(res_bn_rsmax2)
+```
+
+Let's go with MMHC (Method #7) for now (for no real reason other than the fact that I've heard of it before).
+
+## Parameter learning
+
+```{r bn parameter learning}
+res_bn_mmhc_fitted <- bn.fit(res_bn_mmhc, data = d_bn); res_bn_mmhc_fitted
+```
+
+## Limit to just parents?
+
+```{r bn just parents, fig.width = 6, fig.height = 6}
+d_bn_parents <- d_bn %>%
+  rownames_to_column("ResponseId") %>%
+  left_join(d_demo %>% select(ResponseId, parent)) %>%
+  filter(parent == "Yes") %>%
+  select(-parent) %>%
+  column_to_rownames("ResponseId")
+
+res_bn_parents_mmhc <- mmhc(d_bn_parents)
+plot(res_bn_parents_mmhc)
+```

@@ -1,0 +1,517 @@
+---
+title: "Vaccines: Many Beliefs Pilot 2"
+author: "Derek Powell"
+date: "June 21, 2017"
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+
+
+```{r}
+library(ggplot2)
+df <- read.csv("data/vb_pilot2.csv")
+df <- df[which(df$parentDuty_check_3==3 & df$diseaseRare_check_5==5),]
+
+# first need to do some data cleaning
+all_items <- c("hb_hb_1",
+"hb_hb_2",
+"hb_hb_3",
+"hb_hb_4",
+"nat_nat_1",
+"nat_nat_2r",
+"nat_nat_3",
+"nat_nat_4",
+"nat_nat_5",
+"medSkept_medSkept_1",
+"medSkept_medSkept_2r",
+"medSkept_medSkept_3",
+"medSkept_medSkept_4",
+"medSkept_medSkept_5",
+"medSkept_medSkept_6",
+"diseaseRare_diseaseRare_1",
+"diseaseRare_diseaseRare_2",
+"diseaseRare_diseaseRare_3",
+"diseaseSevere_diseaseSevere_1",
+"diseaseSevere_diseaseSevere_2",
+"diseaseSevere_diseaseSevere_3",
+"diseaseSevere_diseaseSevere_4",
+"diseaseSevere_diseaseSevere_5r",
+"vaccEff_vaccEff_1",
+"vaccEff_vaccEff_2r",
+"vaccEff_vaccEff_3r",
+"vaccEff_vaccEff_4",
+"vaccDanger_vaccDanger_1",
+"vaccDanger_vaccDanger_2",
+"vaccDanger_vaccDanger_3",
+"vaccDanger_vaccDanger_4r",
+"vaccTox_vaccTox_1",
+"vaccTox_vaccTox_2",
+"vaccTox_vaccTox_3",
+"vaccTox_vaccTox_4r",
+"vaccStrain_vaccStrain_1",
+"vaccStrain_vaccStrain_2r",
+"vaccStrain_vaccStrain_3",
+"vaccIntent_vaccIntent_1r",
+"vaccIntent_vaccIntent_2",
+"vaccIntent_vaccIntent_3r",
+"vaccIntent_vaccIntent_4",
+"vaccIntent_vaccIntent_5r",
+"infantVuln_infantVuln_1r",
+"infantVuln_infantVuln_2",
+"infantVuln_infantVuln_3",
+"parentDuty_parentDuty_1",
+"parentDuty_parentDuty_2",
+"parentDuty_parentDuty_3",
+"parentDuty_parentDuty_4",
+"parentExpert_parentExpert_1",
+"parentExpert_parentExpert_2",
+"parentExpert_parentExpert_3",
+"parentExpert_parentExpert_4",
+"parentExpert_parentExpert_5",
+"infantImmLimCap_infantImmLimCap_1",
+"infantImmLimCap_infantImmLimCap_2r",
+"infantImmLimCap_infantImmLimCap_3",
+"infantImmLimCap_infantImmLimCap_4",
+"immSympt_immSympt_1",
+"immSympt_immSympt_2r",
+"immSympt_immSympt_3r",
+"infantImmWeak_infantImmWeak_1",
+"infantImmWeak_infantImmWeak_2",
+"infantImmWeak_infantImmWeak_3",
+"infantImmWeak_infantImmWeak_4r"
+  
+)
+
+reverse_items <- c("nat_nat_2r",
+                  "vaccEff_vaccEff_2r",
+                  "vaccEff_vaccEff_3r",
+                  "vaccTox_vaccTox_4r",
+                  "medSkept_medSkept_2r",
+                  "immSympt_immSympt_2r",
+                  "immSympt_immSympt_3r",
+                  "vaccDanger_vaccDanger_4r",
+                  "vaccStrain_vaccStrain_2r",
+                  "vaccIntent_vaccIntent_1r",
+                  "vaccIntent_vaccIntent_3r",
+                  "vaccIntent_vaccIntent_5r",
+                  "infantVuln_infantVuln_1r",
+                  "diseaseSevere_diseaseSevere_5r",
+                  "infantImmWeak_infantImmWeak_4r",
+                  "infantImmLimCap_infantImmLimCap_2r")
+
+# df[,all_items] <- lapply(df[,all_items], function(x) {
+#   8-x
+# })
+
+df[,reverse_items] <- lapply(df[,reverse_items], function(x) {
+  8-x
+})
+
+df_main <- df[,all_items]
+```
+# Introduction
+
+This is a notebook for the first pilot experiment of our (Kara, Ellen, and Derek) first pilot experiment examining vaccine theories using multiple attitude measures. We recruited 100 participants and lost 6 to comprehension checks, leaving 94.
+
+# Item Correlations
+
+Here's a correlation matrix for all individual items. It appears items of some scales are intercorrelating well, though others are weaker. There is also considerable correlation among items across scales--as we might expect.
+
+```{r,fig.height=9,fig.width=9}
+library(corrplot)
+library(viridis)
+
+corrplot(cor(df_main),
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+```
+
+Here's another matrix, this time sorted according to a hierarchical clustering algorithm, with bounding rectangles identifying clusters. Whereas we treated these as 15 different scales, this finds just 3 separate clusters. I don't think this is a problem--we expected and even hoped these scales would be correlated with one another.
+
+```{r,fig.height=9,fig.width=9}
+corrplot(cor(df_main[,all_items]),
+         order="hclust",
+         # addrect=3,
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+```
+
+# Scale Internal Consistency Reliability
+
+Below are computed chronbach's alpha for all scales along with more detailed analyses of scales that are problematic.
+
+## Holistic Balance
+
+```{r}
+hb <- c("hb_hb_1",
+"hb_hb_2",
+"hb_hb_3",
+"hb_hb_4")
+
+hb.alpha <- psych::alpha(df[,hb])
+hb.alpha$total$raw_alpha
+```
+
+## Naturalism
+
+```{r}
+nat <- c("nat_nat_1",
+"nat_nat_2r",
+"nat_nat_3",
+"nat_nat_4",
+"nat_nat_5")
+
+naturalism.alpha <- psych::alpha(df[,nat])
+naturalism.alpha$total$raw_alpha
+
+```
+
+## Disease Rarity
+
+**NOTE**: we previously scored this one kind of strangely, so it's now been relabeld as "diseaseRare" to indicate that it reflects participants' belief the diseases are extremely rare.
+
+```{r}
+diseaseRare <- c("diseaseRare_diseaseRare_1",
+"diseaseRare_diseaseRare_2",
+"diseaseRare_diseaseRare_3")
+
+diseaseRare.alpha <- psych::alpha(df[,diseaseRare])
+diseaseRare.alpha$total$raw_alpha
+
+```
+
+## Disease Severity
+
+```{r}
+diseaseSevere <- c("diseaseSevere_diseaseSevere_1",
+"diseaseSevere_diseaseSevere_2",
+"diseaseSevere_diseaseSevere_3",
+"diseaseSevere_diseaseSevere_4",
+"diseaseSevere_diseaseSevere_5r")
+
+diseaseSevere.alpha <- psych::alpha(df[,diseaseSevere])
+diseaseSevere.alpha$total$raw_alpha
+diseaseSevere.alpha 
+
+```
+### Diagnosing
+
+Here are histograms of each item
+
+```{r}
+library(ggplot2)
+library(reshape2)
+
+ggplot(data = melt(df[,diseaseSevere]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 7) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+corrplot(cor(df[,diseaseSevere]),
+         type="lower",
+         order="alpha",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+
+```
+
+Now try McDonald's Omega (which might be better for all--though some problem with scales with only 3 items?). The robust estimates mostly seem higher than the normal estimates.
+
+```{r}
+library(coefficientalpha)
+
+omega(df[,diseaseSevere])
+```
+
+
+
+## Vaccine Effectiveness
+
+```{r}
+vaccEff <- c("vaccEff_vaccEff_1",
+"vaccEff_vaccEff_2r",
+"vaccEff_vaccEff_3r",
+"vaccEff_vaccEff_4")
+
+vaccEff.alpha <- psych::alpha(df[,vaccEff])
+vaccEff.alpha$total$raw_alpha
+```
+
+## Vaccine Danger
+
+```{r}
+vaccDanger <- c("vaccDanger_vaccDanger_1",
+"vaccDanger_vaccDanger_2",
+"vaccDanger_vaccDanger_3",
+"vaccDanger_vaccDanger_4r")
+
+vaccDanger.alpha <- psych::alpha(df[,vaccDanger])
+vaccDanger.alpha$total$raw_alpha
+```
+
+## Vaccines are toxic
+
+```{r}
+vaccTox <- c("vaccTox_vaccTox_1",
+"vaccTox_vaccTox_2",
+"vaccTox_vaccTox_3",
+"vaccTox_vaccTox_4r")
+
+vaccTox.alpha <- psych::alpha(df[,vaccTox])
+vaccTox.alpha$total$raw
+```
+
+## Medical Skepticism
+
+```{r}
+medSkept <- c("medSkept_medSkept_1",
+"medSkept_medSkept_2r",
+"medSkept_medSkept_3",
+"medSkept_medSkept_4",
+"medSkept_medSkept_5",
+"medSkept_medSkept_6")
+
+medSkept.alpha <- psych::alpha(df[,medSkept])
+medSkept.alpha$total$raw_alpha
+```
+
+## Vaccination Intentions
+
+```{r}
+vaccIntent <- c("vaccIntent_vaccIntent_1r",
+"vaccIntent_vaccIntent_2",
+"vaccIntent_vaccIntent_3r",
+"vaccIntent_vaccIntent_4",
+"vaccIntent_vaccIntent_5r")
+
+vaccIntent.alpha <- psych::alpha(df[,vaccIntent])
+vaccIntent.alpha$total$raw_alpha
+```
+
+## Infant vulnerability (general)
+
+Reliabilty here is somewhat low. 
+
+```{r}
+infantVuln <- c("infantVuln_infantVuln_1r",
+"infantVuln_infantVuln_2",
+"infantVuln_infantVuln_3")
+
+infantVuln.alpha <- psych::alpha(df[,infantVuln])
+
+infantVuln.alpha$total$raw_alpha
+infantVuln.alpha
+```
+
+## Parental Duty
+
+This remains middling.
+
+```{r}
+parDuty <- c("parentDuty_parentDuty_1",
+"parentDuty_parentDuty_2",
+"parentDuty_parentDuty_3",
+"parentDuty_parentDuty_4")
+
+parDuty.alpha <- psych::alpha(df[,parDuty])
+parDuty.alpha$total$raw_alpha
+parDuty.alpha
+```
+
+## Parental Expertise (and patient individualism)
+
+As does this. 
+
+```{r}
+parExpert <- c("parentExpert_parentExpert_1",
+"parentExpert_parentExpert_2",
+"parentExpert_parentExpert_3",
+"parentExpert_parentExpert_4",
+"parentExpert_parentExpert_5")
+
+parExpert.alpha <- psych::alpha(df[,parExpert])
+parExpert.alpha$total$raw_alpha
+parExpert.alpha
+```
+```{r}
+library(ggplot2)
+library(reshape2)
+
+ggplot(data = melt(df[,parExpert]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 7) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+
+corrplot(cor(df[,parExpert]),
+         type="lower",
+         order="AOE",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+
+psych::alpha(df[, c("parentExpert_parentExpert_1",
+"parentExpert_parentExpert_2",
+
+"parentExpert_parentExpert_5")])
+```
+
+
+## Infant immune system has limited capacity
+
+Reliability much better now. Perhaps still not as high as we'd like but seriously improved. 
+
+```{r}
+immCap <- c("infantImmLimCap_infantImmLimCap_1",
+"infantImmLimCap_infantImmLimCap_2r",
+"infantImmLimCap_infantImmLimCap_3",
+"infantImmLimCap_infantImmLimCap_4")
+
+immCap.alpha <- psych::alpha(df[,immCap])
+immCap.alpha$total$raw_alpha
+immCap.alpha
+
+```
+
+
+```{r}
+
+library(ggplot2)
+library(reshape2)
+
+ggplot(data = melt(df[,immCap]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 7) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+
+corrplot(cor(df[,c(immCap,immWeak)]),
+         order="AOE",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+
+psych::alpha(df[,c(immCap,immWeak)])
+```
+
+
+## Immune system produces cold symptoms
+
+Reliability better but still somewhat middling here.
+
+```{r}
+immSympt <- c("immSympt_immSympt_1",
+"immSympt_immSympt_2r",
+"immSympt_immSympt_3r")
+
+immSympt.alpha <- psych::alpha(df[,immSympt])
+immSympt.alpha$total$raw_alpha
+immSympt.alpha
+
+```
+
+## Infants' immune systems are weak
+
+This looks much better!
+
+```{r}
+immWeak <- c("infantImmWeak_infantImmWeak_1",
+"infantImmWeak_infantImmWeak_2",
+"infantImmWeak_infantImmWeak_3",
+"infantImmWeak_infantImmWeak_4r")
+
+immWeak.alpha <- psych::alpha(df[,immWeak])
+immWeak.alpha$total$raw_alpha
+immWeak.alpha
+
+```
+
+
+
+## Vaccines strain the immune system
+
+Now with three items this makes for a pretty reliable scale.
+
+```{r}
+vaccStrain <- c("vaccStrain_vaccStrain_1",
+"vaccStrain_vaccStrain_2r",
+"vaccStrain_vaccStrain_3")
+
+# cor(df$immStrain_1,df$immStrain_2r)
+
+vaccStrain.alpha <- psych::alpha(df[,vaccStrain])
+
+vaccStrain.alpha
+
+```
+
+
+# Scale Distributions
+
+Here I'm computing the scale average for all scales but the "children's weak immune system" scale and the "passive immune system" scale, where I'm making the changes suggested from the reliability analysis. *UPDATE*: Now also changing the "immune system and cold symptoms" scale to remove a bad item.
+
+```{r}
+df_scales<-df_main
+df_scales$holBalance <- rowMeans(df[,hb])
+df_scales$naturalism <- rowMeans(df[,nat])
+df_scales$diseaseRare <- rowMeans(df[,diseaseRare])
+df_scales$diseaseSevere <- rowMeans(df[,diseaseSevere])
+df_scales$vaccEff <- rowMeans(df[,vaccEff])
+df_scales$vaccDanger <- rowMeans(df[,vaccDanger])
+df_scales$medSkept <- rowMeans(df[,medSkept])
+df_scales$vaccIntent <- rowMeans(df[,vaccIntent])
+df_scales$parDuty <- rowMeans(df[,parDuty])
+df_scales$parExpert <- rowMeans(df[,parExpert])
+df_scales$immCap <- rowMeans(df[,immCap])
+df_scales$immSympt <- rowMeans(df[,immSympt])
+df_scales$immWeak <- rowMeans(df[,immWeak])
+df_scales$vaccStrain <- rowMeans(df[,vaccStrain])
+df_scales$vaccTox <- rowMeans(df[,vaccTox])
+df_scales$infantVuln <- rowMeans(df[,infantVuln])
+```
+
+
+```{r,fig.height=9,fig.width=9}
+library(ggplot2)
+library(reshape2)
+
+scale_vars <- c("holBalance",
+                "naturalism",
+                "diseaseRare",
+                "diseaseSevere",
+                "vaccEff",
+                "vaccDanger",
+                "medSkept",
+                "vaccIntent", 
+                "parDuty",
+                "parExpert",
+                "immCap",
+                "immSympt",
+                "immWeak",
+                "vaccStrain",
+                "vaccTox",
+                "infantVuln")
+
+# df_hist <- df_scales[,scale_vars]
+ggplot(data = melt(df_scales[,scale_vars]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 10) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+```
+
+# Scale correlations
+
+Here are intercorrelations among the scales (ordered by angular order of eigenvectors). I think we should use a big grain of salt interpreting any of these because this is all based on just `r nrow(df_scales)` paricipants' data. Nevertheless, let's take a look.
+
+Some of this is expected and some is a bit surprising. Of course once we start taking into account other conditional dependencies, some of these correlations could change, or even reverse sign.
+
+```{r,fig.height=9,fig.width=9}
+corrplot(cor(df_scales[,scale_vars]),
+         order="hclust",
+         tl.cex=1.25,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+```

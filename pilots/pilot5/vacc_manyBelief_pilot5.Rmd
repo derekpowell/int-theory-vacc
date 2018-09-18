@@ -1,0 +1,537 @@
+---
+title: "Vaccines: Many Beliefs Pilot 5"
+author: "Derek Powell"
+date: "July 14, 2017"
+output: 
+  html_notebook: 
+    code_folding: hide
+---
+
+```{r}
+
+filename <- "data/vb_pilot5.csv"
+
+headers <- as.matrix(read.csv(filename, skip = 0, header = F, nrows = 1, as.is = T ))
+df <- read.csv(filename, skip = 3, header = F)
+colnames(df) <- headers
+
+df <- df[which(df$Status==0),] # remove survey previews
+
+# remove unused qualtrics variables
+remove_cols <- c("RecipientLastName",
+                 "RecipientFirstName",
+                 "RecipientEmail",
+                 "Finished",
+                 "ResponseId",
+                 "ExternalReference",
+                 "DistributionChannel",
+                 "UserLanguage",
+                 "Status")
+
+df <- df[ , -which(names(df) %in% remove_cols)]
+df <- df[which(df$vaccDanger_check_3==3 & df$hb_check_5==5),]
+```
+
+```{r}
+all_items <- c("hb_1",
+"hb_2",
+"hb_3",
+"hb_4",
+"nat_1",
+"nat_2r",
+"nat_3",
+"nat_4",
+"nat_5",
+"nat_6r",
+"medSkept_1",
+"medSkept_2r",
+"medSkept_3",
+"medSkept_4",
+"medSkept_5r",
+"medSkept_6r",
+"diseaseRare_1",
+"diseaseRare_2",
+"diseaseRare_3r",
+"diseaseRare_4",
+"diseaseRare_5r",
+"diseaseSevere_1",
+"diseaseSevere_2",
+"diseaseSevere_3r",
+"diseaseSevere_4",
+"diseaseSevere_5r",
+"diseaseSevere_6",
+"vaccEff_1",
+"vaccEff_2r",
+"vaccEff_3r",
+"vaccEff_4",
+"vaccDanger_1",
+"vaccDanger_2r",
+"vaccDanger_3",
+"vaccDanger_4r",
+"vaccTox_1r",
+"vaccTox_2",
+"vaccTox_3",
+"vaccTox_4r",
+"vaccStrain_1",
+"vaccStrain_2r",
+"vaccStrain_3",
+"vaccStrain_4r",
+"vaccStrain_5",
+"vaccIntent_1r",
+"vaccIntent_2",
+"vaccIntent_3r",
+"vaccIntent_4",
+"vaccIntent_5r",
+"parentExpert_1",
+"parentExpert_2",
+"parentExpert_3",
+"parentExpert_4r",
+"parentExpert_5r",
+"infantImmLimCap_1",
+"infantImmLimCap_2r",
+"infantImmLimCap_3",
+"infantImmLimCap_4",
+"infantImmLimCap_5r",
+"infantImmWeak_1",
+"infantImmWeak_2",
+"infantImmWeak_3",
+"infantImmWeak_4r",
+"infantImmWeak_5r",
+"overpar_1",
+"overpar_2",
+"overpar_3",
+"overpar_4r",
+"overpar_5r")
+
+
+```
+
+
+```{r}
+library(ggplot2)
+# df <- read.csv("vb_pilot2.csv")
+
+reverse_items <- all_items[!sapply(
+  lapply(all_items, function (x) {
+  if (substr(x,nchar(x),nchar(x))=="r") {
+    return(x)
+  }
+}), is.null)]
+ 
+df[,reverse_items] <- lapply(df[,reverse_items], function(x) {
+  8-x
+})
+
+df_main <- df[,all_items]
+```
+
+
+
+# Introduction
+
+This is a notebook for the fifth pilot experiment of our (Kara, Ellen, and Derek) first pilot experiment examining vaccine theories using multiple attitude measures. We recruited 100 participants and lost 4 to comprehension checks, leaving 96.
+
+# Item Correlations
+
+Here's a correlation matrix for all individual items. It appears items of some scales are intercorrelating well, though others are weaker. There is also considerable correlation among items across scales--as we might expect.
+
+```{r,fig.height=9,fig.width=9}
+library(corrplot)
+library(viridis)
+
+corrplot(cor(df_main),
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+```
+
+Here's another matrix, this time sorted according to a hierarchical clustering algorithm, with bounding rectangles identifying clusters.
+
+```{r,fig.height=9,fig.width=9}
+corrplot(cor(df_main[,all_items]),
+         order="hclust",
+         # addrect=3,
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         col=viridis(128))
+```
+
+# Scale Internal Consistency Reliability
+
+# Problem scales
+
+Below are computed chronbach's alpha for all scales along with more detailed analyses of scales that are problematic.
+
+## Disease Severity
+
+Our changes to disease severity did not help at all and in fact hurt the reliability of the scale even with an additional item. I think we really need to iron out the issues in this scale, whether that means returning to the original or making new changes.
+
+```{r}
+diseaseSevere <- all_items[22:27]
+diseaseSevere <- c("diseaseSevere_1",
+"diseaseSevere_2",
+"diseaseSevere_3r",
+"diseaseSevere_4",
+"diseaseSevere_5r",
+"diseaseSevere_6")
+
+
+diseaseSevere.alpha <- psych::alpha(df[,diseaseSevere])
+diseaseSevere.alpha$total$raw_alpha
+diseaseSevere.alpha 
+
+```
+
+### Diagnosing
+
+```{r}
+library(ggplot2)
+library(reshape2)
+
+ggplot(data = melt(df[,diseaseSevere]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 7) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+corrplot(cor(df[,diseaseSevere]),
+         order="AOE",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+
+```
+
+## Naturalism
+
+This scale improved very slightly, looks like we can remove either 5 or 6r and retain an alpha of .78. Since removing 6r makes this basically the original scale I think we can say that the difference between that score (.78) and the .825 it scored earlier is essentially just noise. As a spoiler, I looked at the consistency in the alpha scores for the unchanged scales (n=10) across pilot 4 and 5. The average absolute difference was .021 and the SD of the differences was .025. So I guess that makes me less interested in reading into changes or differences smaller than those values, and we should only really be struck by changes greater than .049 or so.
+
+```{r}
+nat <- all_items[5:10]
+
+naturalism.alpha <- psych::alpha(df[,nat])
+naturalism.alpha$total$raw_alpha
+naturalism.alpha
+
+
+```
+
+
+## Overparenting with babies (new scale)
+
+This improved considerably, though it's still a tad low. Looks like item 4r is weak.
+
+```{r}
+overPar <- all_items[65:69]
+
+overPar.alpha <- psych::alpha(df[,overPar])
+
+overPar.alpha
+```
+
+### Diagnosing
+
+Items 3 and 4r really don't correlate.
+
+```{r}
+ggplot(data = melt(df[,overPar]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 7) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+
+corrplot(cor(df[,overPar]),
+         order="AOE",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+```
+
+# Acceptable scales
+
+The remaining scales are (within rounding) in the acceptable reliabiltiy range.
+
+## Holistic Balance
+
+In pilot 4 the reliability of this was just below threshold, here it's just above.
+
+```{r}
+hb <- all_items[1:4]
+
+hb.alpha <- psych::alpha(df[,hb])
+hb.alpha$total$raw_alpha
+```
+
+## Disease Rarity
+
+```{r}
+diseaseRare <- all_items[17:21]
+
+diseaseRare.alpha <- psych::alpha(df[,diseaseRare])
+diseaseRare.alpha$total$raw_alpha
+
+```
+
+## Vaccine Effectiveness
+
+```{r}
+vaccEff <- all_items[28:31]
+
+vaccEff.alpha <- psych::alpha(df[,vaccEff])
+vaccEff.alpha$total$raw_alpha
+```
+
+## Vaccine Danger
+
+```{r}
+vaccDanger <- all_items[32:35]
+
+vaccDanger.alpha <- psych::alpha(df[,vaccDanger])
+vaccDanger.alpha$total$raw_alpha
+```
+
+## Vaccines are toxic
+
+```{r}
+vaccTox <- all_items[36:39]
+
+vaccTox.alpha <- psych::alpha(df[,vaccTox])
+vaccTox.alpha$total$raw
+```
+
+## Medical Skepticism
+
+This is just making the grade now and looks like we are safe to remove 5r without harming reliability, though I think it's kind of an important part of the idea. So maybe we are left to choose between a 5 item scale and a scale with that item included.
+
+```{r}
+medSkept <- all_items[11:16]
+
+medSkept.alpha <- psych::alpha(df[,medSkept])
+medSkept.alpha$total$raw_alpha
+medSkept.alpha
+
+corrplot(cor(df[,medSkept]),
+         order="alpha",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+```
+
+## Vaccination Intentions
+
+```{r}
+vaccIntent <- all_items[45:49]
+
+vaccIntent.alpha <- psych::alpha(df[,vaccIntent])
+vaccIntent.alpha$total$raw_alpha
+```
+
+
+## Parental Expertise
+
+Success! Reliability is very solid.
+
+```{r}
+parExpert <- all_items[50:54]
+
+parExpert.alpha <- psych::alpha(df[,parExpert])
+parExpert.alpha$total$raw_alpha
+parExpert.alpha
+```
+
+Looks a little two-dimensional though. Items 4 and 5 are both about trusing doctors' advice, so I suppose it's not surprising they hang together even more strongly.
+
+```{r}
+library(ggplot2)
+library(reshape2)
+
+ggplot(data = melt(df[,parExpert]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 7) + facet_wrap(~variable, scales = 'free_x') + xlim(1,7)
+
+corrplot(cor(df[,parExpert]),
+         order="AOE",
+         tl.cex=.65,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+
+```
+
+## Infant immune system has limited capacity
+
+Reliability is now very good.
+
+```{r}
+immCap <- all_items[55:59]
+
+immCap.alpha <- psych::alpha(df[,immCap])
+immCap.alpha$total$raw_alpha
+immCap.alpha
+
+```
+
+## Infants' immune systems are weak
+
+Looks good!
+
+```{r}
+immWeak <- all_items[60:64]
+
+immWeak.alpha <- psych::alpha(df[,immWeak])
+immWeak.alpha$total$raw_alpha
+immWeak.alpha
+
+```
+
+## Vaccines strain the immune system
+
+Now with five items this makes for a very reliable scale.
+
+```{r}
+vaccStrain <- all_items[40:44]
+
+# cor(df$immStrain_1,df$immStrain_2r)
+
+vaccStrain.alpha <- psych::alpha(df[,vaccStrain])
+
+vaccStrain.alpha
+
+```
+
+# Scale Distributions
+
+Here I'm computing the scale average for all scales but the "children's weak immune system" scale and the "passive immune system" scale, where I'm making the changes suggested from the reliability analysis. *UPDATE*: Now also changing the "immune system and cold symptoms" scale to remove a bad item.
+
+```{r}
+df_scales<-df_main
+df_scales$holBalance <- rowMeans(df[,hb])
+df_scales$naturalism <- rowMeans(df[,nat])
+df_scales$diseaseRare <- rowMeans(df[,diseaseRare])
+df_scales$diseaseSevere <- rowMeans(df[,diseaseSevere])
+df_scales$vaccEff <- rowMeans(df[,vaccEff])
+df_scales$vaccDanger <- rowMeans(df[,vaccDanger])
+df_scales$medSkept <- rowMeans(df[,medSkept])
+df_scales$vaccIntent <- rowMeans(df[,vaccIntent])
+# df_scales$parDuty <- rowMeans(df[,parDuty])
+df_scales$parExpert <- rowMeans(df[,parExpert])
+df_scales$immCap <- rowMeans(df[,immCap])
+# df_scales$immSympt <- rowMeans(df[,immSympt])
+df_scales$immWeak <- rowMeans(df[,immWeak])
+df_scales$vaccStrain <- rowMeans(df[,vaccStrain])
+df_scales$vaccTox <- rowMeans(df[,vaccTox])
+df_scales$overParenting <- rowMeans(df[,overPar])
+```
+
+
+```{r,fig.height=9,fig.width=9}
+library(ggplot2)
+library(reshape2)
+
+scale_vars <- c("holBalance",
+                "naturalism",
+                "diseaseRare",
+                "diseaseSevere",
+                "vaccEff",
+                "vaccDanger",
+                "medSkept",
+                "vaccIntent", 
+                "parExpert",
+                "immCap",
+                "immWeak",
+                "vaccStrain",
+                "vaccTox",
+                "overParenting")
+
+# df_hist <- df_scales[,scale_vars]
+plt.hist <- ggplot(data = melt(df_scales[,scale_vars]), mapping = aes(x = value)) + 
+    geom_histogram(bins = 14) + facet_wrap(~variable) + xlim(1,7)
+
+# ggsave("scale_hists.png",plt.hist)
+
+plt.hist
+```
+
+# Scale correlations
+
+Here are intercorrelations among the scales (ordered by angular order of eigenvectors). I think we should use a big grain of salt interpreting any of these because this is all based on just `r nrow(df_scales)` paricipants' data. Nevertheless, let's take a look.
+
+Some of this is expected and some is a bit surprising. Of course once we start taking into account other conditional dependencies, some of these correlations could change, or even reverse sign.
+
+```{r,fig.height=9,fig.width=9}
+corrplot(cor(df_scales[,scale_vars]),
+         order="hclust",
+         tl.cex=1.25,
+         tl.col="black",
+         method="color",
+         addCoef.col="black",
+         col=viridis(128))
+
+```
+
+
+```{r}
+df_long <- df_scales
+df_long$y_val <- df_long$vaccIntent
+df_long <- reshape(df_long, idvar="workerId", timevar = "item", direction="long", 
+             varying=list(x_val = scale_vars[-8]),
+             v.names = c("x_val"))
+df_long$item <- factor(df_long$item,
+                       levels = seq(1,13,1),
+                       labels=scale_vars[-8])
+
+plt.scatter <- ggplot(data = df_long, mapping = aes(x = x_val, y=y_val)) + 
+    geom_point(shape=1) + 
+  geom_smooth(method="lm", se=FALSE, col=viridis_pal()(5)[3]) + 
+  facet_wrap(~item) + 
+  xlim(1,7) + ylim(1,7) + labs(y="Vaccine Intent", x="")
+
+# ggsave("scale_scatter.png",plt.scatter)
+plt.scatter
+```
+
+# Coefficient $\omega$ reliability
+
+Coefficient $\alpha$ has a number of well-known problems, not the least of which it is often biased (either under or over-estimating). Most people who know now recommend the use of coeffiicent $\omega$, because it is unbiased and also readily interpretable: $\omega$ represents the proportion of variance in scale scores accounted for by the latent factor.
+
+Here I'm calculating robust $\omega$ using the coefficientalpha package. A (non-robust?) implementation is also available in the psych package that relies on an SEM package. 
+
+If $\omega$ is to be trusted it looks like the bias in $\alpha$ is leading to an underestimate of the reliability of most scales.
+
+## Naturalism
+
+```{r}
+coefficientalpha::omega(df[,nat])
+```
+
+## DiseaseSeverity
+
+Still doesn't make the grade according to omega
+```{r}
+coefficientalpha::omega(df[,diseaseSevere])
+```
+
+## Over-parenting
+
+Makes the grade according to omega
+
+```{r}
+coefficientalpha::omega(df[,overPar])
+```
+
+## Medical skepticism
+
+```{r}
+coefficientalpha::omega(df[,medSkept])
+```
+
+## Disease Rarity
+
+```{r}
+coefficientalpha::omega(df[,diseaseRare])
+```
+
+# Comparing studies
+
+As mentioned in the naturalism scale section, I looked at the consistency in the alpha scores for the unchanged scales (n=10) across pilot 4 and 5. The average absolute difference was .021 and the SD of the differences was .025. So I guess that makes me less interested in reading into changes or differences smaller than those values, and we should only really be struck by changes greater than .049 or so. The alpha values correlate at *r* = .89 across studies.

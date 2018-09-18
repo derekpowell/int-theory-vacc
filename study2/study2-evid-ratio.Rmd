@@ -1,0 +1,111 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r setup, include = F}
+library(tidyverse)
+library(psych)
+# library(ggcorrplot)
+library(lme4)
+library(brms)
+library(rms)
+```
+
+# Data prep
+
+```{r tidy, include = F}
+source("load-study2-data.R", chdir = TRUE)
+```
+
+# doing it
+
+```{r}
+rescale_beta <- function(x, lower, upper) {
+  # rescales onto the open interval (0,1)
+  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
+  # based on Smithson & Verkuilen (2006), though this is not as principled as you might think
+  # see http://dx.doi.org/10.1037/1082-989X.11.1.54.supp
+
+  N <- length(x)
+  res <- (x-lower)/(upper - lower)
+  res <- (res*(N-1) + .5)/N
+
+  return(as.vector(res))
+}
+
+d <- d_scored %>%
+  filter(scale == "diseaseSevere") %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase, mean) %>% 
+  mutate(condition = relevel(condition, ref="noInterv")) %>%
+  mutate(evid = ifelse(condition=="noInterv",0,1))
+```
+
+```{r}
+brm_fitodds <- brm(
+  bf(
+    post ~ log(pre/(1-pre)) + evid*logER1 + logER0,
+    logER1 + logER0 ~ 1,
+    nl = TRUE,
+    family = Beta("logit")
+     ),
+  prior = prior("normal(0,3)", nlpar = "logER1") +
+          prior("normal(0,3)", nlpar = "logER0"),
+    # prior("uniform(0,1)", lb = 0, ub = 1, nlpar = "p0"),
+  data = d,
+  iter = 4000,
+  warmup = 2000,
+  chains = 2,
+  cores = 2,
+  control = list(adapt_delta=.95)
+)
+
+# brm_fitodds <- brm(
+#   bf(
+#     post ~ logit(pre) + evid*logER1,
+#     logER1 ~ 1,
+#     nl = TRUE,
+#     family = Beta("logit")
+#      ),
+#   prior = prior("normal(0,3)", nlpar = "logER1"), 
+#     # prior("uniform(0,1)", lb = 0, ub = 1, nlpar = "p0"),
+#   data = d,
+#   iter = 4000,
+#   warmup = 2000,
+#   chains = 2,
+#   cores = 2,
+#   control = list(adapt_delta=.95)
+# )
+
+summary(brm_fitodds)
+```
+
+```{r}
+pred_data <- expand.grid(
+  list(
+    pre = seq(.01,.99,.01),
+    evid = c(0,1)
+  )
+)
+
+predict(brm_fitodds, 
+        pred_data, probs=c(.05,.95)) %>%
+  as_tibble() %>%
+  bind_cols(pred_data) %>%
+  ggplot(aes(x=pre, y=Estimate, color = factor(evid), fill = factor(evid))) +
+    geom_line() +
+  geom_ribbon(aes(ymin = `5%ile`, ymax = `95%ile`, color=NULL), alpha=.2) +
+  geom_jitter(data=d, aes(x=pre, y=post, color=factor(evid))) +
+  theme_bw()
+```
+
+```{r}
+evid_ratio <- exp(fixef(brm_fitodds)[1,1])
+broom::tidy(brm_fitodds) %>%
+  filter(grepl("b_", term)) %>%
+  mutate(evid_ratio = exp(estimate))
+```
+
+The resulting evidence ratio is `r evid_ratio`. Reasonable CPT values would be .5 and `r .5*evid_ratio` That's not that huge really ...
+

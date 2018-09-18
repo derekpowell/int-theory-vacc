@@ -1,0 +1,624 @@
+---
+title: "Vaccine Manybeliefs - bidag"
+date: August 6, 2018
+output:
+  html_notebook: 
+    code_folding: hide
+---
+
+This notebook examines the use of Bayesian graphical model structure learning using the new R package `BiDAG` ( [CRAN LINK](https://cran.r-project.org/web/packages/BiDAG/index.html) ). This package implements two MCMC algorithms for searching the space of DAGs, "partition mcmc" and "order mcmc". Partition MCMC is a more recent development, and reportedly performs slightly better. Both methods require decomposable scoring functions and both can also get too complex with large numbers of variables. To avoid this, before sampling the package seeks to constrain the search space using the pc algorithm (by default). Our networks are relatively small, so we don't have to be very aggressive in constraining the search space.
+
+First, I load in data and split into training and testing splits
+
+```{r, include=FALSE}
+source("vacc_import_data.R", chdir = TRUE)
+
+# library(BDgraph)
+library(bnlearn)
+library(tidyverse)
+# library(modelr)
+# library(stringr)
+library(viridis)
+library(multidplyr) # source: https://github.com/hadley/multidplyr
+library(parallel)
+library(BiDAG) 
+# BiDAG depends on 'graph' package, source: http://www.bioconductor.org/packages/release/bioc/html/graph.html
+# BiDAG depends on 'RBGL' package, source: https://bioconductor.org/packages/release/bioc/html/RBGL.html
+```
+
+
+```{r}
+# Here we'll split our d_bn data into a training and test split
+
+
+## set the seed to make your partition reproductible
+set.seed(123)
+trainInd <- sample(seq_len(nrow(d_bn)), size = floor(nrow(d_bn)*.80))
+
+train <- d_bn[trainInd, ]
+test <- d_bn[-trainInd, ]
+```
+
+## Bayesian structure search with MCMC
+
+Here we'll do bayesian structure search with MCMC. Here's a run with more-or-less `BiDAG` defaults, except a higher alpha value in the pc stage, to allow exploration of more of the space.
+
+```{r}
+mcmc_samples <- 1e5
+
+scoreparam <- scoreparameters(ncol(train), scoretype = "bge", data = train)
+
+# I think the default search space restriction is too severe, at least when we have so few variables
+searchSpace <- iterativeMCMCsearch(
+  ncol(train),
+  scoreparam = scoreparam,
+  scoreout = TRUE,
+  alpha = .4
+)
+
+res <- orderMCMC(
+  ncol(train), 
+  startspace = searchSpace$space$adjacency,
+  plus1 = FALSE,
+  scoreparam = scoreparam, 
+  iterations = mcmc_samples,
+  chainout = TRUE, # orderMCMC only
+  scoreout = TRUE, # orderMCMC only
+  # MAP = FALSE, # this breaks iterations/stepsave arguments for some reason?
+  stepsave = 10
+  )
+```
+
+Do a traceplot of DAG scores ...
+
+```{r}
+scoreChain <- unlist(res$chain$DAGscores)
+plot(scoreChain,  type = "l" )
+
+# res_uc <- res # save for later
+```
+
+From this sample of the posterior, we can identify the Maximum A-Posteriori (MAP) graph.
+
+```{r}
+map_score <- max(scoreChain)
+map_index <- match(map_score, scoreChain)
+
+map_adj <- res$chain$incidence[map_index]
+```
+
+And we can turn that object into a `bnlearn` object. I first check on the undirected edges in the _cpdag_. Then plot the MAP dag using HydeNet/graphviz.
+
+```{r}
+library(bnlearn)
+library(HydeNet)
+source("../Scripts/gmod_tools.R")
+
+map_dag <- adjacency2dag(map_adj[[1]], nodes = colnames(train))
+map_dag <- as.bn(map_dag)
+
+map_dag_uc <- map_dag # save for later
+
+# which edge directions are known and which can be set?
+map_cpdag <- cpdag(map_dag)
+undirected.arcs(map_cpdag) 
+
+h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(map_dag)))
+plot(h)
+```
+
+So here with no constraints we get a kind of weird outcome where an edge goes FROM vaccIntent TO vaccDanger. And this isn't one of the arbitrary/undirected edges! It certainly hurts intelligibility to imagine that's the true relationship, even though it improves fit on the training data. (spoiler, looks better on transfer to testing data too). Does it make sense conceptually to do CV to test the fit? Or, since there aren't that many alternatives, should I just do actual validation, maybe doing bootstrapping and re-assessing fit to assess? Then, choose-the-best or choose-the-preferred for the next step of predicting brand new data in exp2?
+
+### (How does bidag work?)
+
+It's a bit unclear exactly how bidag chooses to give a specific DAG when sampling the orders. It says it gives the MAP dag, so that part's clear, but how often are those dags unique? Here's a couple tests:
+
+```{r}
+# how many unique dags?
+res$chain$incidence %>% unique() %>% length() 
+
+# how many unique scores (different dags could be score equivalent, or could be rounding issues)
+res$chain$DAGscores %>% unique() %>% length() 
+
+# how many unique cpdags? 
+res$chain$incidence %>% map(function(x){cpdag(as.bn(adjacency2dag(x)))}) %>% unique() %>% length() 
+```
+
+On one run of 10,000 MCMC samples, got 5738 unique dags, 2559 unique scores, and 2014 unique cpdags. 
+
+## Applying blacklist
+
+In cogsci paper we imposed a fair amount of structure by demanding the ordering of nodes reflect the "abstract-ness" of each of the beliefs. We assumed that abstract beliefs influence more concrete beliefs (i.e., set expectations for, etc), so that edges would go from abstract --> concrete. We arranged the beliefs into "tiers" of abstractness to impose this constraint, while not imposing constraints on beliefs we thought were equally abstract/concrete.
+
+Another approach would be to impose even less structure, maybe just stipuating that vaccIntent must be the "outcome" DV, so that it has no children (`intent_is_dv`), or that `nat` and `hb` must be parents without parents themselves (`abstract_are_parents`). That's what I'm currently doing here (toggle-able by (un)commenting in code below)
+
+```{r define_theory}
+# theory based stuff
+nodes <- c(
+  "diseaseRare",
+  "diseaseSevere",
+  "hb",
+  "infantImmLimCap",
+  "infantImmWeak",
+  "medSkept",
+  "nat",
+  "overpar",
+  "parentExpert",
+  "vaccDanger",
+  "vaccEff",
+  "vaccIntent",
+  "vaccStrain",
+  "vaccTox"
+)
+
+theoryBasedHierarchy <- data.frame(
+  node = nodes,
+  order = c(
+    3,
+    3,
+    1,
+    3,
+    3,
+    2,
+    1,
+    2,
+    2,
+    3,
+    3,
+    4,
+    3,
+    3
+  )
+)
+
+intent_is_dv <- data.frame(
+  node = nodes,
+  order = c(
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    2,
+    1,
+    1
+  )
+)
+
+abstract_are_parents <- data.frame(
+  node = nodes,
+  order = c(
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    1,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2,
+    2
+  )
+)
+
+
+source("../Scripts/bnTheoryBlacklist.R")
+
+# theoryBlacklist <- make_theory_blacklist(theoryBasedHierarchy) # something is wrong here?
+# theoryBlacklist <- make_theory_blacklist(intent_is_dv)
+theoryBlacklist <- make_theory_blacklist(abstract_are_parents)
+theoryBlacklist <- bind_rows(theoryBlacklist, data.frame(from = nodes, to = nodes)) %>% arrange(from)
+adjBlacklist <- igraph::graph.data.frame(theoryBlacklist)
+adjBlacklist <- igraph::get.adjacency(adjBlacklist,sparse=FALSE)
+
+bl_modifier <- abs(1-adjBlacklist)
+```
+
+MCMC inference and diagnostics with minimal imposed structure ...
+
+```{r}
+
+# search_space_bl <- searchSpace$space$adjacency * bl_modifier
+
+searchSpace_bl <- iterativeMCMCsearch(
+  ncol(train),
+  scoreparam = scoreparam,
+  blacklist = abs(1-bl_modifier),
+  scoreout = TRUE,
+  alpha = .4
+)
+
+
+res_bl <- orderMCMC(
+  ncol(train), 
+  startspace = searchSpace_bl$space$adjacency, # DP 8/14/18, 12:22 PM: Fixed this w/ blcaklist in prior step
+  blacklist = abs(1-bl_modifier),
+  scoreparam = scoreparam, 
+  iterations = mcmc_samples,
+  chainout = TRUE, # orderMCMC only
+  scoreout = TRUE, # orderMCMC only
+  stepsave = 10
+  )
+
+saveRDS(res_bl, file = "mcmc-result-blacklist.rds")
+
+scoreChain_bl <- unlist(res_bl$chain$DAGscores)
+plot(scoreChain_bl[1000:mcmc_samples/10+1],  type = "l" )
+```
+
+Plotting the Maximum A-Posteriori (MAP) DAG and checking undirected edges (13, so a fair number of decisions to make there ...)
+
+```{r}
+map_score_bl <- max(scoreChain_bl)
+map_index_bl <- match(map_score_bl, scoreChain_bl)
+
+map_adj_bl <- res_bl$chain$incidence[map_index_bl]
+
+map_dag_bl <- adjacency2dag(map_adj_bl[[1]], nodes = colnames(train))
+map_dag_bl <- as.bn(map_dag_bl)
+
+map_cpdag_bl <- cpdag(map_dag_bl)
+undirected.arcs(map_cpdag_bl) 
+
+h_bl <- HydeNetwork(as.formula(bnlearn_to_hyde_string(map_dag_bl)))
+plot(h_bl)
+
+```
+
+
+### Comparing map dags
+
+Let's compare the map dag we get with no constraints to the map dag we get with our theory-based constraints.
+
+```{r}
+# compare dag scores on out of sample preds 
+# (but this is refitting  pars to test data so not perfect)
+exp(score(map_dag, test) - score(map_dag_bl, test))
+
+```
+
+It's a pretty big difference in performance between the dags fitting in terms of raw score. However, when we compare the actual predictive performance below, they are pretty much equivalent. The unconstrained dag does trivially better but it's within the error of the estimation process. (e.g., r = .830 vs r = .832)
+
+### Plotting posterior over edges
+
+In addition to examining the MAP graph, we can also ask about the posterior probability of each potential edge. This can let us assess our confidence in components of the graph, and may provide more qualitative insights.
+
+```{r}
+# choose which dag is being used in code below
+# chosen_dag <- "unconstrained"
+chosen_dag <- "theory-based"
+
+if (chosen_dag == "theory-based") {
+  map_dag <- map_dag_bl
+  res <- res_bl
+} else {
+  map_dag <- map_dag_uc # to examine unconstrained dag
+  res <- res_uc
+}
+
+```
+
+```{r fig.height=5, fig.width=5, fig.align="center"}
+library(viridis)
+
+edge_posterior <- edges.posterior(res$chain$incidence, pdag=TRUE)
+rownames(edge_posterior) <- colnames(search_space_bl) # KW modified, added _bl
+colnames(edge_posterior) <- colnames(search_space_bl) # KW modified, added _bl
+
+cor_df <- cor(train) %>%
+  reshape::melt() %>%
+  rename(x = X1, y = X2, correlation = value) %>%
+  left_join(
+    map_adj_bl %>% 
+      reshape::melt() %>% 
+      rename(x = X1, y=X2, map_edge = value) %>% 
+      mutate(x = factor(x, labels=nodes), 
+             y = factor(y, labels=nodes), 
+             map_edge = factor(map_edge)) %>%
+      select(-L1)
+  )
+
+edge_df <- reshape::melt(edge_posterior) %>%
+  rename(x = X1, y = X2) %>%
+  left_join(cor_df) %>%
+  # mutate(value = correlation*value) %>%
+  mutate(correlation = abs(correlation))
+
+edge_df %>%
+  ggplot(aes(x=reorder(x, -correlation), y=reorder(y, -correlation), fill=value)) +
+  geom_tile() +
+  geom_point(aes(alpha = map_edge), shape = 16) +
+  scale_alpha_discrete(range=c(0,1)) +
+  guides(alpha="none") +
+  scale_fill_viridis(option="C") +
+  # scale_fill_distiller(palette =  "RdBu") +
+  theme_bw() +
+  theme(aspect.ratio=1) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=.5)) +
+  labs(x = "From", y = "To", title="Edge posterior probabilities", fill="p(edge)") 
+```
+
+This plot shows the posterior edge probabilities, and marks the edges in the MAP DAG with dots. Looking at this, it's pretty peak-y. So for each edge in the MAP dag, we're pretty sure it should be there. And there are only two edges with any meaningful probability that aren't in the MAP dag.
+
+Here's another plot where edge probabilities are weighted by the edge correlation between the variables. As a statistical quantity this is kinda murky, but it's maybe a useful visualization? The average edge coefficients plot below this is probably better.
+
+```{r}
+edge_df <- reshape::melt(edge_posterior) %>%
+  rename(x = X1, y = X2) %>%
+  left_join(cor_df) %>%
+  mutate(value = correlation*value) %>%
+  mutate(correlation = abs(correlation))
+
+edge_df %>%
+  ggplot(aes(x=reorder(x, -correlation), y=reorder(y, -correlation), fill=value)) +
+  geom_tile() +
+  geom_point(aes(alpha = map_edge), shape = 16) +
+  scale_alpha_discrete(range=c(0,1)) +
+  guides(alpha="none") +
+  # scale_fill_viridis(option="C") +
+  scale_fill_distiller(palette =  "RdBu") +
+  theme_bw() +
+  theme(aspect.ratio=1) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust=.5)) +
+  labs(x = "From", y = "To", title="Edge posterior probabilities", fill="p*w") 
+```
+
+A potentially better way of examining the posterior of strength of direct relationships is to take the expected beta weight over all graphs. So here we're computing the betas for all graphs, then taking the average beta connecting each variable. If there's no edge, then beta is zero.
+
+```{r}
+# make function to get edge weights out of fitted network
+get_weights <- function(bnFitted) {
+  arcDf <- arcs(bnFitted)
+  
+  apply(arcDf, 1, function(x){
+    from <- x[1]
+    to <- x[2]
+    
+    val <- bnFitted[[to]][["coefficients"]][[from]]
+  })
+  
+}
+
+adj_to_bnlearn <- function(adjmat, data) {
+  bnlearn::as.bn(BiDAG::adjacency2dag(adjmat[[1]], nodes = colnames(data)))
+}
+
+adj_fit_weights <- function(adjmat, data) {
+  bn <- adj_to_bnlearn(adjmat, data)
+  w <- data.frame(arcs(bn)) %>%
+    mutate(w = get_weights(bn.fit(bn, data))) %>%
+    mutate(X1 = as.character(X1), X2 = as.character(X2)) %>%
+    bind_rows(data.frame(X1=as.character(nodes), X2=as.character(nodes), w = as.numeric(0))) %>%
+    spread(X2, w) %>%
+    replace(is.na(.), 0) %>%
+    select(-X1) %>%
+    mutate_all(as.numeric) %>%
+    as.matrix()
+  rownames(w) <- colnames(w)
+  return(w)
+}
+
+# adj_fit_weights(map_adj, train)
+
+incidence_chain <- res$chain$incidence[9001:10001] # just using last 1k b/c this is slow
+
+for (i in 1:length(incidence_chain)) {
+  suppressWarnings( incidence_chain[i][[1]] <- adj_fit_weights(incidence_chain[i], train) )
+  # this isn't accounting for other dags in the equivalence class
+}
+
+avg_weights <- Reduce("+", incidence_chain)/length(incidence_chain)
+
+```
+
+```{r fig.height=5, fig.width=5}
+
+coolwarm_hcl <- colorspace::diverge_hcl(11,
+  h = c(250, 10), c = 100, l = c(37, 88), power = c(0.7, 1.7))
+
+weights_df <- reshape::melt(avg_weights) %>%
+  rename(x = X1, y = X2) %>%
+  left_join(cor_df)
+
+weights_df %>%
+  ggplot(aes(x=reorder(x, -abs(correlation)),
+             y= reorder(y,-abs(correlation)), 
+             fill=value)) +
+  geom_tile() +
+  scale_alpha_discrete(range=c(0,1)) +
+  # scale_fill_viridis(option="C") +
+  scale_fill_distiller(palette =  "RdBu") +
+  # scale_fill_gradientn(colours = coolwarm_hcl) +
+  geom_point(aes(alpha = map_edge), shape = 16) +
+  guides(alpha="none") +
+  theme_minimal() +
+  theme(aspect.ratio=1) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(x = "From", y = "To", title="Avg. Edge Coefficients", fill="Avg. Beta")
+```
+
+Here are the edges with average weights stronger than .1, sorted by strength of edge weight. Interpreting this can be tricky. For instance, `vaccDanger --> vaccTox` and `vaccTox --> vaccDanger` are both represented. We can interpret that either way that edge is set, there's a strong relationship. However, `infantImmWeak --> infantImmLimCap` actually comes out the strongest, which could be partially attributable to the fact that it only seems to appear in that direction. So the betas are biased by the tendency for the model to be confident about the edge directions. Maybe I could do something to not count those "zeros" against an edge direction? 
+
+__NOTE__: ordering of variables in both of these plots could be improved. Could also improve the continuity between the color palettes.
+
+```{r}
+weights_df %>% 
+  rename(from = x, to = y) %>%
+  filter(abs(value) > .1) %>%
+  arrange(desc(abs(value)))
+```
+
+### Thresholded DAG
+
+```{r}
+thresh_dag <- dag.threshold(14, res_bl$chain$incidence, .90) # posterior is less peak-y
+x <- as.bn(adjacency2dag(thresh_dag, nodes = colnames(train)))
+plot(HydeNetwork(as.formula(bnlearn_to_hyde_string(x))))
+
+# DAGscore(14, scoreparameters(14, scoretype = "bge", data=test), thresh_dag) # scores much worse
+```
+
+## Some thoughts
+
+Some things we might think about:
+
+1. What about the ORDER of each variable? Are more abstract beliefs more likely to come BEFORE concrete beliefs in the topological ordering of the graphs? That doesn't really seem true based on the map graph, but might come out of the posterior _NOPE_
+2. Are abstract beliefs more highly connected than concrete beliefs? Could measure as # of children and parents, or as markov blanket size. _NOPE_
+3. If these things don't pan out, may suggest more emphasis of the importance of a priori verbal theories. E.g., theory of node orderings.
+4. To test the argument re interventions as conditioning, will need to explore prediction performance for whole posterior over dags (and all dags in each equivalence class). But really, maybe this just isn't the sort of thing you test? It's really a theoretical point.
+
+## parents and children
+
+```{r}
+count_parents_and_children <- function(x, id){
+  # x <- x[[1]]
+  rowSums(x)[id] + colSums(x)[id]
+}
+
+get_counts <- function(adj, nodes) {
+  counts <- map(nodes, function(x){count_parents_and_children(adj, x)})
+  result <- unlist(counts)
+  names(result) <- colnames(train)
+  return(result)
+}
+
+
+all_counts <- map(res$chain$incidence, function(z){get_counts(z, 1:14)}) 
+
+all_counts <- do.call(rbind, all_counts)
+
+count_df <- data.frame(all_counts)
+
+count_df %>%
+  gather(scale, edges) %>%
+  ggplot(aes(x=reorder(scale,edges), y = edges)) +
+  geom_violin() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+Looking at ordering. There's a pattern but not clear if it's coherent. If anything though, it looks bad for the idea that abstract = lower order. Abstract stuff is showing up downstream more than other things. So is vaccIntent, which is good, and in contrast to the MAP graph. So all in all confusing.
+
+```{r}
+get_node_order <- function(adj, nodes){
+  dag <- as.bn(adjacency2dag(adj, nodes))
+  ordering <- bnlearn::node.ordering(dag)
+  
+  node_orders <- sapply(nodes, function(x){match(x, ordering)})
+  return(node_orders)
+}
+
+mcmc_named <- map(res$chain$incidence, function(z){colnames(z) <- nodes; return(z)})
+all_orders <- map(mcmc_named, function(z){get_node_order(z, nodes)}) 
+
+all_orders <- do.call(rbind, all_orders)
+
+all_orders <- data.frame(all_orders)
+
+all_orders %>%
+  gather(scale, edges) %>%
+  ggplot(aes(x=reorder(scale,edges), y = edges)) +
+  # geom_violin() +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+## MAP model predictions
+
+Below I've made some code to generate predictions from the model using what I'll call a "leave-out-one-node" approach. We predict each node from the network conditional on all other nodes using `bnlearn::impute()` function to impute the target "missing" values using `method="bayes-lw"`.
+
+8/6/18, 11:53 AM: iirc this was not perfectly accurate b/c the bnlearn inference tools are a bit crap. I think it was better to use my own implementation of MCMC with jags.
+
+```{r}
+predictions <- test %>% mutate_all(function(x){NA}) %>% mutate_all(as.numeric)
+net.fit <- bn.fit(map_dag, train)
+
+for (targVar in names(test)) {
+  tempDF <- test
+  tempDF[[targVar]] <- NA
+  tempDF[[targVar]] <- as.numeric(tempDF[[targVar]])
+  
+  imputed <- impute(net.fit, tempDF, method="bayes-lw")
+  predictions[[targVar]] <- imputed[[targVar]]
+}
+
+predictions <- predictions %>% gather(varName, predValue)
+test_analyze <- test %>% gather(varName, value) %>% bind_cols(predictions) %>% select(varName, value, predValue)
+
+```
+
+Doing this, the average correlation between predicted and observed is `r cor(test_analyze$predValue, test_analyze$value) %>% round(4)` for an $R^2 =$ `r (cor(test_analyze$predValue, test_analyze$value)^2) %>% round(4)`, which seems pretty good considering this is an out-of-sample prediction.
+
+We can also think about the proportion of total variance accounted for, and compute an $R^2$ equivalent for that. Doing that below, we find it's a bit lower than suggested by the average correlation. Not sure which of these is more meaningful to use ...
+
+```{r}
+# and weight by variance
+test_analyze %>%
+  group_by(varName) %>%
+  summarize(cor = cor(value,predValue), variance=var(value)*n()) %>%
+  mutate(varAccounted = (cor^2)*(variance)) %>%
+  summarize(meanWeightedR2 = sum(varAccounted)/sum(variance)) %>% 
+  as.numeric()
+```
+
+Finally, below is a plot of the predicted versus actual values for each variable in our test set (20% of data).
+
+```{r fig.height=3, fig.width=7, fig.align="center"}
+
+library(ggthemes)
+
+predObsCor <- cor(test_analyze$value,test_analyze$predValue)
+
+recode_nodesCV <- function(x){
+  recode(x,
+         "diseaseRare" = "disease\nrarity",
+         "diseaseSevere" = "disease\nseverity",
+         "hb" = "holistic\nbalance",
+         "infantImmLimCap" = "limited\ncapacity",
+         "infantImmWeak" = "weakness",
+         "medSkept" = "medical\nskepticism",
+         "nat" = "naturalism",
+         "overpar" = "parental\nprotectiveness",
+         "parentExpert" = "parental\nexpertise",
+         "vaccDanger" = "vaccine\ndanger",
+         "vaccEff" = "vaccine\neffectivenness",
+         "vaccIntent" = "vaccination\nintentions",
+         "vaccStrain" = "vaccines\nstrain",
+         "vaccTox" = "vacc. toxic\naddititves")}
+
+corrDF <- test_analyze %>%
+  mutate(varName = gsub("IIS:\n", "", recode_nodesCV(varName))) %>%
+  group_by(varName) %>%
+  summarize(cor = cor(value,predValue)) %>%
+  mutate(cor = format(round(cor,2),nsmall=2))
+
+plt.valid <- test_analyze %>%
+  mutate(varName = gsub("IIS:\n", "", recode_nodesCV(varName))) %>%
+  ggplot(aes(x=predValue, y=value)) + 
+  geom_point(shape=1, size=.5, color="darkturquoise") + 
+  geom_text(data=corrDF, aes(label=paste("r =", cor)), 
+            x=-Inf, y=Inf, hjust=-0.12, vjust=1.4, 
+            size = 10*.352777778,
+            color="grey25") +
+  # geom_smooth(method="lm") +
+  theme_bw(base_size = 10) +
+  theme(strip.background =element_rect(fill="grey90")) +
+  coord_fixed() + 
+  facet_wrap(~varName, nrow=2) + 
+  scale_x_continuous("Predicted values", limits = c(-3.5, 3.5), breaks = c(-3, 0, 3)) +
+  scale_y_continuous("Observed values", limits = c(-3.5, 3.5), breaks = c(-3, 0, 3))
+
+plt.valid
+```
+
+In any case, nothing radically different here from the cogsci paper (maybe a tiny improvement). But that's ok, we were pretty happy with it as-is.
