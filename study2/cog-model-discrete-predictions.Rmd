@@ -294,6 +294,7 @@ obs_pred %>%
 
 
 
+
 # What beliefs are targetted by the intervention?
 
 Here we can pretend that expectations for the intervention materials are set by each of the 14 beliefs, and compare the accuracy of the resulting models' predictions. We should also ask whether the differences among models are substantial and reliable enough for us to prefer any one model over another.
@@ -445,6 +446,8 @@ boot_fits <- as_tibble(expand.grid(
     )
 
 print(Sys.time() - t1)
+
+saveRDS(object = boot_fits, file = "boot_fits.rds")
 ```
 
 ```{r}
@@ -476,3 +479,119 @@ boot_fits %>%
     )
 ```
 
+# two beliefs at the same time
+
+```{r}
+res_overpar <- find_evid_ratio(filter_dscored(d_scored, "overpar"))
+res_ds <- find_evid_ratio(filter_dscored(d_scored, "diseaseSevere"))
+
+overpar_ratio <- exp(res_overpar$par[1] + res_overpar$par[2])
+ds_ratio <- exp(res_ds$par[1] + res_ds$par[2])
+
+p0p0 <- .3
+p1p0 <- p0p0*ds_ratio
+p0p1 <- p0p0*overpar_ratio
+p1p1 <- p0p0*overpar_ratio*ds_ratio
+
+overpar_ds_evid_cpt <- make_custom_cpt(
+  # c(p1p0, p0p0, (1-p1p0), (1-p0p0), p1p1, p0p1, (1-p1p1), (1-p0p1)),   
+  c(p1p1, (1-p1p1), p1p0, (1-p1p0), p0p1, (1-p0p1), p0p0, (1-p0p0) ),
+                c(2,2,2),
+                list(evid=c("Yes","No"), overpar = c("Yes","No"), diseaseSevere = c("Yes","No")), 
+                NULL)
+
+```
+
+```{r}
+add_evid_node_custom <- function(bnlearn_model, parents_string, evid_cpt) {
+  
+  # evid_cpt <- make_evid_cpt(data, targetted_belief)
+  model_list <- lapply(bnlearn_model, function(x){x$prob})
+  # model_list$evid <- hyde_to_bn_cpt(evid_cpt)
+  model_list$evid <- evid_cpt
+  
+  model_string <- modelstring(bnlearn_model)
+  model_string <- paste0(model_string,"[evid|", parents_string, "]")
+  model_network <- model2network(model_string)
+  predModel <- custom.fit(model_network, dist = model_list)
+
+  return(predModel)
+  
+}
+
+ds_overpar_model <- add_evid_node_custom(base_model, "overpar:diseaseSevere", overpar_ds_evid_cpt)
+
+# ----------------------------------------
+
+set.seed(12345)
+
+pred0_ds_overpar <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(ds_overpar_model, event = (", x, " == 'Yes'), evidence=TRUE, n = 5e5)")
+  eval(parse(text=statement))
+})
+
+pred1_ds_overpar <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(ds_overpar_model, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 5e5)")
+  eval(parse(text=statement))
+})
+
+pred_changes2 <- pred1_ds_overpar - pred0_ds_overpar
+
+pred_changes2 <- as.data.frame(pred_changes2)
+
+pred_changes2 <- pred_changes2 %>%
+  mutate(scale = nodes) %>%
+  rename(Mean = pred_changes2) %>%
+  mutate(type = "predicted")
+
+# ----------------------------------------
+
+obs_pred2 <- bind_rows(pred_changes2, obs_changes) %>%
+  spread(type, Mean) %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE)
+
+cor(obs_pred2$predicted, obs_pred2$observed)
+
+obs_pred2 %>% # a bit of a hack
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point() +
+  geom_errorbar() +
+  coord_cartesian(xlim=c(-.06,.08), ylim=c(-.06,.08)) +
+  theme_bw() +
+  theme(aspect.ratio = 1)
+
+obs_pred2 %>%
+  gather(type, Mean, observed, predicted) %>%
+  ggplot(aes(y = reorder(scale, Mean), x = Mean, xmin = ll, xmax = ul, color=type)) +
+  geom_point() +
+  geom_errorbarh(height=0)
+```
+
+```{r}
+# obs,pred correlation excluding nodes fit
+obs_pred_excl <- bind_rows(pred_changes, obs_changes) %>%
+  spread(type, Mean) %>%
+  filter(scale!="diseaseSevere", scale!="overpar") %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE) 
+
+cor(obs_pred_excl$predicted, obs_pred_excl$observed)
+sqrt(mean((obs_pred_excl$observed-obs_pred_excl$predicted)^2))
+```
+
+
+```{r}
+# obs,pred correlation excluding nodes fit
+obs_pred_excl2 <- bind_rows(pred_changes2, obs_changes) %>%
+  spread(type, Mean) %>%
+  filter(scale!="diseaseSevere",scale!="overpar") %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE) 
+
+cor(obs_pred_excl2$predicted, obs_pred_excl2$observed)
+sqrt(mean((obs_pred_excl2$observed-obs_pred_excl2$predicted)^2))
+```
+
+Adding edge from overparenting hurts prediction for the 12 nodes other than disease severity and overparenting, goes from r = .90 to r = .818. RMSE just about doubled. To be sure I'd have to do the bootstrap on these estimates, but I think this is a signal that the fit is worse modeling it as a direct effect. If so that indicates to me that something is wrong in the model wrt overparenting beliefs.
