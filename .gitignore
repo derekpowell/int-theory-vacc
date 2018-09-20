@@ -42,6 +42,8 @@ vignettes/*.pdf
 # local-only directories
 /*_local/
 /**/*_local/
+/local/
+
 
 # script to obscure workerIds and ip addresses
 redact.R

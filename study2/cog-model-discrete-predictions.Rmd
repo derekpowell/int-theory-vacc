@@ -1,10 +1,10 @@
 ---
-title: "R Notebook"
+title: "int-theory-vacc: Study 2 modeling"
 output: 
   html_notebook: 
     code_folding: hide
-    toc: true
-    toc_float: true
+    # toc: true
+    # toc_float: true
 ---
 
 
@@ -22,6 +22,8 @@ library(patchwork)
 library(BiDAG)
 library(HydeNet)
 library(bnlearn)
+
+library(rsample)
 
 source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 ```
@@ -57,7 +59,7 @@ test <- d_bn_scaled[-trainInd, ]
 
 ```{r}
 # first load in mcmc results
-all_results <- readRDS("allresults.rds")
+all_results <- readRDS("../local/allresults.rds")
 nodes <- colnames(train)
 # then grab map dag for theory-based constraints
 merged_chains <- merge_chains(all_results[[5]])
@@ -67,7 +69,7 @@ h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(map_dag)))
 plot(h)
 ```
 
-## creating cognitive model
+## Translate into cognitive model
 
 ```{r}
 # parse bn into list of parents and children
@@ -101,12 +103,85 @@ bagOfModels <- lapply(graph_list, function(x){fit_node_cpt(x, train)})
 
 ```
 
-```{r}
-# add evidence node with cpt defined 
-evid_ratio <- exp(0.4566215)
+Compute and add evidence cpt
 
-evid_cpt <- make_custom_cpt(c(.5*evid_ratio,.5, (1-.5*evid_ratio), (1-.5)), c(2,2), list(diseaseSevere=c("Yes","No"), evid = c("Yes","No") ), NULL)
-# evid_cpt <- make_custom_cpt(c(.83,.5, .17, .5), c(2,2), list(diseaseSevere=c("yes","No"), evid = c("yes","no") ), NULL)
+```{r}
+inv_logit <- plogis
+logit <- qlogis
+
+evid_score_func <- function(data, par) {
+  
+  inv_logit <- plogis
+  logit <- qlogis
+
+  pred_y <- with(data,
+                 {
+                   inv_logit(logit(pre) + evid*par[2] + par[1])
+                 }
+       )
+  pred_beta_A <- pred_y * par[3]
+  pred_beta_B <- (1-pred_y) * par[3]
+  
+  ll <- -1 * sum(dbeta(data$post, pred_beta_A, pred_beta_B, log=TRUE)) # beta regression
+  return(ll)
+}
+
+get_evid_probs <- function(result){
+  # this is a heuristic/hack, could be made better but probably doesn't matter
+  evid_ratio <- exp(result$par[1] + result$par[2])
+  if (evid_ratio < 1) {
+    p0 <- .90
+  } else {
+    p0 <- .50
+  }
+  
+  if (p0*evid_ratio > 1) {
+    p0 <- p0*.9/(p0*evid_ratio)
+  }
+
+  p1 <- p0*evid_ratio
+  
+  c(p0,p1)
+}
+
+
+evid_probs_to_cpt <- function(probs, var_name){
+  p0 <- probs[1]
+  p1 <- probs[2]
+  
+  full_list <- paste0("list(",var_name,"=c('Yes','No'), evid = c('Yes', 'No'))")
+  make_custom_cpt(c(p1, p0, (1-p1), (1-p0)), c(2,2), eval(parse(text=full_list)), NULL)
+}
+
+
+find_evid_ratio <- function(data){
+  optim(par = c(0, 0, 5), fn = evid_score_func, data = data, method="BFGS")
+}
+
+
+make_evid_cpt <- function(data, var_name){
+  result <- find_evid_ratio(data)
+  probs <- get_evid_probs(result)
+  cpt <- evid_probs_to_cpt(probs, var_name)
+  
+  return(cpt)
+}
+
+
+```
+
+```{r}
+source("../study2/load-study2-data.R", chdir = TRUE)
+
+d <- d_scored %>%
+  filter(scale == "diseaseSevere") %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase, mean) %>% 
+  mutate(condition = relevel(condition, ref="noInterv")) %>%
+  mutate(evid = ifelse(condition=="noInterv",0,1))
+
+evid_cpt <- make_evid_cpt(d, "diseaseSevere")
+
 bagOfModels$evid <- evid_cpt
 
 bagNet <- HydeNetwork(bagOfModels)
@@ -116,6 +191,7 @@ writeNetworkModel(bagNet, pretty=TRUE)
 
 ```
 
+Generate predictions ...
 
 __Translating hydenet model to bnlearn__
 
@@ -143,6 +219,8 @@ model_string <- paste0(model_string,"[evid|diseaseSevere]")
 model_network <- model2network(model_string)
 
 predModel <- custom.fit(model_network, dist = bnlearn_models)
+
+
 ```
 
 __Generating predictions__
@@ -150,10 +228,6 @@ __Generating predictions__
 Now I can use this model to generate predictions.
 
 ```{r}
-# cpquery(predModel, event = (eval(parse(text="diseaseSevere"))=="Yes"), evidence = TRUE)
-# cpquery(predModel, event = (eval(parse(text="diseaseSevere == 'Yes'"))), evidence = TRUE)
-# cpquery(predModel, event = (eval(parse(text="diseaseSevere"))=="Yes"), evidence = (evid == "Yes"))
-
 set.seed(12345)
 
 pred0 <- sapply(nodes, function(x){
@@ -177,9 +251,10 @@ pred_changes <- pred_changes %>%
 
 ```
 
+Compare predicted and observed changes ...
 
 ```{r}
-source("../../study3/load-study3-data.R", chdir = TRUE)
+
 
 obs_changes <- d_scored %>%
   mutate(mean = rescale_beta(mean, -3, 3)) %>%
@@ -217,46 +292,108 @@ obs_pred %>%
   geom_errorbarh(height=0)
 ```
 
-----------------------------------------------
 
-HydeNet prediction failures below ...
+
+# What beliefs are targetted by the intervention?
+
+Here we can pretend that expectations for the intervention materials are set by each of the 14 beliefs, and compare the accuracy of the resulting models' predictions. We should also ask whether the differences among models are substantial and reliable enough for us to prefer any one model over another.
 
 ```{r}
-set.seed(456)
-model0 <- compileJagsModel(bagNet)
-model1 <- compileJagsModel(bagNet, data= data.frame(evid=2))
+create_bnlearn_cog_model <- function(dag, data, evid_cpt = NULL, targetted_belief = NULL) {
+  arcs_df <- bnlearn_to_df(dag)
+  graph_list <- df_to_list(arcs_df)
+  bagOfModels <- lapply(graph_list, function(x){fit_node_cpt(x, data)})
+  model_string <- as.character(dag)
 
-post0 <- HydeSim(model0,
-                       variable.names = nodes,
-                       n.iter = 1e5
-                       )
+  if (!(is.null(evid_cpt))) {
+    bagOfModels$evid <- evid_cpt
+    model_string <- paste0(model_string,"[evid|", targetted_belief, "]")
+  }
+  model_network <- model2network(model_string)
+  bnlearn_models <- lapply(bagOfModels, hyde_to_bn_cpt)
+  predModel <- custom.fit(model_network, dist = bnlearn_models)
 
-post1 <- HydeSim(model1,
-                       variable.names = nodes,
-                       n.iter = 1e5
-                       )
+  return(predModel)
+}
 
-post0 <- post0 %>%
-  mutate(nat = ifelse(nat=="Yes",2,1)) %>%
-  mutate_all(~ . -1) %>%
-  summarize_all(mean) %>%
-  select(-chain_index, -obs_index)
 
-post1 <- post1 %>%
-  mutate(nat = ifelse(nat=="Yes",2,1)) %>%
-  mutate_all(~ . -1) %>%
-  summarize_all(mean) %>%
-  select(-evid, -chain_index, -obs_index)
+add_evid_node <- function(data, bnlearn_model, targetted_belief) {
+  
+  evid_cpt <- make_evid_cpt(data, targetted_belief)
+  model_list <- lapply(bnlearn_model, function(x){x$prob})
+  model_list$evid <- hyde_to_bn_cpt(evid_cpt)
+  
+  model_string <- modelstring(bnlearn_model)
+  model_string <- paste0(model_string,"[evid|", targetted_belief, "]")
+  model_network <- model2network(model_string)
+  predModel <- custom.fit(model_network, dist = model_list)
+  
+  return(predModel)
+}
 
-pred_changes <- (post1 - post0)  %>%
-  gather(scale, Mean) %>%
-  mutate(type = "predicted")
+
 ```
 
-```{r}
-source("../../study3/load-study3-data.R", chdir = TRUE)
 
-obs_changes <- d_scored %>%
+```{r}
+filter_dscored <- function(data, scale_name){
+  
+  data %>%
+  filter(scale == scale_name) %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase, mean) %>% 
+  mutate(condition = relevel(condition, ref="noInterv")) %>%
+  mutate(evid = ifelse(condition=="noInterv",0,1))
+}
+
+cogModel_predictions <- function(model){
+  pred0 <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence=TRUE, n = 1e5)")
+  eval(parse(text=statement))
+  })
+  
+  pred1 <- sapply(nodes, function(x){
+    statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 1e5)")
+    eval(parse(text=statement))
+  })
+  
+  pred_changes <- pred1 - pred0
+  
+  pred_changes <- as.data.frame(pred_changes)
+  
+  pred_changes <- pred_changes %>%
+    mutate(scale = nodes) %>%
+    rename(Mean = pred_changes) %>%
+    mutate(type = "predicted")
+  
+  return(pred_changes)
+}
+
+
+compare_pred_obs_r <- function(predicted, observed){
+
+  obs_pred <- suppressWarnings(bind_rows(predicted, observed)) %>%
+    spread(type, Mean) %>%
+    group_by(scale) %>%
+    summarize_all(mean, na.rm=TRUE)
+  
+  cor(obs_pred$predicted, obs_pred$observed)
+}
+
+compare_pred_obs_rmse <- function(predicted, observed){
+
+  obs_pred <- suppressWarnings(bind_rows(predicted, observed)) %>%
+    spread(type, Mean) %>%
+    group_by(scale) %>%
+    summarize_all(mean, na.rm=TRUE)
+  
+  sqrt(mean((obs_pred$observed-obs_pred$predicted)^2))
+  
+}
+
+
+extract_obs_changes <- function(observed){
+  obs_changes <- observed %>%
   mutate(mean = rescale_beta(mean, -3, 3)) %>%
   spread(phase,mean) %>%
   mutate(changeScore = post-pre) %>%
@@ -264,696 +401,78 @@ obs_changes <- d_scored %>%
   group_by(scale) %>%
   summarise(
     Mean = mean(changeScore),
-    ul = mean(changeScore) + 1.96*sd(changeScore)/sqrt(n()),
+    ul = mean(changeScore) + 1.96*sd(changeScore)/sqrt(n()), # replace with bootstrapping
     ll = mean(changeScore) - 1.96*sd(changeScore)/sqrt(n())
     ) %>%
   mutate(type = "observed")
+}
 
-
-bind_rows(pred_changes, obs_changes) %>%
-  spread(type, Mean) %>%
-  group_by(scale) %>%
-  summarize_all(mean, na.rm=TRUE) %>% # a bit of a hack
-  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
-  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
-  geom_point() +
-  geom_errorbar() +
-  # coord_cartesian(xlim=c(-.1,.1), ylim=c(-.1,.1)) +
-  theme_bw() +
-  theme(aspect.ratio = 1)
 ```
 
-Strong correlation, and pretty good numerically. But for some reason it's getting disease severity wrong! I really can't wrap my head around it, it's not predicting what I would expect based on the evidence ratio (when I do it manually, the predictions are more in line with observed). So something strange is going wrong. I should try making a really simple little test case. 
-
 ```{r}
-bind_rows(pred_changes, obs_changes) %>%
-  spread(type, Mean) %>%
-  group_by(scale) %>%
-  summarize_all(mean, na.rm=TRUE) %>%
-  mutate(abs_resid = abs(predicted - observed)) %>%
-  arrange(-abs_resid)
-```
+# -- takes about 20 min
+base_model <- create_bnlearn_cog_model(map_dag, train)
 
-So for some reason this is not working quite right with hydenet. I'm going to translate things over to bnlearn and try taht.
-# JUNK BELOW
-----------------------------------------
+# do bootstrap comparison
+set.seed(1234)
+t1 <- Sys.time()
 
-
-```{r}
-
-make_predictions_hyde <- function(hyde_model, orig_data, nodes_to_predict, nodes_held_out=c(), iter=1e3) {
-  # takes a model and dataframe and generates model predictions for variables listed in 
-  # nodes_to_predict. By default, uses all remaining nodes in orig_data. Hold out nodes from
-  # prediction with nodes_held_out. iter sets mcmc samples
-  
-  pred_df <- orig_data
-  pred_df[,nodes_to_predict] <- NA
-  
-  for (i in 1:nrow(pred_df)) {
-    row <- pred_df[i,]
-    row[nodes_held_out] <- NA
-    pred <- do_jags_inference(hyde_model, nodes_to_predict, data = row, iter = iter)
-    point_preds <- rowMeans(t(pred[[1]][(iter/2+1):iter,nodes_to_predict]))
-    pred_df[i,nodes_to_predict] <- point_preds
-  }
-  
-  return(pred_df)
-}
-
-
-predict_change_scores_cog <- function(model, nodes_to_predict, iter){
-  
-  preds_mean1 <- make_predictions(model, 
-                                data.frame(evid=1), 
-                                nodes_to_predict, 
-                                c(),
-                                iter = iter)
-
-  preds_mean0 <- make_predictions(model, 
-                                  data.frame(), 
-                                  nodes_to_predict, 
-                                  c("evid"),
-                                  iter = iter)
-  
-  preds_mean <- preds_mean1 - preds_mean0
-}
-
-
-predict_change_scores_cog(bagNet, nodes, 1e4)
-```
-
-
-
-```{r}
-# define some functions for doing and processing predictions
-
-predict_change_scores <- function(model, data0, data1, nodes_to_predict, held_out_nodes=c(), iter=1e4) {
-  # note: intervention must be named "interv"
-  
-  require(dplyr)
-  
-  preds_mean1 <- make_predictions(model, 
-                                data1, 
-                                nodes_to_predict, 
-                                held_out_nodes,
-                                iter = iter)
-
-  preds_mean0 <- make_predictions(model, 
-                                  data0, 
-                                  nodes_to_predict, 
-                                  held_out_nodes,
-                                  iter = iter)
-  
-  preds_mean <- preds_mean1 - preds_mean0
-
-}
-
-process_predictions <- function(predictions, obs_data) {
-  require(dplyr)
-  predictions <- predictions %>% 
-  select(-interv) %>%
-  gather(scale, predicted) %>%
-  left_join(obs_data, by = "scale") 
-}
-
-plot_processed_predictions <- function(processed_predictions) {
-  require(dplyr)
-  require(ggplot2)
-  plt1 <- processed_predictions %>%
-    mutate(
-           UL = observed + std_error*1.96,
-           LL = observed - std_error*1.96
-           ) %>%
-    ggplot(aes(x=predicted, y = observed, ymin = LL, ymax=UL)) +
-    geom_errorbar(color="grey", width=0) +
-    geom_point() +
-    geom_abline(intercept = 0, slope = 1, linetype = "dashed", color="grey") +
-    theme_bw() +
-    theme(aspect.ratio = 1)
-
-  plt2 <- processed_predictions %>% 
-    # left_join(obs_error, by = "scale") %>%
-    group_by(scale) %>%
-    gather(type, change_score, observed, predicted) %>%
-    mutate(std_error = ifelse(type == "observed", std_error, NA )) %>%
-    mutate(
-           UL = change_score + std_error*1.96,
-           LL = change_score - std_error*1.96
-           ) %>%
-    ggplot(aes(y = reorder(scale, change_score),
-               x = change_score,
-               xmax = UL, 
-               xmin = LL, 
-               color = type)) +
-    geom_point(shape=17, size=3) +
-    geom_errorbarh(height=0) +
-    theme_bw()
-    # theme(axis.text.x = element_text(angle = 90, hjust = 1))
-  
-  return(list(corr_plot = plt1, means_plot = plt2))
-}
-
-score_predictions <- function(processed_predictions) {
+boot_fits <- as_tibble(expand.grid(
   list(
-  r = cor(processed_predictions$observed, processed_predictions$predicted),
-  r_squared = cor(processed_predictions$observed, processed_predictions$predicted)^2,
-  mae = mean(abs(processed_predictions$observed - processed_predictions$predicted)),
-  rmse = sqrt(mean((processed_predictions$observed - processed_predictions$predicted)^2))
+    replicate = 1:100, scale = nodes
   )
-}
-
-score_predictions_boot <- function(processed_predictions) {
-  
-  samps <- 1:1000
-  
-  preds <- lapply(samps, function(x){
-    pp <-  processed_predictions %>% 
-      mutate(resamp_observed = rnorm(14, observed, std_error))
-    list(
-    r = cor(pp$resamp_observed, pp$predicted),
-    r_squared = cor(pp$resamp_observed, pp$predicted)^2,
-    mae = mean(abs(pp$resamp_observed - pp$predicted)),
-    rmse = sqrt(mean((pp$resamp_observed - pp$predicted)^2))
-    )
-  })
-  
-  
-}
-
-```
-
-# conceptual illustration
-
-```{r}
-p_x <- rbeta(100, 2, 2)
-p_y_x0 = .4
-p_y_x1 = .8
-
-p_y = rethinking::rbeta2(100, p_x*p_y_x1 + (1-p_x)*p_y_x0, 100)
-
-plot(p_x, p_y)
-
-df <- data.frame(x=p_x, y=p_y)
-df %>%
-  rename(`p(fire)` = x,
-         `p(smoke)` = y) %>%
-  ggplot(aes(x=`p(fire)`, y = `p(smoke)`)) +
-  geom_point() +
-  theme_bw(base_size = 24)
-```
-
-
-# correlation matrix
-
-```{r}
-# borrowing code from
-# http://www.sthda.com/english/wiki/ggplot2-quick-correlation-matrix-heatmap-r-software-and-data-visualization
-
-reorder_cormat <- function(cormat){
-  # Use correlation between variables as distance
-  dd <- as.dist((1-cormat)/2)
-  hc <- hclust(dd)
-  cormat <-cormat[hc$order, hc$order]
-}
-
-# Get lower triangle of the correlation matrix
-get_lower_tri<-function(cormat){
-  cormat[upper.tri(cormat)] <- NA
-  return(cormat)
-}
-# Get upper triangle of the correlation matrix
-get_upper_tri <- function(cormat){
-  cormat[lower.tri(cormat)]<- NA
-  return(cormat)
-}
-  
-
-corr_plot <- d_bn %>%
-  cor() %>%
-  reorder_cormat() %>%
-  # get_lower_tri() %>%
-  reshape2::melt(na.rm=TRUE) %>%
-  ggplot(aes(x=Var1, y = Var2, fill = value)) +
-  geom_tile(color = "white") +
-  geom_tile() +
-  geom_text(aes(label=round(value,2)), size=6*.35) +
-  scale_fill_distiller(type="div", palette = "RdYlBu") +
-  # scale_fill_viridis_c(limit = c(-1,1)) +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust=.85)) +
-  theme(aspect.ratio = 1) +
-  theme(
-    axis.title.x = element_blank(),
-    axis.title.y = element_blank(),
-    panel.grid.major = element_blank(),
-    panel.border = element_blank(),
-    panel.background = element_blank(),
-    axis.ticks = element_blank()
-  ) +
-  labs(fill="corr.")
-
-ggsave("corrplot.png", corr_plot, dpi=320, height=5,width=5)
-```
-
-# Aggregate predictions
-
-This notebook aims to examine/address the issue of predicting out-of-sample data using our model. In a previous notebook, `vacc_manyBelief_study3_modelsim.RMD`, I predicted average scale responses from study 3 using the previously learned model by conditioning on the Disease Severe node. 
-
-In this notebook, I'll ... 
-
-1. Explicitly model the intervention, rather than just conditioning disease severe.
-2. Examine model as "causal model"
-3. Explore model predictions under different assumptions about what beliefs are "targetted" by the intervention.
-4. Similarly, explore whether we should model the intervention as providing direct evidence for multiple beliefs.
-5. Consider naïve models ...
-
-
-## cognitive model
-
-First, let's examine the predictions of our cognitive model, where we treat the graphical model as a cognitive model, and reading the intervention materials as observing or conditioning on some evidence relevant to beliefs about disease severity.
-
-To recap, we have ...
-
-1. The cognitive network model (from study 1, n=1130 (data = `d_bn`))
-2. A model of the relationship between disease severity and the intervention, modeled from study 2.
-
-And we're predicting the average change scores observed in each condition following the disease risk manipulation in Study 2. So, for the most part this is an out-of-sample prediction task -- predicting change scores for new participants on the basis of a model generated from correlations observed among different participants, along with a bit of info about the intervention's effects on disease severity from the same participants.
-
-```{r, message=FALSE, warning=FALSE}
-
-nodes_to_predict <- bnlearn::nodes(net.struct)
-
-
-cog_model <- write_jags_model(bnlearn_to_df(net.struct), d_bn)
-
-# can modify this to test assumptions about direct effects of intervention ...
-interv_fit <- glm(interv ~ diseaseSevere, 
-                  data = interv_df,
-                  family = "binomial"
-                  )
-
-cog_model <- add_node(cog_model, glm_to_jags_eq(interv_fit))
-
-# can also just use "model" here so long as you include held_out_nodes
-
-preds_cog <- predict_change_scores(cog_model,
-                                           data.frame(interv = 0),
-                                           data.frame(interv = 1),
-                                           nodes_to_predict,
-                                           iter = 1e5*2.5
-                                           )
-
-# preds_cog$interv <- 0
-
-preds_cog <- process_predictions(preds_cog, obs_data)
-
-plots_cog <- plot_processed_predictions(preds_cog)
-
-
-scores_cog <- score_predictions(preds_cog)
-
-plt1 <- plots_cog$corr_plot +
-  geom_text(
-    aes(
-      label = ifelse(observed == preds_cog[which(preds_cog$scale == "diseaseSevere"), "observed"],
-        as.character(scale), ""
-      )
-    ),
-    hjust = 1.1, vjust = 0
-  ) +
-  geom_text(aes(label = ifelse(observed == preds_cog[which(preds_cog$scale == "overpar"), "observed"],
-    as.character(scale), ""
-  )), hjust = 1.1, vjust = 0) +
-  theme(aspect.ratio = 1) +
-  coord_cartesian(xlim=c(-.25,.35), ylim=c(-.25,.35)) +
-  annotate("text", 
-           x = .25, 
-           y = -.2, 
-           label = paste("italic(R)^2 == ", round(scores_cog$r_squared,3)), 
-           parse = TRUE,
-           size=18*.35
-          ) +
-  theme_bw(base_size=18)
-
-plt2 <- plots_cog$means_plot +
-  labs(x="Change score", y="Belief Scale") +
-  theme_bw(base_size=18) +
-  theme(legend.position = "bottom")
-
-ggsave("plot.png", plot = plt1, dpi=320, width=4, height=4)
-ggsave("plot2.png", plot = plt2, dpi=320, width=6, height=4)
-
-```
-
-So it's a pretty good fit, as we expected. Note that the r = `r score_predictions(preds_cog)$r %>% round(3)` is higher than the correlation in `...modelsims.Rmd` notebook, because I'm here also including disease severity in calculating the fit.
-
-## "Non-mental" model
-
-Next we can rule out the (perhaps not-all-that tempting) argument that we haven't developed a cognitive model at all, instead perhaps a causal model describing how holding different beliefs _causes_ a person to hold other beliefs. verbally that might not sound all that different, but the difference comes in how we conceive of evidence affecting participants' beliefs. Instead of an edge directed from the belief to the evidence, it'd be an edge directed from the evidence to the belief. 
-
-(Here I'm fudging things a bit in a way that should be fine considering these are linear models. I'm keeping the edge directed from disease severity to intervention, but then doing "graph surgery" to prune the disease severity node's parents when we predict the effects of the intervention. Since we're predicting changes, I'm about 99% confident this should work.)
-
-```{r, message=FALSE, warning=FALSE}
-library(bnlearn)
-surgery_graph <- net.struct %>%
-  drop.arc("vaccEff", "diseaseSevere") %>%
-  drop.arc("infantImmLimCap", "diseaseSevere")
-
-causal_arcs <- bnlearn_to_df(surgery_graph)
-
-causal_model <- write_jags_model(causal_arcs, d_bn) %>% suppressWarnings()
-
-interv_fit <- glm(interv ~ diseaseSevere, 
-                  data = interv_df,
-                  family = "binomial"
-                  )
-
-causal_model <- add_node(causal_model, glm_to_jags_eq(interv_fit)) # this is a cheat but it's ok ...
-
-preds_causal <- predict_change_scores(causal_model,
-                                           data.frame(interv = 0),
-                                           data.frame(interv = 1),
-                                           nodes_to_predict,
-                                           iter = 1e5
-                                           )
-
-preds_causal <- process_predictions(preds_causal, obs_data)
-
-plots_causal <- plot_processed_predictions(preds_causal)
-
-scores_causal <- score_predictions(preds_causal)
-
-plt3 <- plots_causal$corr_plot +
-  geom_text(
-    aes(
-      label = ifelse(observed == preds_causal[which(preds_causal$scale == "diseaseSevere"), "observed"],
-        as.character(scale), ""
-      )
-    ),
-    hjust = 1.1, vjust = 0
-  ) +
-  # geom_text(aes(label = ifelse(observed == preds_cog[which(preds_cog$scale == "overpar"), "observed"],
-  #   as.character(scale), ""
-  # )), hjust = 1.1, vjust = 0) +
-  geom_abline(intercept = 0, slope = 1, linetype = "dashed") +
-  theme(aspect.ratio = 1) +
-  coord_cartesian(xlim=c(-.25,.35), ylim=c(-.25,.35)) +
-  annotate("text", 
-           x = .25, 
-           y = -.2, 
-           label = paste("italic(R)^2 == ", round(scores_causal$r_squared,3)), 
-           parse=TRUE,
-           size=14*.35
-          ) +
-  theme_bw(base_size=18)
-
-# plots_causal$means_plot +
-#   labs(x="Change score", y="Belief Scale") +
-#   theme_bw(base_size=18)
-
-ggsave("plot3.png", plot = plt3, dpi=320, width=4, height=4)
-```
-
-Treating things as a causal model makes very poor predictions.
-
-# What beliefs are targetted by the intervention?
-
-Here we can pretend that expectations for the intervention materials are set by each of the 14 beliefs, and compare the accuracy of the resulting models' predictions. We should also ask whether the differences among models are substantial and reliable enough for us to prefer any one model over another.
-
-
-```{r}
-predict_change_scores_pipe <- partial(predict_change_scores,
-                                      data0 = data.frame(interv = 0),
-                                      data1 = data.frame(interv = 1),
-                                      nodes_to_predict = nodes_to_predict,
-                                      iter = 1e5
-                                      )
-
-
-all_beliefs <- nodes(net.struct)
-
-cog_model <- write_jags_model(bnlearn_to_df(net.struct), d_bn) %>% suppressWarnings()
-
-belief_targets_models <- lapply(all_beliefs, function(b){
-  
-  f <- paste0("interv ~ ", b)
-
-  # can modify this to test assumptions about direct effects of intervention ...
-  interv_fit <- glm(as.formula(f), 
-                    data = interv_df,
-                    family = "binomial"
-                    )
-  
-  model <- add_node(cog_model, glm_to_jags_eq(interv_fit)) 
-  
-  }
-)
-
-model_compare <- tibble(
-  model_name = all_beliefs,
-  model = unlist(belief_targets_models)
-  ) %>%
-    mutate(predictions = map(model, predict_change_scores_pipe)) %>%
-    mutate(proc_preds = map(predictions, process_predictions, obs_data = obs_data)) %>%
-    mutate(scores = map(proc_preds, score_predictions_boot))
-
-model_compare2 <- model_compare %>%
-    mutate(
-      rmse = map(scores, ~ sapply(.x, function(z){z$rmse})),
-      r_squared = map(scores, ~ sapply(.x, function(z){z$r_squared}))
+)) %>%
+  nest(-replicate, .key="scales") %>%
+  mutate(boot_d_scored = map(replicate, function(x) {
+    totaln <- length(unique(d_scored$workerId))
+    d_scored %>%
+      nest(-workerId) %>%
+      sample_n(totaln, replace = TRUE) %>%
+      mutate(uniqueId = 1:totaln) %>%
+      unnest()
+  })) %>%
+  unnest(scales, .drop=FALSE) %>%
+  mutate(
+      boot_d = map2(boot_d_scored, scale, function(x,y){filter_dscored(x, y)}),
+      obs_changes = map(boot_d_scored, extract_obs_changes)
       ) %>%
-  gather(metric, value, rmse, r_squared) %>%
+  select(-boot_d_scored) %>%
   mutate(
-    mean_value = map_dbl(value, mean),
-    se_value = map_dbl(value, sd)
+    models = map2(boot_d, scale, function(x,y){add_evid_node(x, base_model, y)}),
+    pred_changes = map(models, cogModel_predictions),
+    r = map2_dbl(pred_changes, obs_changes, compare_pred_obs_r),
+    rmse = map2_dbl(pred_changes, obs_changes, compare_pred_obs_rmse)
     )
 
-plt_models <- model_compare2 %>%
-  mutate(
-    UL = mean_value + se_value,
-    LL = mean_value - se_value
-  ) %>%
-  ggplot(aes(x = reorder(model_name, -mean_value), y = mean_value, ymin = LL, ymax = UL)) +
-  geom_pointrange() +
-  theme_bw(base_size=18) +
-  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
-  facet_wrap(~metric, scales="free") +
-  labs(x="Targetted belief", y = "Score")
-
-ggsave("plot_models.png", plot = plt_models, dpi=320, width=12, height=6)
+print(Sys.time() - t1)
 ```
-
-
-
-# Modeling multiple targetted beliefs
-
-The biggest outlier point for our cognitive model is the "parental protectiveness" (`overpar`) belief. Considering the evocative content of the intervention, it's possible that it directly bears on this belief. 
-
-Here we can model our intervention targetting both disease severity and overparenting ...
-
-```{r, message=FALSE, warning=FALSE}
-
-cog_model2 <- write_jags_model(bnlearn_to_df(net.struct), d_bn) %>% suppressWarnings()
-
-# can modify this to test assumptions about direct effects of intervention ...
-interv_fit <- glm(interv ~ diseaseSevere + overpar, 
-                  data = interv_df,
-                  family = "binomial"
-                  )
-
-cog_model2 <- add_node(cog_model2, glm_to_jags_eq(interv_fit))
-
-# can also just use "model" here so long as you include held_out_nodes
-
-preds_cog2 <- predict_change_scores(cog_model2,
-                                           data.frame(interv = 0),
-                                           data.frame(interv = 1),
-                                           nodes_to_predict,
-                                           iter = 1e5*2.5
-                                           )
-
-
-
-preds_cog2 <- process_predictions(preds_cog2, obs_data)
-
-plots_cog2 <- plot_processed_predictions(preds_cog2)
-
-scores_cog2 <- score_predictions(preds_cog2)
-
-plt4 <- plots_cog2$corr_plot +
-  geom_text(
-    aes(
-      label = ifelse(observed == preds_cog2[which(preds_cog2$scale == "diseaseSevere"), "observed"],
-        as.character(scale), ""
-      )
-    ),
-    hjust = 1.1, vjust = 0
-  ) +
-  geom_text(aes(label = ifelse(observed == preds_cog2[which(preds_cog2$scale == "overpar"), "observed"],
-    as.character(scale), ""
-  )), hjust = 1.1, vjust = 0) +
-    geom_text(aes(label = ifelse(observed == preds_cog2[which(preds_cog2$scale == "infantImmWeak"), "observed"],
-    as.character(scale), ""
-  )), hjust = 1.1, vjust = 0) +
-  # geom_abline(intercept = 0, slope = 1, linetype = "dashed", color="grey") +
-  # geom_errorbar(aes(ymin = LL, ymax=UL)) +
-  theme(aspect.ratio = 1) +
-  coord_cartesian(xlim=c(-.25,.35), ylim=c(-.25,.35)) +
-  annotate("text", 
-           x = .25, 
-           y = -.2, 
-           label = paste("italic(R)^2 == ", round(scores_cog2$r_squared,3)), 
-           parse=TRUE,
-           size=14*.35
-          )
-
-plots_cog2$means_plot +
-  labs(x="Change score", y="Belief Scale")
-
-
-ggsave("plot4.png", plot = plt4, dpi=320, width=4, height=4)
-```
-
-## Comparing models
-
-This code is a bit hacky, should write some better bootstrapping code. But here is a quick comparison, with somewhat unclear results. Previously this looked more clear cut, to me suggesting there may be more volatility in the mcmc sampling than I had thought. I should maybe give them more burn-in.
 
 ```{r}
-boot_scores_cog <- score_predictions_boot(preds_cog)
-boot_scores_cog2 <- score_predictions_boot(preds_cog2)
+boot_fits %>%
+  mutate(r2 = r^2) %>%
+  ggplot(aes(x=reorder(scale,-r2), y = r2)) +
+  geom_boxplot(fill="lightgray") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-tibble(cog = sapply(boot_scores_cog, function(x){x$rmse}), 
-           cog2 = sapply(boot_scores_cog2, function(x){x$rmse})) %>%
-  gather(model, rmse, cog, cog2) %>%
-  ggplot(aes(x=model, y = rmse)) +
-  geom_boxplot() +
-  theme_bw()
+boot_fits %>%
+  ggplot(aes(x=reorder(scale,-r), y = rmse)) +
+  # geom_violin(fill="gray", alpha=.5) +
+  geom_boxplot(fill = "lightgray") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 ```
 
-# Naïve Models
-
-Once we see that we have a cognitive model, I'll say the _cognitive model assumption_ is met. And when it's met, it actually has some interesting consequences. 
-
-Because observations in a cognitive model (as in, exposure to educational materials) are conditioning events rather than causal interventions, we can actually do a good job predicting their effects using naïve models. What I mean by naïve models are models that naïvely assume all beliefs are connected to some central, focal belief(s)--specifically, whichever beliefs are targetted by educational interventions.
-
-This works because all we need to predict the expected change is a model of the marginal conditional distribution of each variable. To put it in some math, our model approximates the joint distribution over all the variables $x_1$ through $x_n$:
-
-$$P(x_1, x_2, x_3, ..., x_n)$$
-
-But to ask how some other belief, $y$ will change on average, given some change in another belief $x$, that's something like this:
-
-$$E[P(y|x=1) - P(y|x=0)]$$
-
-And for that we only need to know the conditional probability, $P(y|x)$, which we can approximate in this naïve model. So here we have a model that naïvely assumes that disease severity beliefs influence all other beliefs.
-
-```{r, message=FALSE, warning=FALSE}
-
-vars <- d_scored %>% select(scale) %>% filter(scale!="diseaseSevere") %>% distinct()
-
-# naïve causal model, diseaseSevere--> all (equivalent change score prediction)
-nb_arcs <- data.frame(from = rep("diseaseSevere", 13), to = vars$scale)
-
-nb_model <- write_jags_model(nb_arcs, d_bn) %>% suppressWarnings()
-
-
-# can modify this to test assumptions about direct effects of intervention ...
-interv_fit <- glm(interv ~ diseaseSevere, 
-                  data = interv_df,
-                  family = "binomial"
-                  )
-
-nb_model <- add_node(nb_model, glm_to_jags_eq(interv_fit))
-
-
-# can also just use "model" here so long as you include held_out_nodes
-
-preds_nb <- predict_change_scores(nb_model,
-                                           data.frame(interv = 0),
-                                           data.frame(interv = 1),
-                                           nodes_to_predict,
-                                           iter = 1e5
-                                           )
-
-preds_nb <- process_predictions(preds_nb, obs_data)
-
-plots_nb <- plot_processed_predictions(preds_nb)
-
-plots_nb$corr_plot
-plots_nb$means_plot
-
-score_predictions(preds_nb)
-
-```
-
-The naïve model is comparable to the more complex cognitive model, at least when it comes to predicting the changes in beliefs following the interventions. Of course, as a model of the actual relationships among beliefs, it's terrible (see `...modelSims.Rmd` notebook for a brief exploration of that).
-
-### Naïvely modeling multiple targetted beliefs
-
-We can also model multiple direct evidence relations by extending the naïve model. There are probably multiple ways to extend it. What I've come up with here is to just assume that both disease severity and parental protectiveness are the two focal beliefs, and that they both influene all other beliefs. I suppose I could also add a connection between them one way or another.
-
-```{r, message=FALSE, warning=FALSE}
-
-vars2 <- d_scored %>% select(scale) %>% filter(scale!="diseaseSevere", scale!="overpar") %>% distinct()
-
-# naïve causal model, diseaseSevere--> all (equivalent change score prediction)
-
-nb_arcs2 <- data.frame(
-  from = c(
-    rep("diseaseSevere", 12),
-    rep("overpar", 12)
-  ),
-  to = rep(vars2$scale, 2)
-)
-
-nb_model2 <- write_jags_model(nb_arcs2, d_bn) %>% suppressWarnings()
-
-# can modify this to test assumptions about direct effects of intervention ...
-interv_fit <- glm(interv ~ diseaseSevere + overpar, 
-                  data = interv_df,
-                  family = "binomial"
-                  )
-
-nb_model2 <- add_node(nb_model2, glm_to_jags_eq(interv_fit))
-
-
-# can also just use "model" here so long as you include held_out_nodes
-
-preds_nb2 <- predict_change_scores(nb_model2,
-                                           data.frame(interv = 0),
-                                           data.frame(interv = 1),
-                                           nodes_to_predict,
-                                           iter = 1e5*2.5
-                                           )
-
-preds_nb2 <- process_predictions(preds_nb2, obs_data)
-
-plots_nb2 <- plot_processed_predictions(preds_nb2)
-
-plots_nb2$corr_plot
-plots_nb2$means_plot
-
-score_predictions(preds_nb2)
-
-```
-
-This model is the best of all!, getting a whopping `r score_predictions(preds_nb2)$r^2 %>% round(3) * 100`% of the variance! Not only that, RMSE and MAE also look somewhat lower than the other models. 
-
-So, from a purely predictive standpoint, if the cognitive model assumption holds, then the naïve model might actually be the best approach to predicting belief changes. However I don't think there are any guarantees that this sort of thing will always work when thinking about multiple targetted beliefs, for one. Quickly comparing all four models, it really does look like the naïve model with both disease severity and overparenting targetted does best, for what it's worth.
 
 ```{r}
-boot_scores_cog <- score_predictions_boot(preds_cog)
-boot_scores_cog2 <- score_predictions_boot(preds_cog2)
-boot_scores_nb <- score_predictions_boot(preds_nb)
-boot_scores_nb2 <- score_predictions_boot(preds_nb2)
-
-tibble(
-  cog = sapply(boot_scores_cog, function(x){x$rmse}), 
-  cog2 = sapply(boot_scores_cog2, function(x){x$rmse}),
-  nb = sapply(boot_scores_nb, function(x){x$rmse}),
-  nb2 = sapply(boot_scores_nb2, function(x){x$rmse}),
-       ) %>%
-  gather(model, rmse, cog, cog2, nb, nb2) %>%
-  ggplot(aes(x=model, y = rmse)) +
-  geom_boxplot() +
-  theme_bw()
+boot_fits %>% 
+  filter(scale=="diseaseSevere") %>%
+  summarize(
+    estimate = mean(r),
+    ul = quantile(r,.975),
+    ll = quantile(r, .025)
+    )
 ```
+

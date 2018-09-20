@@ -119,6 +119,10 @@ inv_logit <- plogis
 logit <- qlogis
 
 evid_score_func <- function(data, par) {
+  
+  inv_logit <- plogis
+  logit <- qlogis
+
   pred_y <- with(data,
                  {
                    inv_logit(logit(pre) + evid*par[2] + par[1])
@@ -131,7 +135,48 @@ evid_score_func <- function(data, par) {
   return(ll)
 }
 
-result <- optim(par = c(0, 0, 5), fn = evid_score_func, data = d, method="BFGS")
+get_evid_probs <- function(result){
+  # this is a heuristic/hack, could be made better but probably doesn't matter
+  evid_ratio <- exp(result$par[1] + result$par[2])
+  if (evid_ratio < 1) {
+    p0 <- .90
+  } else {
+    p0 <- .50
+  }
+  
+  if (p0*evid_ratio > 1) {
+    p0 <- p0*.9/(p0*evid_ratio)
+  }
 
-result
+  p1 <- p0*evid_ratio
+  
+  c(p0,p1)
+}
+
+
+evid_probs_to_cpt <- function(probs, var_name){
+  p0 <- probs[1]
+  p1 <- probs[2]
+  
+  full_list <- paste0("list(",var_name,"=c('Yes','No'), evid = c('Yes', 'No'))")
+  make_custom_cpt(c(p1, p0, (1-p1), (1-p0)), c(2,2), eval(parse(text=full_list)), NULL)
+}
+
+
+find_evid_ratio <- function(data){
+  optim(par = c(0, 0, 5), fn = evid_score_func, data = data, method="BFGS")
+}
+
+
+make_evid_cpt <- function(data, var_name){
+  result <- find_evid_ratio(data)
+  probs <- get_evid_probs(result)
+  cpt <- evid_probs_to_cpt(probs, var_name)
+  
+  return(cpt)
+}
+
+evid_cpt <- make_evid_cpt(d, "diseaseSevere")
+
 ```
+
