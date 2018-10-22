@@ -27,7 +27,7 @@ library(HydeNet)
 library(gtools)
 
 # source("cog-model-graph-tools.R")
-source("../scripts/custom-structure-learning/cog-model-main.R")
+source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 source("../scripts/gmod_tools.R")
 source("../scripts/bnTheoryBlacklist.R")
 
@@ -79,7 +79,7 @@ In addition to the basic level of streamlining needed, we also impose different 
 # takes a long time (10 hours ish) if scoretables must be computed ...
 
 compute_scoretables <- FALSE # uncomment to recompute scoretables
-source("fit-cog-models.R")
+source("../scripts/custom-structure-learning/fit-cog-models.R", chdir=TRUE)
 
 ```
 
@@ -120,7 +120,7 @@ scoretables <- list(
 
 # saveRDS(all_results, "allresults.rds")
 
-all_results <- readRDS("allresults.rds")
+all_results <- readRDS("../local/allresults.rds")
 ```
 
 ## For all four
@@ -219,14 +219,14 @@ Extract results and plot a traceplot. For unconstrained search, chains did not a
 
 ```{r}
 
-BiDAG_traceplot(all_results[[1]], hide = 1, show_chains=c(1,2,3,4))
+BiDAG_traceplot(all_results[[5]], hide = 1, show_chains=c(1,2,3,4))
 # BiDAG_traceplot(all_results[[3]], hide = 100, show_chains=c(3,4))
 ```
 
 plot map dag 
 
 ```{r}
-merged_chains <- merge_chains(all_results[[1]][2:4])
+merged_chains <- merge_chains(all_results[[5]][1:4])
 map_dag <- extract_mapdag(merged_chains)
 
 h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(map_dag)))
@@ -306,14 +306,15 @@ plt.valid <- test_analyze %>%
             size = 10*.352777778,
             color="grey25") +
   # geom_smooth(method="lm") +
+  coord_fixed() + 
+  facet_wrap(~varName, nrow=2) + 
+  scale_x_continuous("Predicted values", limits = c(0, 1)) +
+  scale_y_continuous("Observed values", limits = c(0, 1)) +
   theme_bw(base_size = 10) +
   theme(strip.background = element_rect(fill="grey90"), 
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank()) +
-  coord_fixed() + 
-  facet_wrap(~varName, nrow=2) + 
-  scale_x_continuous("Predicted values", limits = c(0, 1)) +
-  scale_y_continuous("Observed values", limits = c(0, 1))
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 plt.valid
 ```

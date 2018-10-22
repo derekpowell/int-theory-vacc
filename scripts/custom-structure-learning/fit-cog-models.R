@@ -1,7 +1,7 @@
 
 # load data
 # -----------------------------------------
-source("../../study1/vacc_import_data.R")
+# source("../../study1/vacc_import_data.R", chd)
 
 
 # load packages
@@ -15,9 +15,9 @@ library(HydeNet)
 library(gtools)
 
 # source("cog-model-graph-tools.R")
-source("cog-model-main.R")
-source("../../Scripts/gmod_tools.R")
-source("../../Scripts/bnTheoryBlacklist.R")
+# source("cog-model-main.R")
+# source("../../Scripts/gmod_tools.R")
+# source("../../Scripts/bnTheoryBlacklist.R")
 
 
 # transform data

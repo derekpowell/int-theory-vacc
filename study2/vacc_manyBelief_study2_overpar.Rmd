@@ -550,3 +550,61 @@ Also interesting to think about (later):
 # Take-aways
 
 This all suggests to me that it would be worth it to try including a node for the interaction between Overparenting and Medical Skepticism (and perhaps a node for the interaction between Overparenting and Disease Severity) in our cognitive model. We've come up with many (post-hoc) reasons why this might be important, and our data suggest that it was.
+
+
+# Bayesian regularized regression
+
+This is interesting and a great setup, but I'm having a bit of trouble interpreting 3-4 way interactions ...
+
+```{r}
+library(brms)
+
+rescale_beta <- function(x, lower, upper) {
+  # rescales onto the open interval (0,1)
+  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
+
+  N <- length(x)
+  res <- (x - lower) / (upper - lower)
+  res <- (res * (N - 1) + .5) / N
+
+  return(as.vector(res))
+}
+
+fit <- brm(
+  vaccIntent ~ phase * condition * overpar * medSkept * diseaseSevere + (1|workerId),
+  prior = set_prior("normal(0,.5)", class = "b"),
+  family = Beta(),
+  data = d_scored_wide %>% 
+    mutate(vaccIntent = rescale_beta(vaccIntent, 
+                                     min(d_scored_wide$vaccIntent), 
+                                     max(d_scored_wide$vaccIntent)
+                                     )),
+  control = list(adapt_delta = .90, max_treedepth = 15),
+  chains = 2,
+  cores = 2
+)
+```
+
+```{r}
+summary(fit)
+```
+
+I don't think any of these interaction terms are coming out "significant." Certainly all the phasepost:conditionDR involved ones are not. Closest looks like phasepost:conditionDR:overpar:medskept.
+
+```{r}
+fit_pre <- brm(
+  vaccIntent ~ overpar * medSkept * diseaseSevere + (1|workerId),
+  prior = set_prior("normal(0,.5)", class = "b"),
+  family = Beta(),
+  data = d_bn %>% 
+    mutate(vaccIntent = rescale_beta(vaccIntent, -3, 3), workerId = 1:nrow(d_bn)),
+  control = list(adapt_delta = .90, max_treedepth = 15),
+  chains = 2,
+  cores = 2
+)
+```
+
+```{r}
+summary(fit_pre)
+```
+
