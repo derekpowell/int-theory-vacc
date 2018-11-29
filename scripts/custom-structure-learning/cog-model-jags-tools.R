@@ -140,3 +140,30 @@ write_jags_model <- function(bn.dag, obs_df) {
   model <- paste(model,"}")
   return(model)
 }
+
+
+find_dag_coefs <- function(bn.dag, obs_df) {
+  # bn.dag: bnlearn dag object
+  # obs_df: observed values for variables in bn_df
+  # coefs: coefficients from fitting bn in BRMS
+  
+  ordered_nodes <- bnlearn::node.ordering(bn.dag)
+  
+  coefs <- lapply(ordered_nodes, function(node){
+    node_parents <- parents(bn.dag, node)
+    find_node_coefs(node, node_parents, obs_df)
+  })
+  
+  names(coefs) <- ordered_nodes
+  return(coefs)
+}
+
+tidy_coefs <- function(coefs) {
+  
+  c2 <- lapply(coefs, as.list)
+  c3 <- lapply(c2, function(x){as_tibble(x) %>% gather(parameter, value)})
+  c4 <- imap(c3,function(x,y){x$to <- y; x})
+  coefs <- bind_rows(c4)
+  
+  return(coefs)
+}

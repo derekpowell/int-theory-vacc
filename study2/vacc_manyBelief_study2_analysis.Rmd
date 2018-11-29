@@ -156,7 +156,7 @@ g_means <- ggplot(d_means,
 g_means
 ```
 
-```{r plot diffs, fig.width = 3, fig.asp = 3}
+```{r plot diffs}
 d_diffs <- d_scored %>%
   spread(phase, mean) %>%
   mutate(post_pre_diff = post - pre) %>%
@@ -174,9 +174,9 @@ d_diffs <- d_scored %>%
                             levels = c("diseaseRisk", "autismCorr", "noInterv")))
 
 g_diffs <- ggplot(d_diffs,
-                  aes(x = condition, y = Mean, 
+                  aes(x = scale, y = Mean, 
                       color = condition, group = condition)) +
-  facet_wrap(~ scale, ncol = 3) +
+  # facet_wrap(~ scale, ncol = 3) +
   geom_hline(yintercept = 0, lty = 2, size = 0.5) +
   geom_linerange(aes(ymin = Lower, ymax = Upper)) +
   geom_point(size = 3) +
@@ -185,7 +185,8 @@ g_diffs <- ggplot(d_diffs,
                      # breaks = seq(-3, 3, 1)) +
   scale_color_brewer(palette = "Set1", direction = -1) +
   theme_bw() +
-  theme(legend.position = "none",
+  theme(
+    # legend.position = "none",
         axis.text.x = element_text(angle = 90, hjust = 1)) +
   labs(title = "mean difference scores by scale and condition",
        subtitle = "error bars are 95% bootstrapped CIs")

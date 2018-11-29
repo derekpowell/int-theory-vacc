@@ -30,6 +30,7 @@ library(gtools)
 source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 source("../scripts/gmod_tools.R")
 source("../scripts/bnTheoryBlacklist.R")
+source("../scripts/custom-structure-learning/cog-model-jags-tools.R")
 
 # # customize BiDAG functions
 # orig_DAGcorescore <- BiDAG:::DAGcorescore # save to switch back if desired
@@ -264,40 +265,71 @@ cat(model_string)
 ```
 
 ```{r}
-# takes about 20-30 min
-start_time <- Sys.time()
+# #  takes about 20-30 min to run
 
-# test2 <- test
-predictions <- test %>% mutate_all(function(x){NA}) %>% mutate_all(as.numeric)
-# net.fit <- bn.fit(map_dag, train)
+# start_time <- Sys.time()
+# 
+# # test2 <- test
+# predictions <- test %>% mutate_all(function(x){NA}) %>% mutate_all(as.numeric)
+# # net.fit <- bn.fit(map_dag, train)
+# 
+# for (targVar in names(test)) {
+#   tempDF <- test
+#   tempDF[[targVar]] <- NA
+#   tempDF[[targVar]] <- as.numeric(tempDF[[targVar]])
+#   
+#   # imputed <- impute(net.fit, tempDF, method="bayes-lw")
+#   imputed <- make_predictions(model_string, test, nodes_to_predict = targVar)
+#   predictions[[targVar]] <- imputed[[targVar]]
+# }
+# 
+# predictions <- predictions %>% gather(varName, predValue)
+# test_analyze <- test %>% gather(varName, value) %>% bind_cols(predictions) %>% select(varName, value, predValue)
+# 
+# print(Sys.time() - start_time)
 
-for (targVar in names(test)) {
-  tempDF <- test
-  tempDF[[targVar]] <- NA
-  tempDF[[targVar]] <- as.numeric(tempDF[[targVar]])
-  
-  # imputed <- impute(net.fit, tempDF, method="bayes-lw")
-  imputed <- make_predictions(model_string, test, nodes_to_predict = targVar)
-  predictions[[targVar]] <- imputed[[targVar]]
-}
+# saveRDS(object = test_analyze, file = "../local/s1_model_predictions.rds")
 
-predictions <- predictions %>% gather(varName, predValue)
-test_analyze <- test %>% gather(varName, value) %>% bind_cols(predictions) %>% select(varName, value, predValue)
-
-print(Sys.time() - start_time)
+test_analyze <- readRDS("../local/s1_model_predictions.rds")
 ```
+
+
+# job talk plots
+
+November 16, 2018
+
+## predicted vs observed across scales
 
 ```{r}
 library(ggthemes)
 
+recode_nodes <- function(x){
+  recode(x,
+         "diseaseRare" = "Disease Rarity",
+         "diseaseSevere" = "Disease Severity",
+         "hb" = "Holistic Balance",
+         "infantImmLimCap" = "IIS: Limited\nCapacity",
+         "infantImmWeak" = "IIS: Weakness",
+         "medSkept" = "Medical\nSkepticism",
+         "nat" = "Naturalism",
+         "overpar" = "Parental\nProtectiveness",
+         "parentExpert" = "Parental\nExpertise",
+         "vaccDanger" = "Vaccine\nDanger",
+         "vaccEff" = "Vaccine\nEffectiveness",
+         "vaccIntent" = "Vaccination\nIntentions",
+         "vaccStrain" = "IIS: Vaccines\nStrain",
+         "vaccTox" = "Vaccines\nToxicity")}
+
 predObsCor <- cor(test_analyze$value,test_analyze$predValue)
 
 corrDF <- test_analyze %>%
+  # mutate(varName = recode_nodes(varName)) %>%
   group_by(varName) %>%
   summarize(cor = cor(value,predValue)) %>%
   mutate(cor = format(round(cor,2),nsmall=2))
 
 plt.valid <- test_analyze %>%
+  mutate(varName = recode_nodes(varName)) %>%
   ggplot(aes(x=predValue, y=value)) + 
   geom_abline(slope=1, intercept=0, linetype="dashed", alpha=.33) +
   geom_point(shape=1, size=.5, color="darkturquoise") + 
@@ -316,6 +348,123 @@ plt.valid <- test_analyze %>%
         panel.grid.minor = element_blank()) +
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-plt.valid
+ggsave(plot = plt.valid, filename = "../local/s1_predobs_plot.png", width=8.5, height=4)
+```
+
+## network structure (beautified)
+
+```{r}
+# do network structure plotting here ...
+library(DiagrammeR)
+
+custom_plot.HydeNetwork <- function(x, 
+                             customNodes = NULL,
+                             customEdges = NULL,
+                             ..., 
+                             removeDeterm = FALSE,
+                             useHydeDefaults = TRUE)
+{
+  if (removeDeterm) x <- plot_nondeterm_only(x)
+  
+  node_df <- 
+    DiagrammeR::create_node_df(n = length(x[["nodes"]]),
+                               label = x[["nodes"]])
+  # 
+  # node_df <- data.frame(nodes = x[["nodes"]],
+  #                       stringsAsFactors = FALSE)
+  if (useHydeDefaults) node_df <- HydeNet:::mergeDefaultPlotOpts(x, node_df)
+  
+  if (!is.null(customNodes)) node_df <- HydeNet::mergeCustomNodes(node_df, customNodes)
+  
+  edge_table <- do.call("rbind", 
+                        mapply(FUN = HydeNet:::mapEdges, 
+                               x[["nodes"]], 
+                               x[["parents"]],
+                               MoreArgs = list(node_df = node_df)))
+  
+  edge_df <- DiagrammeR::create_edge_df(from = edge_table[, 2], 
+                                        to = edge_table[, 1])
+  
+  if (!is.null(customEdges)) HydeNet::mergeCustomEdges(edge_df, customEdges)
+  
+  
+  
+  DiagrammeR::create_graph(nodes_df = node_df,
+                           edges_df = edge_df,
+                           attr_theme = NULL)
+  
+}
+
+
+## ----------------------------------------
+
+# code to demo. For some reason set_edge_attrs() isn't working right, so have to do it manually
+
+map_to_viridis <- function(vec, bins=64, option="D"){
+
+  binned <- cut(vec, bins)
+  levels(binned) <- viridis::viridis(bins, option=option)
+  
+  return(as.character(binned))
+}
+
+
+map_to_brewer <- function(vec, bins=11, option="RdYlBu"){
+  binned <- cut(vec, bins)
+  levels(binned) <- RColorBrewer::brewer.pal(bins, name=option)
+  
+  return(as.character(binned))
+}
+
+```
+
+
+```{r}
+z <- custom_plot.HydeNetwork(h)
+
+c <- find_dag_coefs(map_dag, train)
+
+coefs <- tidy_coefs(c)
+
+coefs %>%
+  filter(parameter!="phi",parameter!="w_leak") %>%
+  rename(from = parameter) %>%
+  mutate(from = gsub("w_","",from)) %>%
+  select(to, from, value) %>%
+  merge(z$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
+  mutate(from = id) %>%
+  select(-id) %>%
+  merge(z$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
+  mutate(to = id) %>%
+  arrange(to,from) -> edge_df_mod
+  # select(value, id.x, id.y) %>%
+  # mutate(from = id.x, to = id.y)
+
+# z$nodes_df
+z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
+z$nodes_df$fontname <- "Helvetica"
+z$nodes_df$shape <- "ellipse"
+z$nodes_df$fillcolor <- ifelse(z$nodes_df$id==13, "grey","white")
+z$nodes_df$fixedsize <- FALSE
+z$edges_df$penwidth <- abs(edge_df_mod$value)*2
+z$edges_df$penwidth <- 1.5
+# z$edges_df$label <- round(edge_df_mod$value,2)
+# z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
+z$edges_df$color <- map_to_brewer(edge_df_mod$value)
+render_graph(z)
+
+```
+
+# save relevant outputs!
+
+```{r}
+# save model as bn
+saveRDS(map_dag, "../local/map_dag_bn_theorybased.rds")
+# and as hydnet
+saveRDS(h, "../local/map_dag_hydenet_theorybased.rds")
+# save model string
+saveRDS(model_string, "../local/map_dag_modelstring_theorybased.rds")
+
+
 ```
 

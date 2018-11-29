@@ -1,0 +1,1018 @@
+---
+title: "int-theory-vacc: Study 2 modeling"
+output: 
+  html_notebook: 
+    code_folding: hide
+    # toc: true
+    # toc_float: true
+---
+
+
+
+```{r load in existing objects, message=FALSE, warning=FALSE}
+# net.struct <- readRDS("net-struct-cogsci2018.rds")
+
+source("../study1/vacc_import_data.R", chdir = TRUE)
+source("../scripts/gmod_tools.R")
+# source("../../Scripts/virtualEvidence.R")
+
+library(bnlearn)
+library(rjags)
+library(patchwork)
+library(BiDAG)
+library(HydeNet)
+library(bnlearn)
+
+library(rsample)
+
+source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
+```
+
+```{r set up training split}
+# rescale beta
+
+rescale_beta <- function(x, lower, upper) {
+  # rescales onto the open interval (0,1)
+  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
+
+  N <- length(x)
+  res <- (x - lower) / (upper - lower)
+  res <- (res * (N - 1) + .5) / N
+
+  return(as.vector(res))
+}
+
+d_bn_scaled <- d_bn %>%
+ mutate_all(function(x){rescale_beta(x,-3,3)})
+
+## set the seed to make your partition reproductible
+set.seed(123)
+trainInd <- sample(seq_len(nrow(d_bn_scaled)), size = floor(nrow(d_bn_scaled)*.80))
+
+train <- d_bn_scaled[trainInd, ]
+test <- d_bn_scaled[-trainInd, ]
+```
+
+
+# loading in data model
+
+
+```{r}
+# first load in mcmc results
+all_results <- readRDS("../local/allresults.rds")
+nodes <- colnames(train)
+# then grab map dag for theory-based constraints
+merged_chains <- merge_chains(all_results[[5]])
+map_dag <- extract_mapdag(merged_chains)
+
+h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(map_dag)))
+plot(h)
+```
+
+## Translate into cognitive model
+
+```{r}
+# parse bn into list of parents and children
+
+arcs_df <- bnlearn_to_df(map_dag)
+
+df_to_list <- function(arcs_df, as.strings=FALSE) {
+  # take arcs_df and make list of formulas
+  arcs_df$to <- as.character(arcs_df$to)
+  arcs_df$from <- as.character(arcs_df$from)
+
+  nodes <- unique(unlist(arcs_df))
+  output <- lapply(nodes, function(node) {
+    edges <- arcs_df[which(arcs_df$to == node), "from"]
+    if (length(edges) < 1) {
+      edges <- NULL
+    }
+    list(child=node, parents=edges)
+ 
+  })
+  names(output) <- nodes
+  return(output)
+}
+
+graph_list <- df_to_list(arcs_df)
+
+bagOfModels <- lapply(graph_list, function(x){fit_node_cpt(x, train)})
+
+# bagNet <- HydeNetwork(bagOfModels)
+# writeNetworkModel(bagNet, pretty=TRUE)
+
+```
+
+Compute and add evidence cpt
+
+```{r}
+inv_logit <- plogis
+logit <- qlogis
+
+evid_score_func <- function(data, par) {
+  
+  inv_logit <- plogis
+  logit <- qlogis
+
+  pred_y <- with(data,
+                 {
+                   inv_logit(logit(pre) + evid*par[2] + par[1])
+                 }
+       )
+  pred_beta_A <- pred_y * par[3]
+  pred_beta_B <- (1-pred_y) * par[3]
+  
+  ll <- -1 * sum(dbeta(data$post, pred_beta_A, pred_beta_B, log=TRUE)) # beta regression
+  return(ll)
+}
+
+get_evid_probs <- function(result){
+  # this is a heuristic/hack, could be made better but probably doesn't matter
+  evid_ratio <- exp(result$par[1] + result$par[2])
+  if (evid_ratio < 1) {
+    p0 <- .90
+  } else {
+    p0 <- .50
+  }
+  
+  if (p0*evid_ratio >= 1) {
+    p0 <- p0*.9/(p0*evid_ratio)
+  }
+
+  p1 <- p0*evid_ratio
+  
+  c(p0,p1)
+}
+
+
+evid_probs_to_cpt <- function(probs, var_name, evid_name = "evid"){
+  p0 <- probs[1]
+  p1 <- probs[2]
+  
+  full_list <- paste0("list(",var_name,"=c('Yes','No'),", evid_name, " = c('Yes', 'No'))")
+  make_custom_cpt(c(p1, p0, (1-p1), (1-p0)), c(2,2), eval(parse(text=full_list)), NULL)
+}
+
+
+find_evid_ratio <- function(data){
+  optim(par = c(0, 0, 5), fn = evid_score_func, data = data, method="BFGS")
+}
+
+
+make_evid_cpt <- function(data, var_name, evid_name = "evid"){
+  result <- find_evid_ratio(data)
+  probs <- get_evid_probs(result)
+  cpt <- evid_probs_to_cpt(probs, var_name, evid_name)
+  
+  return(cpt)
+}
+
+make_evid_cpt_custom <- function(var_name, evid_ratio, evid_name = "evid"){
+  # result <- find_evid_ratio(data)
+  result <<- list(par = c(0, log(evid_ratio)) )
+  probs <- get_evid_probs(result)
+  cpt <- evid_probs_to_cpt(probs, var_name, evid_name)
+  
+  return(cpt)
+}
+
+```
+
+
+
+Generate predictions ...
+
+__Translating hydenet model to bnlearn__
+
+below is some code to get things into the right format. Later I'll break this out into a function I guess.
+
+```{r}
+hyde_to_bn_cpt <- function(hyde_cpt) {
+  ndims <- length(dim(hyde_cpt))
+  
+  if ("xtabs" %in% class(hyde_cpt)) {
+    output <- hyde_cpt/1e5
+  } else {
+    
+    output <- aperm(hyde_cpt, ndims:1)
+  }
+ return (output) 
+}
+
+# # This is old?
+
+# # hyde_to_bn_cpt(bagOfModels$evid)
+# bagOfModels[[15]] <- make_evid_cpt(d,"diseaseSevere") # don't have data loaded in yet?
+# 
+# bnlearn_models <- lapply(bagOfModels, hyde_to_bn_cpt)
+# model_string <- as.character(map_dag)
+# model_string <- paste0(model_string,"[evid|diseaseSevere]")
+# model_network <- model2network(model_string)
+# 
+# predModel <- custom.fit(model_network, dist = bnlearn_models)
+
+
+```
+
+__Generating predictions__
+
+Now I can use this model to generate predictions.
+
+## Predicting effect on vaccintent of hypothetical interventions
+
+```{r}
+
+# this is some code to genrate predictions of vacc intent change based on
+# hypothetical interventions
+
+create_bnlearn_cog_model <- function(dag, data, evid_cpt = NULL, targetted_belief = NULL) {
+  arcs_df <- bnlearn_to_df(dag)
+  graph_list <- df_to_list(arcs_df)
+  bagOfModels <- lapply(graph_list, function(x){fit_node_cpt(x, data)})
+  model_string <- as.character(dag)
+
+  if (!(is.null(evid_cpt))) {
+    bagOfModels$evid <- evid_cpt
+    model_string <- paste0(model_string,"[evid|", targetted_belief, "]")
+  }
+  model_network <- model2network(model_string)
+  bnlearn_models <- lapply(bagOfModels, hyde_to_bn_cpt)
+  predModel <- custom.fit(model_network, dist = bnlearn_models)
+
+  return(predModel)
+}
+
+
+add_evid_node <- function(data, bnlearn_model, targetted_belief, evid_id = NULL) {
+  
+  if (!is.null(evid_id)) {
+    evid <- paste0("evid",evid_id)
+  } else {
+    evid <- "evid"
+  }
+  
+  evid_cpt <- make_evid_cpt(data, targetted_belief, evid)
+  model_list <- lapply(bnlearn_model, function(x){x$prob})
+  model_list[[evid]] <- hyde_to_bn_cpt(evid_cpt)
+  
+  model_string <- modelstring(bnlearn_model)
+  model_string <- paste0(model_string,"[", evid,"|", targetted_belief, "]")
+  
+  model_network <- model2network(model_string)
+  predModel <- custom.fit(model_network, dist = model_list)
+  
+  return(predModel)
+}
+
+add_evid_node_custom <- function(bnlearn_model, parents_string, evid_cpt) {
+
+  model_list <- lapply(bnlearn_model, function(x){x$prob})
+  model_list$evid <- evid_cpt
+
+  model_string <- modelstring(bnlearn_model)
+  model_string <- paste0(model_string,"[evid|", parents_string, "]")
+  model_network <- model2network(model_string)
+  predModel <- custom.fit(model_network, dist = model_list)
+
+  return(predModel)
+}
+
+cogModel_predictions <- function(model){
+  pred0 <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence=TRUE, n = 1e5)")
+  eval(parse(text=statement))
+  })
+  
+  pred1 <- sapply(nodes, function(x){
+    statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 1e5)")
+    eval(parse(text=statement))
+  })
+  
+  pred_changes <- pred1 - pred0
+  
+  pred_changes <- as.data.frame(pred_changes)
+  
+  pred_changes <- pred_changes %>%
+    mutate(scale = nodes) %>%
+    rename(Mean = pred_changes) %>%
+    mutate(type = "predicted")
+  
+  return(pred_changes)
+}
+
+
+base_model <- create_bnlearn_cog_model(map_dag, train)
+
+source("../study2/load-study2-data.R", chdir = TRUE)
+
+
+vaccIntent_pred_results <- data.frame(scale=nodes, value = NA)
+  
+for (i in 1:length(nodes)) {
+  if (cor(d_bn[,"vaccIntent"], d_bn[,nodes[i]]) >= 0) {
+    evid_ratio <- 2
+  } else {
+    evid_ratio <- .5
+  }
+  evid_cpt <- hyde_to_bn_cpt(make_evid_cpt_custom(nodes[i], evid_ratio))
+  vaccIntent_predNet <- add_evid_node_custom(base_model, nodes[i], evid_cpt)
+  
+  preds <- cogModel_predictions(vaccIntent_predNet) %>%
+    filter(scale=="vaccIntent")
+  
+  vaccIntent_pred_results[i,"value"] <- preds[1,"Mean"]
+  
+}
+
+
+## combine this with observed correlations from study 1
+
+corrmat <- cor(d_bn)
+
+interv_sim <- corrmat["vaccIntent",] %>%
+  tibble(scale = names(.), value = ., type="correlation") %>%
+  bind_rows(vaccIntent_pred_results %>% mutate(type="model_pred")) %>%
+  spread(type,value)
+
+interv_sim %>%
+  ggplot(aes(x=abs(correlation), y = model_pred)) +
+  geom_point()
+
+(pred_change_plot <- interv_sim %>% 
+  filter(scale!="vaccIntent") %>%
+  ggplot(aes(x=reorder(scale, model_pred), y = model_pred)) + 
+  geom_bar(stat="identity") + 
+  coord_flip() +
+  labs(x="Targeted belief", y = "Predicted change in intentions") +
+  theme_bw(base_size=22) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(aspect.ratio = 1.5))
+  
+
+ggsave("../local/predicted_changes.png", pred_change_plot)
+```
+
+
+The correlation between model predicted change and first-order correlation with vaccIntent is essentially 1. This is to be expected, the model is based on the correlation structure of these data. So, if you're just looking to figure out what to intervene on, first-order correlations can give you a good starting place.
+
+## predicting effect of disease risk intervention on network
+
+```{r}
+set.seed(12345)
+
+filter_dscored <- function(data, scale_name){
+  
+  data %>%
+  filter(scale == scale_name) %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase, mean) %>% 
+  mutate(condition = relevel(condition, ref="noInterv")) %>%
+  mutate(evid = ifelse(condition=="noInterv",0,1))
+}
+
+ 
+# d <- d_scored %>%
+#   filter(scale == "diseaseSevere") %>%
+#   mutate(mean = rescale_beta(mean, -3, 3)) %>%
+#   spread(phase, mean) %>% 
+#   mutate(condition = relevel(condition, ref="noInterv")) %>%
+#   mutate(evid = ifelse(condition=="noInterv",0,1))
+
+predModel <- add_evid_node(filter_dscored(d_scored, "diseaseSevere"), base_model, "diseaseSevere")
+
+pred0 <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(predModel, event = (", x, " == 'Yes'), evidence=TRUE, n = 5e5)")
+  eval(parse(text=statement))
+})
+
+pred1 <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(predModel, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 5e5)")
+  eval(parse(text=statement))
+})
+
+pred_changes <- pred1 - pred0
+
+pred_changes <- as.data.frame(pred_changes)
+
+pred_changes <- pred_changes %>%
+  mutate(scale = nodes) %>%
+  rename(Mean = pred_changes) %>%
+  mutate(type = "predicted")
+
+```
+
+Compare predicted and observed changes ...
+
+```{r}
+
+
+obs_changes <- d_scored %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase,mean) %>%
+  mutate(changeScore = post-pre) %>%
+  filter(condition == "diseaseRisk") %>%
+  group_by(scale) %>%
+  summarise(
+    Mean = mean(changeScore),
+    ul = mean(changeScore) + 1.96*sd(changeScore)/sqrt(n()), # replace with bootstrapping
+    ll = mean(changeScore) - 1.96*sd(changeScore)/sqrt(n())
+    ) %>%
+  mutate(type = "observed")
+
+obs_pred <- bind_rows(pred_changes, obs_changes) %>%
+  spread(type, Mean) %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE)
+
+cor(obs_pred$predicted, obs_pred$observed)
+
+(obs_pred_plot <- obs_pred %>% # a bit of a hack
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point(size=2.5) +
+  geom_errorbar(alpha=.5, width=0) +
+  coord_cartesian(xlim=c(-.06,.08), ylim=c(-.06,.08)) +
+  theme_bw(base_size=22) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(aspect.ratio = 1))
+
+obs_pred %>%
+  gather(type, Mean, observed, predicted) %>%
+  ggplot(aes(y = reorder(scale, Mean), x = Mean, xmin = ll, xmax = ul, color=type)) +
+  geom_point() +
+  geom_errorbarh(height=0)
+
+
+ggsave("../local/obs_pred_plot.png",obs_pred_plot)
+```
+
+
+# What beliefs are targetted by the intervention?
+
+Here we can pretend that expectations for the intervention materials are set by each of the 14 beliefs, and compare the accuracy of the resulting models' predictions. We should also ask whether the differences among models are substantial and reliable enough for us to prefer any one model over another.
+
+```{r}
+
+compare_pred_obs_r <- function(predicted, observed){
+
+  obs_pred <- suppressWarnings(bind_rows(predicted, observed)) %>%
+    spread(type, Mean) %>%
+    group_by(scale) %>%
+    summarize_all(mean, na.rm=TRUE)
+  
+  cor(obs_pred$predicted, obs_pred$observed)
+}
+
+compare_pred_obs_rmse <- function(predicted, observed){
+
+  obs_pred <- suppressWarnings(bind_rows(predicted, observed)) %>%
+    spread(type, Mean) %>%
+    group_by(scale) %>%
+    summarize_all(mean, na.rm=TRUE)
+  
+  sqrt(mean((obs_pred$observed-obs_pred$predicted)^2))
+  
+}
+
+
+extract_obs_changes <- function(observed){
+  obs_changes <- observed %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase,mean) %>%
+  mutate(changeScore = post-pre) %>%
+  filter(condition == "diseaseRisk") %>%
+  group_by(scale) %>%
+  summarise(
+    Mean = mean(changeScore),
+    ul = mean(changeScore) + 1.96*sd(changeScore)/sqrt(n()), # replace with bootstrapping
+    ll = mean(changeScore) - 1.96*sd(changeScore)/sqrt(n())
+    ) %>%
+  mutate(type = "observed")
+}
+
+```
+
+```{r}
+# -- takes about 1.5 hrs for 500 bootstrap samples
+# base_model <- create_bnlearn_cog_model(map_dag, train)
+# 
+# # do bootstrap comparison
+# set.seed(1234)
+# t1 <- Sys.time()
+# 
+# boot_fits <- as_tibble(expand.grid(
+#   list(
+#     replicate = 1:500, scale = nodes
+#   )
+# )) %>%
+#   nest(-replicate, .key="scales") %>%
+#   mutate(boot_d_scored = map(replicate, function(x) {
+#     totaln <- length(unique(d_scored$workerId))
+#     d_scored %>%
+#       nest(-workerId) %>%
+#       sample_n(totaln, replace = TRUE) %>%
+#       mutate(uniqueId = 1:totaln) %>%
+#       unnest()
+#   })) %>%
+#   unnest(scales, .drop=FALSE) %>%
+#   mutate(
+#       boot_d = map2(boot_d_scored, scale, function(x,y){filter_dscored(x, y)}),
+#       obs_changes = map(boot_d_scored, extract_obs_changes)
+#       ) %>%
+#   select(-boot_d_scored) %>%
+#   mutate(
+#     models = map2(boot_d, scale, function(x,y){add_evid_node(x, base_model, y)}),
+#     pred_changes = map(models, cogModel_predictions),
+#     r = map2_dbl(pred_changes, obs_changes, compare_pred_obs_r),
+#     rmse = map2_dbl(pred_changes, obs_changes, compare_pred_obs_rmse)
+#     )
+# 
+# print(Sys.time() - t1)
+# 
+# saveRDS(object = boot_fits, file = "../local/boot_fits.rds")
+
+boot_fits <- readRDS("../local/boot_fits.rds")
+```
+
+```{r}
+boot_fits %>%
+  mutate(r2 = r^2) %>%
+  ggplot(aes(x=reorder(scale,-r2), y = r2)) +
+  geom_boxplot(fill="lightgray") +
+  theme_bw() +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  coord_flip()
+  # theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+diagnose_plot <- boot_fits %>%
+  select(replicate, scale,r,rmse) %>%
+  mutate(scale_order = r) %>%
+  gather(meas, value, r, rmse) %>%
+  mutate(meas = ifelse(meas=="rmse", "RMSE (lower is better)", "Correlation")) %>%
+  mutate(meas = factor(meas, levels=c("RMSE (lower is better)", "Correlation"))) %>%
+  ggplot(aes(x=reorder(scale, scale_order), y = value)) +
+  # geom_violin(fill="gray", alpha=.5) +
+  geom_boxplot(fill = "lightgray") +
+  facet_wrap(~meas, scales="free_x" ) +
+  labs(x = "Belief", y = "Value") +
+  theme_bw(base_size=14) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  coord_flip() 
+
+ggsave("../local/diagnose_plot.png", diagnose_plot, width = 7.5, height=5)
+```
+
+
+```{r}
+boot_fits %>% 
+  filter(scale=="diseaseSevere") %>%
+  summarize(
+    estimate = mean(r),
+    ul = quantile(r,.975),
+    ll = quantile(r, .025)
+    )
+```
+
+# two beliefs at the same time
+
+```{r}
+# res_overpar <- find_evid_ratio(filter_dscored(d_scored, "overpar"))
+# res_ds <- find_evid_ratio(filter_dscored(d_scored, "diseaseSevere"))
+# 
+# overpar_ratio <- exp(res_overpar$par[1] + res_overpar$par[2])
+# ds_ratio <- exp(res_ds$par[1] + res_ds$par[2])
+# # 
+# # p0p0 <- .08
+# # p1p0 <- p0p0*ds_ratio
+# # p0p1 <- p0p0*overpar_ratio
+# # # p1p1 <- p0p0*overpar_ratio*ds_ratio
+# # 
+# # # p1p1 is noisy-or integration of p1p0 and p0p1
+# # # so have to back-out failure prob of overpar and disease severe, then integrate
+# # # p1p1 <- 1-(1-p0p0)*(1-(p1p0-p0p0)/(1-p0p0))*(1-(p0p1-p0p0)/(1-p0p0))
+# # 
+# # p_ds <- (p1p0-p0p0)/(1-p0p0)
+# # p_overpar <- (p0p1-p0p0)/(1-p0p0)
+# # p1p1 <- 1-(1-p0p0)*(1-p_ds)*(1-p_overpar)
+# 
+# overpar_ds_evid_cpt <- make_custom_cpt(
+#   # c(p1p0, p0p0, (1-p1p0), (1-p0p0), p1p1, p0p1, (1-p1p1), (1-p0p1)),   
+#   c(p1p1, (1-p1p1), p1p0, (1-p1p0), p0p1, (1-p0p1), p0p0, (1-p0p0) ),
+#                 c(2,2,2),
+#                 list(evid=c("Yes","No"), overpar = c("Yes","No"), diseaseSevere = c("Yes","No")), 
+#                 NULL)
+
+```
+
+These solutions to calculating joint cpt are making me nervous, I'm clearly missing something since it's not invariant to the base probability. I'm going to try using brms and doing things a bit differently ... Ok so apparently this is a disaster and I should definitely not do it this way.
+
+```{r}
+# # this is the old way I was thinking of doing things and it is apparently a disaster ...
+# library(brms)
+# 
+# d_brm <- d_scored %>%
+#   filter(scale %in% c("overpar","diseaseSevere")) %>%
+#   filter(condition=="diseaseRisk") %>%
+#   mutate(evid = ifelse(phase=="pre",0,1)) %>%
+#   select(workerId, condition, evid, scale, mean) %>%
+#   mutate(mean = rescale_beta(mean, -3, 3)) %>%
+#   spread(scale,mean) %>%
+#   rename(op = overpar, ds=diseaseSevere)
+# 
+# 
+# brm_fit<- brm(
+#   bf(
+#     evid ~ p0p0*(1-ds)*(1-op) + p1p0*ds*(1-op) + p0p1*(1-ds)*op + p1p1*ds*op,
+#     p0p0 + p1p0 + p0p1 + p1p1 ~ 1,
+#     nl = TRUE,
+#     family = bernoulli()
+#      ),
+#   prior = prior("uniform(0,1)", lb =0, ub=1, nlpar = "p0p0") +
+#           prior("uniform(0,1)", lb =0, ub=1, nlpar = "p1p0") +
+#           prior("uniform(0,1)", lb =0, ub=1, nlpar = "p0p1") +
+#           prior("uniform(0,1)", lb =0, ub=1, nlpar = "p1p1"),
+#     # prior("uniform(0,1)", lb = 0, ub = 1, nlpar = "p0"),
+#   data = d_brm,
+#   iter = 4000,
+#   warmup = 2000,
+#   chains = 2,
+#   cores = 2,
+#   control = list(adapt_delta=.95)
+# )
+```
+
+
+
+```{r}
+# add_evid_node_custom <- function(bnlearn_model, parents_string, evid_cpt) {
+#   
+#   # evid_cpt <- make_evid_cpt(data, targetted_belief)
+#   model_list <- lapply(bnlearn_model, function(x){x$prob})
+#   # model_list$evid <- hyde_to_bn_cpt(evid_cpt)
+#   model_list$evid <- evid_cpt
+#   
+#   model_string <- modelstring(bnlearn_model)
+#   model_string <- paste0(model_string,"[evidk|", parents_string, "]")
+#   model_network <- model2network(model_string)
+#   predModel <- custom.fit(model_network, dist = model_list)
+# 
+#   return(predModel)
+#   
+# }
+
+# ds_overpar_model <- add_evid_node_custom(base_model, "overpar:diseaseSevere", overpar_ds_evid_cpt)
+# ds_overpar_model <- add_evid_node_custom(base_model, "overpar:diseaseSevere", overpar_ds_evid_cpt)
+
+# ds_overpar_model <- add_evid_node(filter_dscored(d_scored, "diseaseSevere"), 
+#                                   base_model, 
+#                                   "diseaseSevere", "_1")
+
+
+ds_overpar_model <- add_evid_node(filter_dscored(d_scored, "diseaseSevere"), 
+                                  base_model, 
+                                  "diseaseSevere", "_1")
+
+ds_overpar_model <- add_evid_node(filter_dscored(d_scored, "overpar"), 
+                                  ds_overpar_model, 
+                                  "overpar", "_2")
+
+# ----------------------------------------
+
+set.seed(12345)
+
+pred0_ds_overpar <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(ds_overpar_model, event = (", x, " == 'Yes'), evidence=TRUE, n = 1e6)")
+  eval(parse(text=statement))
+})
+
+pred1_ds_overpar <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(ds_overpar_model, event = (", 
+                      x,
+                      " == 'Yes'), evidence= (evid_1 == 'Yes' & evid_2== 'Yes'), n = 1e6)")
+  eval(parse(text=statement))
+})
+
+pred_changes2 <- pred1_ds_overpar - pred0_ds_overpar
+
+pred_changes2 <- as.data.frame(pred_changes2)
+
+pred_changes2 <- pred_changes2 %>%
+  mutate(scale = nodes) %>%
+  rename(Mean = pred_changes2) %>%
+  mutate(type = "predicted")
+
+# ----------------------------------------
+
+obs_pred2 <- bind_rows(pred_changes2, obs_changes) %>%
+  spread(type, Mean) %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE)
+
+cor(obs_pred2$predicted, obs_pred2$observed)
+
+obs_pred2 %>% # a bit of a hack
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point() +
+  geom_errorbar() +
+  coord_cartesian(xlim=c(-.06,.08), ylim=c(-.06,.08)) +
+  theme_bw() +
+  theme(aspect.ratio = 1)
+
+obs_pred2 %>%
+  gather(type, Mean, observed, predicted) %>%
+  ggplot(aes(y = reorder(scale, Mean), x = Mean, xmin = ll, xmax = ul, color=type)) +
+  geom_point() +
+  geom_errorbarh(height=0)
+```
+
+Pretty confident the issue predicting overpar is coming from slightly different pre-test scores for study 2 compared with study 1 (an issue that also applies for disease severity too, but apparently not having as large an effect.)
+
+```{r}
+# obs,pred correlation excluding nodes fit
+obs_pred_excl <- bind_rows(pred_changes, obs_changes) %>%
+  spread(type, Mean) %>%
+  filter(scale!="diseaseSevere", scale!="overpar") %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE) 
+
+cor(obs_pred_excl$predicted, obs_pred_excl$observed)
+sqrt(mean((obs_pred_excl$observed-obs_pred_excl$predicted)^2))
+```
+
+
+```{r}
+# obs,pred correlation excluding nodes fit
+obs_pred_excl2 <- bind_rows(pred_changes2, obs_changes) %>%
+  spread(type, Mean) %>%
+  filter(scale!="diseaseSevere",scale!="overpar") %>%
+  group_by(scale) %>%
+  summarize_all(mean, na.rm=TRUE) 
+
+cor(obs_pred_excl2$predicted, obs_pred_excl2$observed)
+sqrt(mean((obs_pred_excl2$observed-obs_pred_excl2$predicted)^2))
+```
+
+Adding edge from overparenting hurts prediction for the 12 nodes other than disease severity and overparenting, goes from r = .90 to r = .818. RMSE just about doubled. To be sure I'd have to do the bootstrap on these estimates, but I think this is a signal that the fit is worse modeling it as a direct effect. If so that indicates to me that something is wrong in the model wrt overparenting beliefs.
+
+```{r}
+# make_evid_cpt_custom <- function(data){
+#   res_overpar <- find_evid_ratio(filter_dscored(data, "overpar"))
+#   res_ds <- find_evid_ratio(filter_dscored(data, "diseaseSevere"))
+# 
+#   overpar_ratio <- exp(res_overpar$par[1] + res_overpar$par[2])
+#   ds_ratio <- exp(res_ds$par[1] + res_ds$par[2])
+#   
+#   p0p0 <- .1
+#   p1p0 <- p0p0*ds_ratio
+#   p0p1 <- p0p0*overpar_ratio
+#   # p1p1 <- p0p0*overpar_ratio*ds_ratio
+#   p1p1 <- 1-(1-p0p0)*(1-(p1p0-p0p0)/(1-p0p0))*(1-(p0p1-p0p0)/(1-p0p0))
+#   
+#   overpar_ds_evid_cpt <- make_custom_cpt(
+#     # c(p1p0, p0p0, (1-p1p0), (1-p0p0), p1p1, p0p1, (1-p1p1), (1-p0p1)),   
+#     c(p1p1, (1-p1p1), p1p0, (1-p1p0), p0p1, (1-p0p1), p0p0, (1-p0p0) ),
+#                   c(2,2,2),
+#                   list(evid=c("Yes","No"), overpar = c("Yes","No"), diseaseSevere = c("Yes","No")), 
+#                   NULL)
+# }
+
+```
+
+```{r}
+cogModel_predictions2 <- function(model){
+  
+  if (length(model)==15) {
+      pred0 <- sapply(nodes, function(x){
+    statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence=TRUE, n = 1e5)")
+    eval(parse(text=statement))
+    })
+    
+    pred1 <- sapply(nodes, function(x){
+      statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 1e5)")
+      eval(parse(text=statement))
+  })
+  } else {
+    pred0 <- sapply(nodes, function(x){
+    statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence=TRUE, n = 1e5)")
+    eval(parse(text=statement))
+    })
+    
+    pred1 <- sapply(nodes, function(x){
+      statement <- paste0("cpquery(model, event = (", x,
+                          " == 'Yes'), evidence=(evid_1 == 'Yes' & evid_2 == 'Yes'), n = 1e5)")
+      eval(parse(text=statement))
+    })
+  }
+
+  
+  pred_changes <- pred1 - pred0
+  
+  pred_changes <- as.data.frame(pred_changes)
+  
+  pred_changes <- pred_changes %>%
+    mutate(scale = nodes) %>%
+    rename(Mean = pred_changes) %>%
+    mutate(type = "predicted")
+  
+  return(pred_changes)
+}
+```
+
+
+```{r}
+set.seed(1234)
+t1 <- Sys.time()
+
+boot_fits2 <- as_tibble(expand.grid(
+  list(
+    replicate = 1:100, parents = c("diseaseSevere","overpar:diseaseSevere")
+  )
+)) %>%
+  nest(-replicate, .key="scales") %>%
+  mutate(boot_d_scored = map(replicate, function(x) {
+    totaln <- length(unique(d_scored$workerId))
+    d_scored %>%
+      nest(-workerId) %>%
+      sample_n(totaln, replace = TRUE) %>%
+      mutate(uniqueId = 1:totaln) %>%
+      unnest()
+  })) %>%
+  unnest(scales, .drop=FALSE) %>%
+  mutate(
+      # boot_d = map2(boot_d_scored, scale, function(x,y){filter_dscored(x, y)}),
+      obs_changes = map(boot_d_scored, extract_obs_changes),
+      models = ifelse(parents=="diseaseSevere",
+                 map(boot_d_scored, 
+                     function(x){
+                       add_evid_node(filter_dscored(x,"diseaseSevere"), base_model, "diseaseSevere")
+                     }
+                     ),
+                 map(boot_d_scored, 
+                     function(x){
+                       m <- add_evid_node(filter_dscored(x,"diseaseSevere"), base_model, "diseaseSevere","_1")
+                       m <- add_evid_node(filter_dscored(x,"overpar"), m, "overpar", "_2")
+                     }))
+      ) %>%
+  select(-boot_d_scored) %>%
+  mutate(
+    pred_changes = map(models, cogModel_predictions2)
+    # r = map2_dbl(pred_changes, obs_changes, compare_pred_obs_r),
+    # rmse = map2_dbl(pred_changes, obs_changes, compare_pred_obs_rmse)
+    )
+
+print(Sys.time() - t1)
+```
+
+```{r}
+boot_fits2 %>%
+  mutate(
+    pred_changes = map(pred_changes, filter, scale!="diseaseSevere", scale!="overpar"),
+    obs_changes = map(obs_changes, filter, scale!="diseaseSevere", scale!="overpar"),
+    r = map2_dbl(pred_changes, obs_changes, compare_pred_obs_r),
+    rmse = map2_dbl(pred_changes, obs_changes, compare_pred_obs_rmse)#,
+    # r2 = r^2
+  ) %>%
+  gather(measure, value, rmse, r) %>%
+  ggplot(aes(x=parents, y = value)) +
+  geom_boxplot() +
+  facet_wrap(~measure, scales="free")
+```
+
+# Comparison with Naive models
+*this should all get moved into study 1, or I should combine the studies ...*
+After visiting UCLA (on 10/26), Hongjing suggested that the fit of the model needs to be situated or given context by some kind of model comparison. It's not clear what the real competing models are exactly, but one approach might be to build the best possible model for each node (14 models), and a model for the intervention effect. Then compare the fit of our one model against those. If it's achieving similar performance, all within one model, then that seems like the superior approach. Another thing to do might be to examine the test-retest reliability of the scales, based on the control condition in Study 2. This would set a bar for the maximum expected predictive power.
+
+[ looks like several will be at test-retest, suggesting no possibility of improvement. A full set of naïve models will basically predict all the scores in study 1, without overfitting it seems. But, those models will totally fail to predict changes. ]
+
+As Kara suggested, in presenting this I should make it clear that model selection (via model comparison) has already occurred--we've compared a huge space of possible models during structure learning. Thus, the real question we're seeking to answer here is how _good_ that best model is. Comparison against test-retest helps answer this, by giving context for what could be considered as good as possible. A potential second question could be to consider how things work compared with "naïve" models, which is like asking, "was it worth all that effort to find this model?", maybe seeing how well we can predict by just naïvely throwing all other measures at the problem. We'll find that doing so can work, but only for one of the tasks at a time. And for that reason, it can't help guide the design of interventions in the same way.
+
+```{r}
+# code to play with this
+
+library(betareg)
+
+build_formula <- function(node, all_nodes){
+  
+  lhs_nodes <- all_nodes[all_nodes != node]
+  
+  f <- paste(node, "~ ")
+  for (n in lhs_nodes){
+    f <- paste0(f, n, " + ")
+  }
+  
+  f <- substr(f,1,nchar(f)-3)
+  
+  return(f)
+}
+
+make_model <- function(node){
+  betareg(as.formula(build_formula(node, nodes)), 
+        data = train)
+}
+
+calc_oos_fit <- function(model, node){ # break this up
+
+  p <- predict(model, test)
+  
+  cor(p, test[,node])
+}
+
+calc_change <- function(model,node){
+  df <- d_scored %>%
+    filter(condition=="diseaseRisk") %>%
+    group_by(scale, phase) %>%
+    summarize(mean = mean(mean)) %>%
+    spread(phase, mean)
+  
+  df1 <- df %>%
+    select(scale, pre) %>%
+    spread(scale, pre)
+  
+  # df2 <- df %>%
+  #   select(scale,post) %>%
+  #   spread(scale, post)
+  
+  df1[2,] <- df1[1,]  # can swap to have all changing ...
+  df1[2,"diseaseSevere"] <- df[6, "post"]
+  
+  p <- predict(model, df1)
+  
+  p[2] - p[1]
+}
+
+oos_fits <- tibble(node=as.character(nodes)) %>%
+  mutate(model = map(node, make_model)) %>%
+  mutate(fit = map2_dbl(model, node, calc_oos_fit)) %>%
+  mutate(pred_change = map2_dbl(model, node, calc_change))
+
+```
+
+```{r}
+# compute test-retest reliability for each scale
+test_retest_cor <- function(node){
+    df <- d_scored %>%
+    filter(condition == "noInterv", scale == node) %>%
+    spread(phase, mean)
+  return( cor(df$pre,df$post) )
+}
+
+test_retest <- tibble(node=as.character(nodes)) %>%
+  mutate(fit = map_dbl(node, test_retest_cor))
+
+```
+
+Full models do just as well at predicting relationships as the cognitive model does ...
+
+```{r}
+
+r_lower <- function(r,n){
+  map2_dbl(r, n, function(r,n){psych::r.con(r,n)[1]})
+}
+
+r_upper <- function(r,n){
+  map2_dbl(r, n, function(r,n){psych::r.con(r,n)[2]})
+}
+
+model_fits <- tibble(
+  node = as.character(nodes),
+  model_fit = c(.50, .66, .48, .63, .64, .56, .71, .35, .63, .90, .83, .86, .81, .87),
+  test_retest = test_retest$fit,
+  full_fit = oos_fits$fit
+  ) %>%
+  gather(model, fit, model_fit, test_retest, full_fit) %>%
+  mutate(n = ifelse(model=="test_retest", 233, 226)) %>%
+  mutate(ul = r_upper(fit,n), ll= r_lower(fit,n))
+
+model_fits %>%
+  filter(model!="full_fit") %>%
+  mutate(model = ifelse(model=="model_fit", "model", "test-retest")) %>%
+  ggplot(aes(x=reorder(node, -fit), y = fit, color=model, ymin = ll, ymax =ul)) +
+  # geom_errorbar(position = position_dodge(width=.25)) +
+  geom_pointrange(size =.25, position = position_dodge(width=.25)) +
+  ylim(0,1) +
+  theme_bw(base_size = 14) +
+  labs(x="Belief", y = "Correlation") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+(could we do also do proportion of non-error variance captured?)
+
+... but full models cannot predict change scores. (they are also more complex, inelegant, etc.)
+
+```{r}
+obs_pred$full_model_pred <- oos_fits$pred_change
+
+cor(obs_pred$observed, obs_pred$full_model_pred)
+
+obs_pred %>% # a bit of a hack
+  ggplot(aes(x=full_model_pred, y = observed)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point() +
+  # geom_errorbar() +
+  coord_cartesian(xlim=c(-.06,.08), ylim=c(-.06,.08)) +
+  theme_bw() +
+  theme(aspect.ratio = 1)
+
+```
+

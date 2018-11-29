@@ -68,6 +68,112 @@ fit_node_cpt <- function(node, data) {
   return(node_cpt)
 }
 
+# 11/21/18, 4:26 PM
+# adding this frm study2_modeling.Rmd b/c seems to be missing
+
+df_to_list <- function(arcs_df, as.strings=FALSE) {
+  # take arcs_df and make list of formulas
+  arcs_df$to <- as.character(arcs_df$to)
+  arcs_df$from <- as.character(arcs_df$from)
+  
+  nodes <- unique(unlist(arcs_df))
+  output <- lapply(nodes, function(node) {
+    edges <- arcs_df[which(arcs_df$to == node), "from"]
+    if (length(edges) < 1) {
+      edges <- NULL
+    }
+    list(child=node, parents=edges)
+    
+  })
+  names(output) <- nodes
+  return(output)
+}
+
+
+inv_logit <- plogis
+logit <- qlogis
+
+evid_score_func <- function(data, par) {
+  
+  inv_logit <- plogis
+  logit <- qlogis
+  
+  pred_y <- with(data,
+                 {
+                   inv_logit(logit(pre) + evid*par[2] + par[1])
+                 }
+  )
+  pred_beta_A <- pred_y * par[3]
+  pred_beta_B <- (1-pred_y) * par[3]
+  
+  ll <- -1 * sum(dbeta(data$post, pred_beta_A, pred_beta_B, log=TRUE)) # beta regression
+  return(ll)
+}
+
+get_evid_probs <- function(result){
+  # this is a heuristic/hack, could be made better but probably doesn't matter
+  evid_ratio <- exp(result$par[1] + result$par[2])
+  if (evid_ratio < 1) {
+    p0 <- .90
+  } else {
+    p0 <- .50
+  }
+  
+  if (p0*evid_ratio >= 1) {
+    p0 <- p0*.9/(p0*evid_ratio)
+  }
+  
+  p1 <- p0*evid_ratio
+  
+  c(p0,p1)
+}
+
+
+evid_probs_to_cpt <- function(probs, var_name, evid_name = "evid"){
+  p0 <- probs[1]
+  p1 <- probs[2]
+  
+  full_list <- paste0("list(",var_name,"=c('Yes','No'),", evid_name, " = c('Yes', 'No'))")
+  make_custom_cpt(c(p1, p0, (1-p1), (1-p0)), c(2,2), eval(parse(text=full_list)), NULL)
+}
+
+
+find_evid_ratio <- function(data){
+  optim(par = c(0, 0, 5), fn = evid_score_func, data = data, method="BFGS")
+}
+
+
+make_evid_cpt <- function(data, var_name, evid_name = "evid"){
+  result <- find_evid_ratio(data)
+  probs <- get_evid_probs(result)
+  cpt <- evid_probs_to_cpt(probs, var_name, evid_name)
+  
+  return(cpt)
+}
+
+make_evid_cpt_custom <- function(var_name, evid_ratio, evid_name = "evid"){
+  # result <- find_evid_ratio(data)
+  result <<- list(par = c(0, log(evid_ratio)) )
+  probs <- get_evid_probs(result)
+  cpt <- evid_probs_to_cpt(probs, var_name, evid_name)
+  
+  return(cpt)
+}
+
+
+hyde_to_bn_cpt <- function(hyde_cpt) {
+  ndims <- length(dim(hyde_cpt))
+  
+  if ("xtabs" %in% class(hyde_cpt)) {
+    output <- hyde_cpt/1e5
+  } else {
+    
+    output <- aperm(hyde_cpt, ndims:1)
+  }
+  return (output) 
+}
+
+
 
 # # Tests and examples
 # # ----------------------------------------
@@ -78,11 +184,11 @@ fit_node_cpt <- function(node, data) {
 # # bnlearn::parents(x, node) for each to get list of nodes + parents
 # # for now, manually create a list
 
-graph_list <- list( # simpler list for df_cog
-  A = list(child = "A", parents = c()),
-  B = list(child = "B", parents = c()),
-  C = list(child = "C", parents = c("A","B"))
-)
+# graph_list <- list( # simpler list for df_cog
+#   A = list(child = "A", parents = c()),
+#   B = list(child = "B", parents = c()),
+#   C = list(child = "C", parents = c("A","B"))
+# )
 
 # # 2. run optim for each family & 3. spit out cpt object for each family w/ function fit_node()
 # bagOfModels <- lapply(graph_list, function(x){fit_node_cpt(x, df_cog)})
