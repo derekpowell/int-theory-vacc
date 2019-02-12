@@ -32,8 +32,11 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
-# PDFs
+# PDFs and other outputs
 *.pdf
+*.html
+*.png
+*.tiff
 
 # Private directories
 /*_private/
