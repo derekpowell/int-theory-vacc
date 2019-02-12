@@ -21,8 +21,8 @@ d1 <- d_raw %>%
 
 # reformat variables
 d2 <- d1 %>% 
-  mutate_at(vars(StartDate), funs(parse_datetime)) %>% # parse dates
-  mutate_at(vars(Duration..in.seconds., age, children), funs(as.character)) %>% # parse numbers step 1
+  # mutate_at(vars(StartDate), funs(parse_datetime)) %>% # parse dates # 1/14/19, 3:12 PM this is throwing an error
+  # mutate_at(vars(Duration..in.seconds., age, children), funs(as.character)) %>% # parse numbers step 1
   mutate_at(vars(Duration..in.seconds., age, children), funs(as.numeric)) %>% # parse numbers step 2
   mutate(educ = factor(educ, # recode ordinal variables
                        levels = c("No Diploma", "High School or Equivalent",
