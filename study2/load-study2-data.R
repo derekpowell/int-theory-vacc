@@ -2,7 +2,7 @@
 # Kara's code
 
 library(tidyverse)
-d_all <- read.csv("study2_data.csv")[-1] %>%
+d_all <- read.csv("../data/study2_data.csv")[-1] %>%
   # filter out anyone who failed attention checks
   filter(hb_check_5_pretest == 1, hb_check_5_posttest == 1,
          vaccEff_check_1_pretest == -3, vaccEff_check_1_posttest == -3, 
