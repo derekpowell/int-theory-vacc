@@ -21,7 +21,7 @@ library(rms)
 # Data prep
 
 ```{r}
-source("./load-study2-data.R")
+source("../scripts/load-data-s2.R")
 ```
 
 ```{r tidy, include = F}
