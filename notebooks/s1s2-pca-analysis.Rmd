@@ -59,22 +59,22 @@ loadings <-  as.data.frame(pca14$rotation)
 
 loadings %>%
   ggplot(aes(x=PC1, y = PC2, label=rownames(loadings))) +
-  geom_point(color="red") +
   geom_text_repel() +
+  geom_point(color="red") +
   theme_bw() +
   labs(title="Component Loadings")
 
 loadings %>%
   ggplot(aes(x=PC1, y = PC3, label=rownames(loadings))) +
-  geom_point(color="red") +
   geom_text_repel() +
+  geom_point(color="red") +
   theme_bw() +
   labs(title="Component Loadings")
 
 loadings %>%
   ggplot(aes(x=PC2, y = PC3, label=rownames(loadings))) +
-  geom_point(color="red") +
   geom_text_repel() +
+  geom_point(color="red") +
   theme_bw() +
   labs(title="Component Loadings")
 ```
@@ -231,4 +231,6 @@ pred_obs_changes %>%
 Seems to do quite poorly! Would be good to get another set of eyes on it, but I'm pretty confident my code is working. At least, when I use a full factor solution it adds the correct amount to disease severity scores and only disease severity scores. I'm not 100% sure this is exactly what Ed Vul and others have meant by using PCA, but it seems like the analogous approach.
 
 So, tentatively, I don't think this PCA idea gives a very good solution and certainly it's hard to see it as an improvement (except maybe in ease of use and computation speed). It takes a similar number of parameters to get a similarly good reconstruction of S1 data, and the pca technique fails to predict changes in beliefs following evidence in S2.
+
+Another thing worth considering is taht this isn't a "model" in any traditional sense. It's just a method of compressing and reconstructing the data. So in the predictions for s1, it's not really "predicting " each variable without being given any data on that specific variable. Instead, it's being given all the variables, then compressing them, then seeing if it can reconstruct them, but the values for, e.g., vaccine intentions are used to create the compressed components that are used in the reconstruction, so it's not really an out-of-sample "prediction" in the same way that the bayesian network (or regression models) are doing.
 

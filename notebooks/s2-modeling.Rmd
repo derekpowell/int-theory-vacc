@@ -10,7 +10,9 @@ output:
 
 
 ```{r load in existing objects, message=FALSE, warning=FALSE}
-# net.struct <- readRDS("net-struct-cogsci2018.rds")
+# # install missing packages
+devtools::install_github("thomasp85/patchwork")
+install.packages("rsample")
 
 source("../scripts/load-data-s1.R", chdir = TRUE)
 source("../scripts/gmod_tools.R")
@@ -23,7 +25,7 @@ library(BiDAG)
 library(HydeNet)
 library(bnlearn)
 
-library(rsample)
+# library(rsample)
 
 source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 ```
