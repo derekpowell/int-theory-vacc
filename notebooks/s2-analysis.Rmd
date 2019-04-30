@@ -496,21 +496,21 @@ Here pre_response could be the response on the overall pre-test scale, or the in
 ### Predicting "response"
 
 ```{r}
-devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
-
-library(brms)
-fit_ord <- cbrm(response ~ condition * phase + (1|workerId) + (1|question),
-               data = d %>%
-                    filter(scale=="vaccIntent") %>%
-                    mutate(
-                      condition = relevel(condition, ref="noInterv"),
-                      response = response + 4),
-               family=cumulative(),
-               control = list(adapt_delta = .85),
-               cores = parallel::detectCores(),
-               iter = 2000,
-               cached_file = "fit_ord.rds")
-summary(fit_ord)
+# devtools::source_gist(id = "f1994c0f8325abbc5d300600744af39d", filename="cbrm.R")
+# 
+# library(brms)
+# fit_ord <- cbrm(response ~ condition * phase + (1|workerId) + (1|question),
+#                data = d %>%
+#                     filter(scale=="vaccIntent") %>%
+#                     mutate(
+#                       condition = relevel(condition, ref="noInterv"),
+#                       response = response + 4),
+#                family=cumulative(),
+#                control = list(adapt_delta = .85),
+#                cores = parallel::detectCores(),
+#                iter = 2000,
+#                cached_file = "fit_ord.rds")
+# summary(fit_ord)
 ```
 
 ### Predicting post-test
@@ -535,14 +535,14 @@ d1 <- d %>%
 
 
 ```{r}
-fit_ord2 <- cbrm(post ~ condition + preMean + (1|workerId) + (1|question),
-               data=d1,
-               family=cumulative(),
-               control = list(adapt_delta = .85),
-               cores = parallel::detectCores(),
-               iter = 2000,
-               cached_file = "fit_ord2.rds")
-summary(fit_ord2)
+# fit_ord2 <- cbrm(post ~ condition + preMean + (1|workerId) + (1|question),
+#                data=d1,
+#                family=cumulative(),
+#                control = list(adapt_delta = .85),
+#                cores = parallel::detectCores(),
+#                iter = 2000,
+#                cached_file = "fit_ord2.rds")
+# summary(fit_ord2)
 ```
 
 

@@ -143,7 +143,7 @@ df_preds <- test_predicted %>%
 
 cors <- df_preds %>%
   group_by(scale) %>%
-  summarize(correlation = cor(predicted, observed))
+  summarise(correlation = cor(predicted, observed))
 
 df_preds %>%
   ggplot(aes(x=predicted, y = observed)) +
@@ -175,7 +175,7 @@ d_changes <- d_scored %>%
   mutate(change = post-pre) %>%
   select(-pre,-post) %>%
   group_by(scale) %>%
-  summarize(meanChange = mean(change))
+  summarise(meanChange = mean(change))
 
 d_changes
 ```
@@ -201,13 +201,13 @@ pred_post %>%
   as_tibble() %>%
   gather(scale, response) %>%
   group_by(scale) %>%
-  summarize(posttest = mean(response)) %>%
+  summarise(posttest = mean(response)) %>%
   left_join(
     (
       d_interv_pre %>%
   gather(scale,response) %>%
   group_by(scale) %>%
-  summarize(pretest = mean(response))
+  summarise(pretest = mean(response))
     ), by = "scale"
   ) %>%
   mutate(change = posttest-pretest) -> pred_changes
