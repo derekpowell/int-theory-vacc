@@ -1,0 +1,401 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+The relevant [NY Times front page article](https://www.nytimes.com/2019/04/29/health/measles-outbreak-cdc.html).
+
+```{r}
+# # load s1 data (original cogsci dataset)
+source("../scripts/load-data-s1.R")
+
+s1 <- d_sum %>%
+  rename(scale = question_block) %>%
+  group_by(scale, workerId) %>% 
+  summarize(s1 = mean(score, na.rm = T)) %>%
+  ungroup()
+
+# load s2 data (disease risk intervention)
+source("../scripts/load-data-s2.R")
+
+s2 <- d_scored %>%
+  # rename(subid = workerId) %>%
+  filter(phase == "pre") %>% 
+  group_by(scale, workerId) %>% 
+  summarize(s2 = mean(mean, na.rm = T)) %>%
+  ungroup()
+
+# load S3 data (vaccine toxin intervention)
+
+source("../scripts/load-data-s3.R")
+
+s3 <- df_scored %>%
+  # rename(subid = workerId) %>%
+  group_by(scale, workerId) %>% 
+  summarize(s3 = mean(pre, na.rm = T) - 4) %>% # put on -3, 3 scale
+  ungroup()
+
+source("../scripts/load-data-s4.R")
+
+library(lubridate)
+
+s4 <- df4 %>%
+  mutate(prior_study = case_when(
+    workerId %in% s1$workerId ~ "S1",
+    workerId %in% s3$workerId ~ "S3",
+    TRUE ~ "None"
+  )) %>%
+  mutate(resp = resp-4) %>%
+  filter(prior_study != "S3", 
+         StartDate < ymd_hms("2019-05-19:00:00:00")) %>% # exclude Ps from s3, some of whom saw intervention
+  # filter(prior_study == "None") %>% # Look only at fresh Ps
+  group_by(scale, workerId) %>%
+  summarize(s4 = mean(resp))
+
+s5 <- df4 %>%
+  mutate(resp = resp-4) %>%
+  filter(StartDate > ymd_hms("2019-05-19:00:00:00")) %>% # exclude Ps from s3, some of whom saw intervention
+  # filter(prior_study == "None") %>% # Look only at fresh Ps
+  group_by(scale, workerId) %>%
+  summarize(s5 = mean(resp))
+```
+
+
+```{r}
+# merge dataframes
+
+df_studies <-  s1 %>%
+  full_join(s2) %>%
+  full_join(s3) %>%
+  full_join(s4) %>%
+  full_join(s5) %>%
+  gather(study, score, -c(workerId, scale)) %>%
+  filter(!is.na(study), !is.na(score)) %>%
+  group_by(scale) %>%
+  mutate(score_std = scale(score, scale = T)) %>%
+  ungroup()
+```
+
+## Changes across studies
+
+```{r}
+df_studies %>%
+  group_by(study, scale) %>%
+  summarize(
+    mean = mean(score),
+    se = sd(score)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  mutate(study = ordered(study, 
+                         labels=c("S1\n(9/'17)", 
+                                  "S2\n(5/'18)", 
+                                  "S3\n(4/'19)", 
+                                  "S4\n(5/01)", 
+                                  "S5\n(5/20)")
+                         )
+         ) %>%
+  ggplot(aes(x=study, y = mean, ymin =ll, ymax=ul)) +
+  geom_pointrange() +
+  facet_wrap(~scale, scales="free") +
+  theme_bw(base_size = 12) +
+  labs(y="Mean Response", x = "Study")
+```
+
+```{r}
+# important to recognize these are small changes in absolute terms ...
+df_studies %>%
+  ggplot(aes(x=study, y = score)) +
+  geom_violin(fill = "blue",color="white",alpha=.5, scale="width", draw_quantiles=c(.5)) +
+  facet_wrap(~scale, scales="free") +
+  theme_bw()
+```
+
+Model changes across studies: I'm going to make a beta regression model with study as the predictor
+
+```{r}
+library(betareg)
+library(brms)
+
+rescale_beta <- function(x, lower, upper) {
+  # rescales onto the open interval (0,1)
+  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
+
+  N <- length(x)
+  res <- (x - lower) / (upper - lower)
+  res <- (res * (N - 1) + .5) / N
+
+  return(as.vector(res))
+}
+
+fit <- betareg(score ~ study,
+               data = df_studies %>%
+                 filter(scale =="vaccIntent") %>%
+                 mutate(score = rescale_beta(score,-3,3))
+               )
+
+summary(fit)
+
+# fit_brm <- brm(
+#   score ~ study,
+#   data = df_studies %>%
+#                  filter(scale =="vaccIntent") %>%
+#                  mutate(score = rescale_beta(score,-3,3)),
+#   family = Beta("logit"),
+#   prior = prior(normal(0,1), class="b"),
+#   iter = 2000,
+#   warmup = 1000,
+#   chains = 1,
+#   cores = 1
+# )
+
+```
+
+
+
+## Within-subjects test
+
+let's focus on the clearest test of whether and how opinions have changed, a within-subjects comparison among our re-recruited participants. These are participants who completed all 14 scales over 18 months ago, and are now returning and completing them all again.
+
+
+```{r}
+combined <- df4 %>%
+  filter(workerId %in% s1$workerId) %>%
+  select(workerId, scale, item, resp) %>%
+  group_by(workerId,scale) %>%
+  summarize(posttest = mean(resp)-4) %>%
+  right_join(s1) %>%
+  rename(pretest = s1) %>%
+  mutate(returned = !is.na(posttest))
+
+combined %>%
+  filter(returned == TRUE) %>%
+  ggplot(aes(x=pretest, y=posttest)) +
+  geom_jitter(alpha=.5) +
+  facet_wrap(~scale) +
+  theme_bw()
+
+combined_long <- combined %>%
+  gather(phase, resp, pretest, posttest)
+
+combined_long %>%
+  group_by(returned, phase, scale) %>%
+  summarize(
+    mean = mean(resp),
+    se = sd(resp)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
+  ggplot(aes(x=phase, y = mean, ymin =ll, ymax=ul, color=returned)) +
+  geom_point(position=position_dodge(width=.25), size=2, shape=16) +
+  geom_errorbar(position=position_dodge(width=.25), size=.75, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
+  facet_wrap(~scale, scales="free") +
+  theme_bw(base_size=18)
+
+combined %>%
+  filter(returned==TRUE) %>%
+  mutate(diff = posttest-pretest) %>%
+  group_by(scale) %>%
+  summarize(
+    mean = mean(diff),
+    se = sd(diff)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  # mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
+  ggplot(aes(x=reorder(scale, mean), y = mean, ymin =ll, ymax=ul)) +
+  geom_point(position=position_dodge(width=.25), size=2, shape=16) +
+  geom_errorbar(position=position_dodge(width=.25), size=.75, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
+  geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
+  # facet_wrap(~scale, scales="free") +
+  theme_bw(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1)) +
+  labs(y = "Change scores", x = "Belief scale")
+```
+
+```{r}
+diff_df <- combined %>% 
+  group_by(scale) %>% 
+  summarize(posttest = mean(posttest, na.rm=TRUE), 
+            pretest=mean(pretest)) %>% 
+  mutate(diff = posttest-pretest)
+
+diff_df
+```
+
+Have vaccine intentions increased within subjects from 18 months ago? YES.
+
+We could test this with a t-test, but I think it might be better to use a somewhat more sophisticated model. I'm going to test for differences across phases using beta regression. (I'm using "pretest" and "posttest" even though that's not qutie accurate, there was no intervention)
+
+```{r}
+t.test(resp ~ phase, data = combined_long %>% filter(returned, scale=="vaccIntent"), paired=TRUE)
+```
+
+
+```{r}
+
+library(betareg)
+
+
+
+fit <- betareg(resp ~ phase, data = combined_long %>% 
+                 mutate(resp = rescale_beta(resp, -3, 3)) %>%
+                 filter(scale=="vaccEff")
+               )
+
+summary(fit)
+```
+
+Do changes relate to media consumpion? (keeping in mind that's a noisy measure ...)
+
+Yes, for our binary yes/no response variable, but no for our news frequency scale (Could try monotonic effects -- not seeing it at all vs seeing it is a much bigger difference than seeing it once vs twice, etc)
+
+```{r}
+
+df_prepost_news <- df4 %>%
+  filter(workerId %in% s1$workerId) %>%
+  select(workerId, scale, item, resp, 
+         vacc_news, vacc_news_freq, news_favorable, outbreaks, vacc_conv
+         ) %>%
+  group_by(workerId,scale,vacc_news, vacc_news_freq, news_favorable, outbreaks, vacc_conv ) %>%
+  summarize(posttest = mean(resp)-4) %>%
+  left_join(s1) %>%
+  rename(pretest = s1) %>%
+  mutate(returned = !is.na(posttest)) %>%
+  ungroup() %>%
+  mutate(vacc_news_freq = ifelse(vacc_news==0, 0.0, vacc_news_freq))
+
+fit <- betareg(
+  posttest ~ pretest + vacc_news,
+  data = df_prepost_news %>%
+  filter(scale =="vaccIntent") %>%
+  mutate(posttest = rescale_beta(posttest,-3,3))
+)
+
+summary(fit)
+```
+
+## Participants who saw news
+
+```{r}
+df_prepost_news %>%
+  filter(returned==TRUE, !is.na(vacc_news)) %>% # somehow 5? participants slippd by without answering 
+  mutate(diff = posttest-pretest) %>%
+  mutate(vacc_news = as.factor(vacc_news)) %>%
+  group_by(vacc_news,scale) %>%
+  summarize(
+    mean = mean(diff),
+    se = sd(diff)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  mutate(vacc_news = factor(vacc_news, c(1,0), labels=c("Yes","No"))) %>%
+  # mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
+  ggplot(aes(x=reorder(scale, mean), y = mean, ymin =ll, ymax=ul, color=vacc_news)) +
+  geom_point(position=position_dodge(width=.25), size=2, shape=16) +
+  geom_errorbar(position=position_dodge(width=.25), size=.75, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
+  geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
+  # facet_wrap(~scale, scales="free") +
+  theme_bw(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "right") +
+  labs(y = "Change scores", x = "Belief scale", color ="News\nexposure")
+
+```
+
+Are the changes coherent? What is driving the changes? 
+
+Let's see how they correlate imagining all changes are driven by different beliefs (these are approximations of what model will predict)
+
+```{r message=F}
+cors <- cor(d_bn)
+
+# for (s in colnames(d_bn)){
+#   
+#   cors_df <- tibble(scale = names(cors[s,]), w = cors[s,])
+#   
+#   z <- cors_df %>% 
+#   left_join(diff_df) %>%
+#   mutate(pred_diff = w * diff_df[diff_df$scale==s,"diff"][[1]]) 
+#   
+#   print( paste(s,":",cor(z$pred_diff, z$diff)) )
+# }
+
+check_cor <- function(s){
+  cors_df <- tibble(scale = names(cors[s,]), w = cors[s,])
+  
+  z <- cors_df %>% 
+  left_join(diff_df) %>%
+  mutate(pred_diff = w * diff_df[diff_df$scale==s,"diff"][[1]]) 
+  
+  return(cor(z$pred_diff, z$diff))
+}
+
+change_cors <- tibble(scale = colnames(d_bn), corr = map_dbl(scale, check_cor))
+
+change_cors %>%
+  ggplot(aes(y=reorder(scale, corr), x = corr)) +
+  geom_point() +
+  theme_bw(base_size=18) +
+  theme(aspect.ratio=1) +
+  labs(y="Scale", x = "Correlation")
+```
+
+Now, imagine it's a direct increase in intention to vaccinate ...
+
+```{r}
+
+targetted_belief <- "vaccIntent"
+
+cors_df <- tibble(scale = names(cors[targetted_belief,]), w = cors[targetted_belief,])
+
+z <- cors_df %>% 
+left_join(diff_df) %>%
+mutate(pred_diff = w * diff_df[diff_df$scale==targetted_belief,"diff"][[1]]) 
+
+z %>%
+  ggplot(aes(x=pred_diff, y=diff)) +
+  geom_point() +
+  theme_bw(base_size=18) +
+  theme(aspect.ratio=1) +
+  labs(x="Predicted change",y="Observed change", title=targetted_belief)
+
+cor(z$pred_diff, z$diff)
+```
+
+That's a strong correlation!
+
+# insepcting other ps
+
+For some reason our "fresh" participants don't look quite like our S1 and S3 participants. A difference between S3 participants seems plausible, but I don't see how they could meaningfully differ from S1 participants beyond by chance. I say that especially because returning and non-returning participants from S1 didn't look different across any of the scales.
+
+```{r}
+df4 %>%
+  mutate(prior_study = case_when(
+    workerId %in% s1$workerId ~ "S1",
+    workerId %in% s3$workerId ~ "S3",
+    TRUE ~ "None"
+  )) %>%
+  mutate(resp = resp-4) %>%
+  # filter(prior_study != "S3") %>% # exclude Ps from s3, some of whom saw intervention
+  group_by(prior_study,scale, workerId) %>%
+  summarize(s4 = mean(resp)) %>%
+  group_by(prior_study, scale) %>%
+  summarize(Mean = mean(s4, na.rm=TRUE)) %>%
+  spread(prior_study, Mean)
+```

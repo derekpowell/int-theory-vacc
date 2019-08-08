@@ -445,7 +445,7 @@ obs_pred %>%
   geom_errorbarh(height=0)
 
 
-ggsave("../local/obs_pred_plot.png",obs_pred_plot)
+# ggsave("../local/obs_pred_plot.png",obs_pred_plot)
 ```
 
 

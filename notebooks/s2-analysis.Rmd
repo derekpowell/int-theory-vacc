@@ -12,11 +12,11 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE)
 ```{r setup, include = F}
 library(tidyverse)
 library(psych)
-# library(ggcorrplot)
 library(lme4)
 library(brms)
-library(rms)
+library(Hmisc)
 
+if require(betareg)
 ```
 
 # Data prep
@@ -180,7 +180,7 @@ d_diffs <- d_scored %>%
                             levels = c("diseaseRisk", "autismCorr", "noInterv")))
 
 g_diffs <- ggplot(d_diffs,
-                  aes(x = scale, y = Mean, 
+                  aes(x = reorder(scale, -Mean), y = Mean, 
                       color = condition, group = condition)) +
   # facet_wrap(~ scale, ncol = 3) +
   geom_hline(yintercept = 0, lty = 2, size = 0.5) +
@@ -596,7 +596,6 @@ rescale_beta <- function(x, lower, upper) {
 
 
 ```{r}
-library(betareg)
 
 contrasts(d2$condition) <- cbind(diseaseRisk = c(0, 1))
 

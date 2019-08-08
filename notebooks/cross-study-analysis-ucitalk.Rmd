@@ -1,0 +1,746 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+The relevant [NY Times front page article](https://www.nytimes.com/2019/04/29/health/measles-outbreak-cdc.html).
+
+```{r}
+# # load s1 data (original cogsci dataset)
+source("../scripts/load-data-s1.R")
+
+s1 <- d_sum %>%
+  rename(scale = question_block) %>%
+  group_by(scale, workerId) %>% 
+  summarize(s1 = mean(score, na.rm = T)) %>%
+  ungroup()
+
+# load s2 data (disease risk intervention)
+source("../scripts/load-data-s2.R")
+
+s2 <- d_scored %>%
+  # rename(subid = workerId) %>%
+  filter(phase == "pre") %>% 
+  group_by(scale, workerId) %>% 
+  summarize(s2 = mean(mean, na.rm = T)) %>%
+  ungroup()
+
+# load S3 data (vaccine toxin intervention)
+
+source("../scripts/load-data-s3.R")
+
+s3 <- df_scored %>%
+  # rename(subid = workerId) %>%
+  group_by(scale, workerId) %>% 
+  summarize(s3 = mean(pre, na.rm = T) - 4) %>% # put on -3, 3 scale
+  ungroup()
+
+source("../scripts/load-data-s4.R")
+
+s4 <- df4 %>%
+  mutate(prior_study = case_when(
+    workerId %in% s1$workerId ~ "S1",
+    workerId %in% s3$workerId ~ "S3",
+    TRUE ~ "None"
+  )) %>%
+  mutate(resp = resp-4) %>%
+  filter(prior_study != "S3") %>% # exclude Ps from s3, some of whom saw intervention
+  group_by(scale, workerId) %>%
+  summarize(s4 = mean(resp))
+```
+
+```{r}
+# merge dataframes
+
+df_studies <-  s1 %>%
+  full_join(s2) %>%
+  # full_join(s3) %>%
+  full_join(s4) %>%
+  gather(study, score, -c(workerId, scale)) %>%
+  filter(!is.na(study), !is.na(score)) %>%
+  group_by(scale) %>%
+  mutate(score_std = scale(score, scale = T)) %>%
+  ungroup()
+```
+
+## Changes across studies
+
+```{r}
+studies_plot <- df_studies %>%
+  group_by(study, scale) %>%
+  summarize(
+    mean = mean(score),
+    se = sd(score)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  mutate(study = ordered(study, labels=c("S1\n(9/17)", "S2\n(5/18)","S3\n(5/19)"))) %>%
+  mutate(scale = recode_factor(
+    scale,
+    "vaccIntent" = "Vaccination\nIntentions",
+    "nat" = "Naturalism",
+    "hb" = "Holistic Balance",
+    "overpar" = "Parental\nProtectiveness",
+    "parentExpert" = "Parental Expertise",
+    "medSkept" = "Medical Skepticism",
+    "vaccDanger" = "Vaccine Danger",
+    "vaccTox" = "Vaccine Toxicity",
+    "vaccEff" = "Vaccine Efficacy",
+    "diseaseRare" = "Disease Rarity",
+    "diseaseSevere" = "Disease Severity",
+    "infantImmWeak" = "IIS:\nWeakness",
+    "infantImmLimCap" = "IIS:\nLimited Capacity",
+    "vaccStrain" = "IIS:\nVaccines Strain")) %>%
+  ggplot(aes(x=study, y = mean, ymin =ll, ymax=ul)) +
+  # geom_pointrange() +
+  geom_point(size=2.5, shape=16) +
+  geom_errorbar(size=1, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, alpha=.5) +
+  facet_wrap(~scale, scales="free", nrow = 2) +
+  theme_bw(base_size = 16) +
+  theme(
+    # legend.position = "bottom",
+    # axis.text.x = element_text(size=8),
+    panel.grid = element_blank()
+        ) +
+  labs(y="Mean Resposne", x = "Study")
+
+
+ggsave("../local/uci-longitudinal-averages.png",studies_plot, height=8, width=16)
+```
+
+Model changes across studies: I'm going to make a beta regression model with study as the predictor
+
+```{r}
+library(betareg)
+library(brms)
+
+rescale_beta <- function(x, lower, upper) {
+  # rescales onto the open interval (0,1)
+  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
+
+  N <- length(x)
+  res <- (x - lower) / (upper - lower)
+  res <- (res * (N - 1) + .5) / N
+
+  return(as.vector(res))
+}
+
+fit <- betareg(score ~ study,
+               data = df_studies %>%
+                 filter(scale =="vaccIntent") %>%
+                 mutate(score = rescale_beta(score,-3,3))
+               )
+
+summary(fit)
+
+# fit_brm <- brm(
+#   score ~ study,
+#   data = df_studies %>%
+#                  filter(scale =="vaccIntent") %>%
+#                  mutate(score = rescale_beta(score,-3,3)),
+#   family = Beta("logit"),
+#   prior = prior(normal(0,1), class="b"),
+#   iter = 2000,
+#   warmup = 1000,
+#   chains = 1,
+#   cores = 1
+# )
+
+```
+
+
+
+## Within-subjects test
+
+let's focus on the clearest test of whether and how opinions have changed, a within-subjects comparison among our re-recruited participants. These are participants who completed all 14 scales over 18 months ago, and are now returning and completing them all again.
+
+
+```{r}
+combined <- df4  %>%
+  filter(workerId %in% s1$workerId) %>%
+  select(workerId, scale, item, resp) %>%
+  group_by(workerId,scale) %>%
+  summarize(posttest = mean(resp)-4) %>%
+  right_join(s1) %>%
+  rename(pretest = s1) %>%
+  mutate(returned = !is.na(posttest))
+
+# combined %>%
+#   filter(returned == TRUE) %>%
+#   ggplot(aes(x=pretest, y=posttest)) +
+#   geom_jitter(alpha=.5) +
+#   facet_wrap(~scale) +
+#   theme_bw()
+
+combined_long <- combined %>%
+  gather(phase, resp, pretest, posttest)
+
+combined_long %>%
+  group_by(returned, phase, scale) %>%
+  summarize(
+    mean = mean(resp),
+    se = sd(resp)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  mutate(scale = recode_factor(
+  scale,
+  "vaccIntent" = "Vaccination Intentions",
+  "nat" = "Naturalism",
+  "hb" = "Holistic Balance",
+  "overpar" = "Parental Protectiveness",
+  "parentExpert" = "Parental Expertise",
+  "medSkept" = "Medical Skepticism",
+  "vaccDanger" = "Vaccine Danger",
+  "vaccTox" = "Vaccine Toxicity",
+  "vaccEff" = "Vaccine Efficacy",
+  "diseaseRare" = "Disease Rarity",
+  "diseaseSevere" = "Disease Severity",
+  "infantImmWeak" = "IIS: Weakness",
+  "infantImmLimCap" = "IIS: Limited Capacity",
+  "vaccStrain" = "IIS: Vaccines Strain")) %>%
+  mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
+  ggplot(aes(x=phase, y = mean, ymin =ll, ymax=ul, color=returned)) +
+  geom_point(position=position_dodge(width=.25), size=2, shape=16) +
+  geom_errorbar(position=position_dodge(width=.25), size=.75, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
+  facet_wrap(~scale, scales="free") +
+  theme_bw(base_size=18)
+
+change_plot <- combined %>%
+  filter(returned==TRUE) %>%
+  mutate(diff = posttest-pretest) %>%
+  mutate(scale = recode_factor(
+    scale,
+    "vaccIntent" = "Vaccination Intentions",
+    "nat" = "Naturalism",
+    "hb" = "Holistic Balance",
+    "overpar" = "Parental Protectiveness",
+    "parentExpert" = "Parental Expertise",
+    "medSkept" = "Medical Skepticism",
+    "vaccDanger" = "Vaccine Danger",
+    "vaccTox" = "Vaccine Toxicity",
+    "vaccEff" = "Vaccine Efficacy",
+    "diseaseRare" = "Disease Rarity",
+    "diseaseSevere" = "Disease Severity",
+    "infantImmWeak" = "IIS: Weakness",
+    "infantImmLimCap" = "IIS: Limited Capacity",
+    "vaccStrain" = "IIS: Vaccines Strain")) %>%
+  group_by(scale) %>%
+  summarize(
+    mean = mean(diff),
+    se = sd(diff)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  # mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
+  ggplot(aes(x=reorder(scale, -mean), y = mean, ymin =ll, ymax=ul)) +
+  geom_point(position=position_dodge(width=.25), size=2, shape=16) +
+  geom_errorbar(position=position_dodge(width=.25), size=.75, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
+  geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
+  # facet_wrap(~scale, scales="free") +
+  theme_bw(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(
+    panel.grid = element_blank()
+        ) +
+  labs(y = "Change scores", x = "Belief scale")
+
+ggsave("../local/uci-longitudinal-changescores.png",change_plot, height=6, width=8)
+```
+
+```{r}
+# diff_df <- combined %>% 
+#   group_by(scale) %>% 
+#   summarize(posttest = mean(posttest, na.rm=TRUE), 
+#             pretest=mean(pretest)) %>% 
+#   mutate(diff = posttest-pretest)
+
+diff_df <- combined %>%
+  filter(returned == TRUE) %>%
+  mutate(difference = posttest-pretest) %>%
+  group_by(scale) %>%
+  summarize(diff = mean(difference), se = sd(difference)/sqrt(n()))
+
+diff_df
+```
+
+Have vaccine intentions increased within subjects from 18 months ago? YES.
+
+We could test this with a t-test, but I think it might be better to use a somewhat more sophisticated model. I'm going to test for differences across phases using beta regression. (I'm using "pretest" and "posttest" even though that's not qutie accurate, there was no intervention)
+
+```{r}
+t.test(resp ~ phase, data = combined_long %>% filter(returned, scale=="vaccIntent"), paired=TRUE)
+```
+
+
+```{r}
+
+library(betareg)
+
+
+
+fit <- betareg(resp ~ phase, data = combined_long %>% 
+                 mutate(resp = rescale_beta(resp, -3, 3)) %>%
+                 filter(scale=="vaccEff")
+               )
+
+summary(fit)
+```
+
+Do changes relate to media consumpion? (keeping in mind that's a noisy measure ...)
+
+Yes, for our binary yes/no response variable, but no for our news frequency scale (Could try monotonic effects -- not seeing it at all vs seeing it is a much bigger difference than seeing it once vs twice, etc)
+
+```{r}
+
+df_prepost_news <- df4 %>%
+  filter(workerId %in% s1$workerId) %>%
+  select(workerId, scale, item, resp, 
+         vacc_news, vacc_news_freq, news_favorable, outbreaks, vacc_conv
+         ) %>%
+  group_by(workerId,scale,vacc_news, vacc_news_freq, news_favorable, outbreaks, vacc_conv ) %>%
+  summarize(posttest = mean(resp)-4) %>%
+  left_join(s1) %>%
+  rename(pretest = s1) %>%
+  mutate(returned = !is.na(posttest)) %>%
+  ungroup() %>%
+  mutate(vacc_news_freq = ifelse(vacc_news==0, 0.0, vacc_news_freq))
+
+fit <- betareg(
+  posttest ~ pretest + vacc_news,
+  data = df_prepost_news %>%
+  filter(scale =="vaccIntent") %>%
+  mutate(posttest = rescale_beta(posttest,-3,3))
+)
+
+summary(fit)
+```
+
+## Participants who saw news
+
+```{r}
+df_prepost_news %>%
+  filter(returned==TRUE, !is.na(vacc_news)) %>% # somehow 5? participants slippd by without answering 
+  mutate(diff = posttest-pretest) %>%
+  mutate(vacc_news = as.factor(vacc_news)) %>%
+  group_by(vacc_news,scale) %>%
+  summarize(
+    mean = mean(diff),
+    se = sd(diff)/sqrt(n()),
+    ul = mean + se,
+    ll = mean - se,
+    ul95 = mean + 1.96*se,
+    ll95 = mean - 1.96*se
+  ) %>%
+  ungroup() %>%
+  mutate(vacc_news = factor(vacc_news, c(1,0), labels=c("Yes","No"))) %>%
+  # mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
+  ggplot(aes(x=reorder(scale, mean), y = mean, ymin =ll, ymax=ul, color=vacc_news)) +
+  geom_point(position=position_dodge(width=.25), size=2, shape=16) +
+  geom_errorbar(position=position_dodge(width=.25), size=.75, width=0, alpha=.8) +
+  geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
+  geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
+  # facet_wrap(~scale, scales="free") +
+  theme_bw(base_size = 18) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "right") +
+  labs(y = "Change scores", x = "Belief scale", color ="News\nexposure")
+
+```
+
+Are the changes coherent? What is driving the changes? 
+
+Let's see how they correlate imagining all changes are driven by different beliefs (these are approximations of what model will predict)
+
+```{r message=F}
+cors <- cor(d_bn)
+
+# for (s in colnames(d_bn)){
+#   
+#   cors_df <- tibble(scale = names(cors[s,]), w = cors[s,])
+#   
+#   z <- cors_df %>% 
+#   left_join(diff_df) %>%
+#   mutate(pred_diff = w * diff_df[diff_df$scale==s,"diff"][[1]]) 
+#   
+#   print( paste(s,":",cor(z$pred_diff, z$diff)) )
+# }
+
+check_cor <- function(s){
+  cors_df <- tibble(scale = names(cors[s,]), w = cors[s,])
+  
+  z <- cors_df %>% 
+  left_join(diff_df) %>%
+  mutate(pred_diff = w * diff_df[diff_df$scale==s,"diff"][[1]]) 
+  
+  return(cor(z$pred_diff, z$diff))
+}
+
+change_cors <- tibble(scale = colnames(d_bn), corr = map_dbl(scale, check_cor))
+
+change_cors %>%
+  ggplot(aes(y=reorder(scale, corr), x = corr)) +
+  geom_point() +
+  theme_bw(base_size=18) +
+  theme(aspect.ratio=1) +
+  theme(panel.grid = element_blank())
+  labs(y="Scale", x = "Correlation")
+```
+
+Now, imagine it's a direct increase in intention to vaccinate ...
+
+```{r}
+
+targetted_belief <- "vaccIntent"
+
+cors_df <- tibble(scale = names(cors[targetted_belief,]), w = cors[targetted_belief,])
+
+z <- cors_df %>% 
+left_join(diff_df) %>%
+mutate(pred_diff = w * diff_df[diff_df$scale==targetted_belief,"diff"][[1]]) 
+
+plot_cohere <- z %>%
+  ggplot(aes(x=pred_diff, y=diff, ymin=diff-1.96*se, ymax=diff+1.96*se)) +
+  geom_errorbar(width=0, color="grey") +
+  geom_point() +
+  geom_abline(intercept = 0, slope=1, linetype="dashed",alpha=.5) +
+  theme_bw(base_size=18) +
+  theme(aspect.ratio=1) +
+  coord_cartesian(xlim=c(-.32,.32), ylim=c(-.32,.32)) +
+  theme(panel.grid=element_blank()) +
+  labs(x="Predicted change",y="Observed change")
+
+# ggsave("../local/uci-talk-cohere.png", width=4, height=4)
+cor(z$pred_diff, z$diff)
+plot_cohere
+```
+
+That's a strong correlation!
+
+# Actually predicting using the model ...
+
+```{r}
+## WARNING: THIS CODE IS HACKY!
+## 
+## script for generating model predictions based on vaccine toxins intervention
+## run:
+## int-theory-vacc/notebooks/s2-modeling.Rmd (to line 495)
+##
+## then run this notebook, and finally this code:
+
+d_scored_longitudinal <- combined_long %>%
+  filter(returned==TRUE) %>%
+  mutate(resp = rescale_beta(resp, -3, 3)) %>%
+  group_by(phase, scale) %>%
+  summarize(mean = mean(resp)) %>%
+  spread(phase,mean) %>%
+  rename(pre = pretest, post = posttest)
+
+# # update model fitting thing ignore control condition b/c of strange things in this data ...
+find_evid_ratio <- function(data){
+    optim(par = c(0), fn = evid_score_func, data = data, method="BFGS")
+}
+# find_evid_ratio <- function(data){
+#   # HACK HACK HACK
+#   return (data.frame(par = c(-.55, 7)))
+# }
+evid_score_func <- function(data, par) {
+    
+    inv_logit <- plogis
+    logit <- qlogis
+    
+    pred_y <- with(data,
+                   {
+                       inv_logit( logit(pre) + par[1] )
+                   }
+    )
+    
+    # pred_beta_A <- pred_y * par[2]
+    # pred_beta_B <- (1-pred_y) * par[2]
+    
+    # ll <- -1 * sum(dbeta(data$post, pred_beta_A, pred_beta_B, log=TRUE)) # beta regression
+    ll <- sum( (data$post-pred_y)^2 )
+    return(ll)
+}
+
+
+get_evid_probs <- function(result){
+  # this is a heuristic/hack, could be made better but probably doesn't matter
+  evid_ratio <- exp(result$par[1])
+  if (evid_ratio < 1) {
+    p0 <- .90
+  } else {
+    p0 <- .5
+  }
+  
+  if (p0*evid_ratio >= 1) {
+    p0 <- p0*.9/(p0*evid_ratio)
+  }
+  p1 <- p0*evid_ratio
+  
+  c(p0,p1)
+}
+
+
+scale_name <- "vaccIntent"
+
+
+predModel <- add_evid_node(d_scored_longitudinal %>% filter(scale==scale_name), base_model, scale_name)
+
+pred0 <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(predModel, event = (", x, " == 'Yes'), evidence=TRUE, n = 5e5)")
+  eval(parse(text=statement))
+})
+pred1 <- sapply(nodes, function(x){
+  statement <- paste0("cpquery(predModel, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 5e5)")
+  eval(parse(text=statement))
+})
+pred_changes <- pred1 - pred0
+pred_changes <- as.data.frame(pred_changes)
+pred_changes <- pred_changes %>%
+  mutate(scale = nodes) %>%
+  rename(Mean = pred_changes) %>%
+  mutate(type = "predicted")
+
+
+preds_obs <- d_scored_longitudinal %>%
+  # spread(phase, mean) %>%
+  mutate(change = post - pre) %>%
+  group_by(scale) %>%
+  summarize(
+    Mean = mean(change),
+    se = sd(change) / sqrt(n())
+  ) %>%
+  mutate(
+    ul = Mean + se,
+    ll = Mean - se
+  ) %>%
+  left_join(pred_changes %>% rename(pred_mean = Mean), by = "scale")
+
+preds_obs %>%
+  rename(
+    observed = Mean,
+    predicted = pred_mean
+  ) %>%
+  gather(type, Mean, observed, predicted) %>%
+  ggplot(aes(y = reorder(scale, Mean), x = Mean, xmin = ll, xmax = ul, color=type)) +
+  geom_point()
+```
+
+```{r}
+diff_df2 <- combined %>%
+  filter(returned == TRUE) %>%
+  mutate(
+    posttest = rescale_beta(posttest, -3,3),
+    pretest = rescale_beta(pretest, -3,3),
+         ) %>%
+  mutate(difference = posttest-pretest) %>%
+  group_by(scale) %>%
+  summarize(diff = mean(difference), se = sd(difference)/sqrt(n()))
+
+
+
+plot_cohere <- diff_df2 %>%
+  left_join(preds_obs %>% select(pred_mean, scale)) %>%
+  ggplot(aes(x=pred_mean, y = diff, ymin = diff-1.96*se, ymax=diff+1.96*se)) +
+  geom_errorbar(width=0, color="gray") +
+  geom_point() +
+  geom_abline(intercept=0,slope=1,alpha=.5,linetype="dashed") +
+  theme_bw() +
+  coord_cartesian(xlim=c(-.06,.06), ylim= c(-.06,.06)) +
+  theme_bw(base_size=16) +
+  theme(aspect.ratio=1, panel.grid=element_blank()) +
+  labs(x = "Predicted change", y = "Observed change")
+
+cor(preds_obs$Mean, preds_obs$pred_mean)
+
+ggsave("../local/fb-talk-cohere.png", width=4, height=4)
+
+pred_check <- preds_obs %>% filter(scale!=scale_name)
+cor(pred_check$Mean, pred_check$pred_mean)
+
+plot_cohere
+```
+
+
+
+```{r}
+# plot_cohere <- preds_obs %>%
+#   ggplot(aes(x=pred_mean, y = Mean, ymin = ll, ymax=ul)) +
+#   geom_point() +
+#   geom_errorbar(width=0) +
+#   geom_abline(intercept=0,slope=1,alpha=.5,linetype="dashed") +
+#   theme_bw() +
+#   coord_cartesian(xlim=c(-.05,.05), ylim= c(-.05,.05)) +
+#   theme_bw(base_size=16) +
+#   theme(aspect.ratio=1, panel.grid=element_blank()) +
+#   labs(x = "Predicted change", y = "Observed change")
+# 
+# cor(preds_obs$Mean, preds_obs$pred_mean)
+# 
+# # ggsave("../local/uci-talk-cohere.png", width=4, height=4)
+# 
+# pred_check <- preds_obs %>% filter(scale!=scale_name)
+# cor(pred_check$Mean, pred_check$pred_mean)
+
+# plot_cohere
+```
+
+```{r}
+# needed for next section
+base_model <- create_bnlearn_cog_model(map_dag, train)
+```
+
+```{r}
+compare_pred_obs_r <- function(predicted, observed){
+
+  obs_pred <- suppressWarnings(bind_rows(predicted, observed)) %>%
+    spread(type, Mean) %>%
+    group_by(scale) %>%
+    summarize_all(mean, na.rm=TRUE)
+  
+  cor(obs_pred$predicted, obs_pred$observed)
+}
+
+compare_pred_obs_rmse <- function(predicted, observed){
+
+  obs_pred <- suppressWarnings(bind_rows(predicted, observed)) %>%
+    spread(type, Mean) %>%
+    group_by(scale) %>%
+    summarize_all(mean, na.rm=TRUE)
+  
+  sqrt(mean((obs_pred$observed-obs_pred$predicted)^2))
+  
+}
+
+
+extract_obs_changes <- function(observed){
+  obs_changes <- observed %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase,mean) %>%
+  mutate(changeScore = posttest-pretest) %>%
+  # filter(condition == "diseaseRisk") %>%
+  group_by(scale) %>%
+  summarise(
+    Mean = mean(changeScore),
+    ul = mean(changeScore) + 1.96*sd(changeScore)/sqrt(n()), # replace with bootstrapping
+    ll = mean(changeScore) - 1.96*sd(changeScore)/sqrt(n())
+    ) %>%
+  mutate(type = "observed")
+  
+  return(obs_changes)
+}
+
+
+
+combined_long_diag <- combined_long %>%
+  filter(returned) %>%
+  rename(mean = resp)
+
+
+filter_dscored <- function(data, scale_name){
+  
+  data %>%
+  filter(scale == scale_name) %>%
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase, mean) %>%
+  # rename(pre=pretest, post=posttest)
+  summarize(pre = mean(pretest), post=mean(posttest))
+}
+
+# -- takes about 1.5 hrs for 500 bootstrap samples
+
+# do bootstrap comparison
+set.seed(1234)
+t1 <- Sys.time()
+
+boot_fits <- as_tibble(expand.grid(
+  list(
+    replicate = 1:100, scale = nodes
+  )
+)) %>%
+  nest(-replicate, .key="scales") %>%
+  mutate(boot_d_scored = map(replicate, function(x) {
+    totaln <- length(unique(combined_long_diag$workerId))
+    combined_long_diag %>%
+      nest(-workerId) %>%
+      sample_n(totaln, replace = TRUE) %>%
+      mutate(uniqueId = 1:totaln) %>%
+      unnest()
+  })) %>%
+  unnest(scales, .drop=FALSE) %>%
+  mutate(
+      boot_d = map2(boot_d_scored, scale, function(x,y){filter_dscored(x, y)}),
+      obs_changes = map(boot_d_scored, extract_obs_changes)
+      ) %>%
+  select(-boot_d_scored) %>%
+  mutate(
+    models = map2(boot_d, scale, function(x,y){add_evid_node(x, base_model, y)}),
+    pred_changes = map(models, cogModel_predictions),
+    r = map2_dbl(pred_changes, obs_changes, compare_pred_obs_r),
+    rmse = map2_dbl(pred_changes, obs_changes, compare_pred_obs_rmse)
+    )
+
+print(Sys.time() - t1)
+```
+
+
+```{r}
+# boot_fits %>%
+#   mutate(r2 = r^2) %>%
+#   ggplot(aes(x=reorder(scale,-r2), y = r2)) +
+#   geom_boxplot(fill="lightgray") +
+#   theme_bw() +
+#   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+#   coord_flip()
+  # theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+diagnose_plot <- boot_fits %>%
+  select(replicate, scale,r,rmse) %>%
+  mutate(scale_order = r) %>%
+  gather(meas, value, r, rmse) %>%
+  mutate(meas = ifelse(meas=="rmse", "RMSE (lower is better)", "Correlation")) %>%
+  mutate(meas = factor(meas, levels=c("RMSE (lower is better)", "Correlation"))) %>%
+  mutate(scale = recode_factor(
+  scale,
+  "vaccIntent" = "Vaccination Intentions",
+  "nat" = "Naturalism",
+  "hb" = "Holistic Balance",
+  "overpar" = "Parental Protectiveness",
+  "parentExpert" = "Parental Expertise",
+  "medSkept" = "Medical Skepticism",
+  "vaccDanger" = "Vaccine Danger",
+  "vaccTox" = "Vaccine Toxicity",
+  "vaccEff" = "Vaccine Efficacy",
+  "diseaseRare" = "Disease Rarity",
+  "diseaseSevere" = "Disease Severity",
+  "infantImmWeak" = "IIS: Weakness",
+  "infantImmLimCap" = "IIS: Limited Capacity",
+  "vaccStrain" = "IIS: Vaccines Strain")) %>%
+  ggplot(aes(x=reorder(scale, scale_order), y = value)) +
+  # geom_violin(fill="gray", alpha=.5) +
+  geom_boxplot(fill = "lightgray") +
+  facet_wrap(~meas, scales="free_x" ) +
+  labs(x = "Belief", y = "Value") +
+  theme_bw(base_size=16) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  coord_flip() 
+
+ggsave("../local/uci-talk-diagnose.png",width=6,height=3.5)
+
+diagnose_plot
+
+```
+
+

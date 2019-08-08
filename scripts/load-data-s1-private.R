@@ -9,7 +9,7 @@ library(stringr)
 # setwd(this.dir)
 
 # load in raw data
-d_raw <- read.csv("../data/study1_data.csv", header = T)
+d_raw <- read.csv("../data_private/study1_data.csv", header = T)
 
 # filter rows and select columns
 d1 <- d_raw %>%
@@ -17,8 +17,7 @@ d1 <- d_raw %>%
   filter(Status == "IP Address") %>% # remove survey previews (?)
   filter(Progress == 100) %>% # only get people who made it all the way through (?)
   filter(as.numeric(as.character(age)) >= 18) %>% # exclude people who said they were <18 yo (could be more stringent)
-  select(StartDate, Duration..in.seconds., workerId, hb_1:comments) %>% # include only selected columns
-  filter(!duplicated(workerId)) # we had a worker take it twice somehow! caught 5/1/19, 2:33 PM
+  select(StartDate, Duration..in.seconds., workerId, hb_1:comments) # include only selected columns
 
 # reformat variables
 d2 <- d1 %>% 
