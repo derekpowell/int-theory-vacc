@@ -17,3 +17,4 @@ How can we leverage the cognitive science of lay theories to inform intervention
 I'm moving analysis notebooks into their own `notebooks/` folder. There's too much data/code overlap between study 1 and study 2, it didn't make sense to organize around studies. Accordingly, the `Study1/` and `Study2/` folders should be considered deprecated, but I'm keeping them around as I transition to a new organizational format.
 
 In this same spirit, I need to do some work to refactor the `scripts/` folder and related files.
+

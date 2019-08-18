@@ -12,7 +12,7 @@ My approach will be to searching for an underlying cognitive model. For each fam
 Unpacking that a bit more, the idea is that participants share a mental model of some set of states of affairs (SOAs), that is, how the states of affairs relate or go together. The relations between SOAs can be represented by conditional probability table. To estimate this CPT, I further assume these CPTS can themselves be captured by a canonical distribution--in this case, something I'm calling noisy-or-nor (needs a better name). Noisy-or-nor assumes that each parent has an __independent__ generating or preventing influence on the child node. The probability of the child is the probability that it is generated (either by one of its generating parents, or a implied "leak" variable) and that none of its preventers prevent it. This is based on work by Lu & Yuille, and draws on a common set of assumptions in causal learning literature. The essential feature of this CPD is that __it assumes independent influences of each parent on the child__--this is necessary in order to estimate the parameters of the CPD from reports of the marginal probability of each SOA.
 
 ```{r}
-source("../code/import-data-s1.R", chdir = TRUE)
+source("../code/load-data-s1.R", chdir = TRUE)
 ```
 
 ```{r}
@@ -26,11 +26,10 @@ library(bnlearn)
 library(HydeNet)
 library(gtools)
 
-# source("cog-model-graph-tools.R")
-source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
-source("../scripts/gmod_tools.R")
-source("../scripts/bnTheoryBlacklist.R")
-source("../scripts/custom-structure-learning/cog-model-jags-tools.R")
+source("../code/custom-structure-learning/cog-model-main.R", chdir = TRUE)
+source("../code/graph-model-tools.R")
+source("../code/custom-structure-learning/cog-model-jags-tools.R")
+source("../code/helpers.R")
 
 # # customize BiDAG functions
 # orig_DAGcorescore <- BiDAG:::DAGcorescore # save to switch back if desired
@@ -45,17 +44,6 @@ Participants responses were scaled from a 1 to 7 rating scale onto the open inte
 
 ```{r}
 # rescale beta
-
-rescale_beta <- function(x, lower, upper) {
-  # rescales onto the open interval (0,1)
-  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
-
-  N <- length(x)
-  res <- (x - lower) / (upper - lower)
-  res <- (res * (N - 1) + .5) / N
-
-  return(as.vector(res))
-}
 
 d_bn_scaled <- d_bn %>%
  mutate_all(function(x){rescale_beta(x,-3,3)})
@@ -80,7 +68,7 @@ In addition to the basic level of streamlining needed, we also impose different 
 # takes a long time (10 hours ish) if scoretables must be computed ...
 
 compute_scoretables <- FALSE # uncomment to recompute scoretables
-source("../scripts/custom-structure-learning/fit-cog-models.R", chdir=TRUE)
+source("../code/custom-structure-learning/fit-cog-models.R", chdir=TRUE)
 
 ```
 
@@ -91,11 +79,11 @@ nCores <- parallel::detectCores(logical=TRUE)
 # load scoretables computed by fit-cog-models.R
 
 scoretables <- list(
-  readRDS("scoretable-unconstrained.rds"),
-  readRDS("scoretable-intent_is_dv.rds"),
-  readRDS("scoretable-abstract_are_parents.rds"),
-  readRDS("scoretable-abstract_are_parents_intent_dv.rds"),
-  readRDS("scoretable-theoryBasedHierarchy.rds")
+  readRDS("../local/scoretable-unconstrained.rds"),
+  readRDS("../local/scoretable-intent_is_dv.rds"),
+  readRDS("../local/scoretable-abstract_are_parents.rds"),
+  readRDS("../local/scoretable-abstract_are_parents_intent_dv.rds"),
+  readRDS("../local/scoretable-theoryBasedHierarchy.rds")
   )
 
 # # DO MCMC - comment to skip and load saved results

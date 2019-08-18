@@ -9,7 +9,7 @@
   * helpers
     * (all other shared code chunks)
 * Paper
-  * reproducible rMarkdown manuscript + files
+  * reproducible rMarkdown manuscript + files (drawing on code from supplement)
 * Supplement (each as separate notebooks combined using bookdown)
   * Qualitative scale development
   * Study 1

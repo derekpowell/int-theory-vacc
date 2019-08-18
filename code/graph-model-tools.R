@@ -423,32 +423,3 @@ make_dbn_df <- function(arcs_df) {
 }
 
 
-### ----------------------------------------
-### blacklist functions
-
-make_theory_blacklist <- function(data) {
-  
-  result <- NULL
-  
-  for (targNode in data$node) {
-    ord <- data %>% dplyr::filter(node==targNode) %>% dplyr::select(order) %>% as.numeric()
-    d <- data %>% dplyr::filter(order < ord) %>% dplyr::mutate(from=targNode, to=node) %>% dplyr::select(from, to)
-    
-    if (is.null(result)) {
-      result <- d
-    }
-    else {
-      result <- dplyr::bind_rows(result, d)
-    }
-  }
-  
-  result <- dplyr::distinct(result, to, from)
-  
-  return(result)
-}
-
-combine_blacklists <- function(bList1, bList2) {
-  
-  dplyr::bind_rows(bList1, bList2) %>% dplyr::distinct(to, from)
-  
-}

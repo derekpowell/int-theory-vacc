@@ -11,11 +11,12 @@ output:
 
 ```{r load in existing objects, message=FALSE, warning=FALSE}
 # # install missing packages
-devtools::install_github("thomasp85/patchwork")
-install.packages("rsample")
+# devtools::install_github("thomasp85/patchwork")
+# install.packages("rsample")
 
-source("../scripts/load-data-s1.R", chdir = TRUE)
-source("../scripts/gmod_tools.R")
+source("../code/load-data-s1.R", chdir = TRUE)
+source("../code/graph-model-tools.R")
+source("../code/helpers.R")
 # source("../../Scripts/virtualEvidence.R")
 
 library(bnlearn)
@@ -27,22 +28,11 @@ library(bnlearn)
 
 # library(rsample)
 
-source("../scripts/custom-structure-learning/cog-model-main.R", chdir = TRUE)
+source("../code/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 ```
 
 ```{r set up training split}
 # rescale beta
-
-rescale_beta <- function(x, lower, upper) {
-  # rescales onto the open interval (0,1)
-  # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
-
-  N <- length(x)
-  res <- (x - lower) / (upper - lower)
-  res <- (res * (N - 1) + .5) / N
-
-  return(as.vector(res))
-}
 
 d_bn_scaled <- d_bn %>%
  mutate_all(function(x){rescale_beta(x,-3,3)})
@@ -280,12 +270,12 @@ add_evid_node_custom <- function(bnlearn_model, parents_string, evid_cpt) {
 }
 
 cogModel_predictions <- function(model){
-  pred0 <- sapply(nodes(model), function(x){
+  pred0 <- sapply(nodes, function(x){
   statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence=TRUE, n = 1e5)")
   eval(parse(text=statement))
   })
   
-  pred1 <- sapply(nodes(model), function(x){
+  pred1 <- sapply(nodes, function(x){
     statement <- paste0("cpquery(model, event = (", x, " == 'Yes'), evidence= (evid == 'Yes'), n = 1e5)")
     eval(parse(text=statement))
   })
@@ -295,7 +285,7 @@ cogModel_predictions <- function(model){
   pred_changes <- as.data.frame(pred_changes)
   
   pred_changes <- pred_changes %>%
-    mutate(scale = nodes(model)) %>%
+    mutate(scale = nodes) %>%
     rename(Mean = pred_changes) %>%
     mutate(type = "predicted")
   
@@ -305,9 +295,8 @@ cogModel_predictions <- function(model){
 
 base_model <- create_bnlearn_cog_model(map_dag, train)
 
-source("../scripts/load-data-s2.R", chdir = TRUE)
+source("../code/load-data-s2.R", chdir = TRUE)
 
-## Generate predictions for hypothetical interventions with evidence ratio 2 (or 1/2)
 
 vaccIntent_pred_results <- data.frame(scale=nodes, value = NA)
   
@@ -407,7 +396,7 @@ pred_changes <- pred_changes %>%
 Compare predicted and observed changes ...
 
 ```{r}
-pred_changes <- cogModel_predictions(predModel)
+
 
 obs_changes <- d_scored %>%
   mutate(mean = rescale_beta(mean, -3, 3)) %>%
