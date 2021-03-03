@@ -38,13 +38,13 @@ library(tidyverse)
 #                                  3
 #                                ))
 
-make_theory_blacklist <- function(data) {
+make_theory_blacklist <- function(df) {
   
   result <- NULL
   
-  for (targNode in data$node) {
-    ord <- data %>% dplyr::filter(node==targNode) %>% dplyr::select(order) %>% as.numeric()
-    d <- data %>% dplyr::filter(order < ord) %>% dplyr::mutate(from=targNode, to=node) %>% dplyr::select(from, to)
+  for (targNode in df$node) {
+    ord <- df %>% dplyr::filter(node==targNode) %>% dplyr::select(order) %>% as.numeric()
+    d <- df %>% dplyr::filter(order < ord) %>% dplyr::mutate(from=targNode, to=node) %>% dplyr::select(from, to)
     
     if (is.null(result)) {
       result <- d

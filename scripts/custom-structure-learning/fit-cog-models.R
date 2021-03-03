@@ -147,13 +147,13 @@ abstract_are_parents_intent_dv <- data.frame(
 
 make_adjacency_blacklist <- function(ordering_df){
   library(dplyr)
-  
+  nodes <- ordering_df$node
   blacklist <- make_theory_blacklist(ordering_df)
   blacklist <- suppressWarnings(bind_rows(blacklist, data.frame(from = nodes, to = nodes))) %>% arrange(from)
   adjBlacklist <- igraph::graph.data.frame(blacklist)
   adjBlacklist <- igraph::get.adjacency(adjBlacklist, sparse=FALSE)
   
-  # adjBlacklist <- abs(1-adjBlacklist)
+  adjBlacklist <- abs(1-adjBlacklist) ## updated 2021-02-04
   
   return(adjBlacklist)
 }
@@ -208,10 +208,11 @@ if (!exists("compute_scoretables")) {
 
 if (compute_scoretables) {
   for (i in 1:length(startspaces)) {
+  # for (i in 5:5) { ## just do the last one as test
     t1 <- Sys.time()
     scoretable <- generate_scoretable(startspaces[[i]], train, cores = nCores)
     print(Sys.time() - t1)
-    saveRDS(scoretable, paste0("scoretable-", fsuffixes[i], ".rds"))
+    saveRDS(scoretable, paste0("../../local/scoretable-", fsuffixes[i], ".rds"))
   }
   
 }

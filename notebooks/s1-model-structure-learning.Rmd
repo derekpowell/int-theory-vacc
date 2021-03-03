@@ -79,9 +79,10 @@ In addition to the basic level of streamlining needed, we also impose different 
 # takes a few minutes if not computing scoretables ...
 # takes a long time (10 hours ish) if scoretables must be computed ...
 
-compute_scoretables <- FALSE # uncomment to recompute scoretables
+# compute_scoretables <- FALSE # uncomment or set to TRUE to recompute scoretables
 source("../scripts/custom-structure-learning/fit-cog-models.R", chdir=TRUE)
 
+## NOTE: make sure to fix to recompute all 5
 ```
 
 
@@ -91,35 +92,36 @@ nCores <- parallel::detectCores(logical=TRUE)
 # load scoretables computed by fit-cog-models.R
 
 scoretables <- list(
-  readRDS("scoretable-unconstrained.rds"),
-  readRDS("scoretable-intent_is_dv.rds"),
-  readRDS("scoretable-abstract_are_parents.rds"),
-  readRDS("scoretable-abstract_are_parents_intent_dv.rds"),
-  readRDS("scoretable-theoryBasedHierarchy.rds")
+  readRDS("../local/scoretable-unconstrained.rds"),
+  readRDS("../local/scoretable-intent_is_dv.rds"),
+  readRDS("../local/scoretable-abstract_are_parents.rds"),
+  readRDS("../local/scoretable-abstract_are_parents_intent_dv.rds"),
+  readRDS("../local/scoretable-theoryBasedHierarchy.rds")
   )
 
-# # DO MCMC - comment to skip and load saved results
-# all_results <- list(list(), list(), list(), list(), list())
-# 
-# customize_BiDAG() # customize bidag!
-# 
-# for (i in 1:length(startspaces)) {
-#   all_results[[i]] <- parallel_orderMCMC(train,
-#                                        startspaces[[i]],
-#                                        scoretables[[i]],
-#                                        MAP = FALSE, # might error
-#                                        1e6,
-#                                        100,
-#                                        blacklist = blacklists[[i]],
-#                                        chains = 4,
-#                                        cores = 4
-#                                        )
-# 
-# }
-# 
-# reinit_BiDAG() # set it back!
+# DO MCMC - comment to skip and load saved results
+all_results <- list(list(), list(), list(), list(), list())
 
-# saveRDS(all_results, "allresults.rds")
+customize_BiDAG() # customize bidag!
+
+for (i in 1:length(startspaces)) {
+  all_results[[i]] <- parallel_orderMCMC(train,
+                                       # startspaces[[i]],
+                                       t(startspaces[[i]]),
+                                       scoretables[[i]],
+                                       MAP = FALSE, # might error
+                                       1e6,
+                                       100,
+                                       blacklist = t(blacklists[[i]]),
+                                       chains = 4,
+                                       cores = 4
+                                       )
+
+}
+
+reinit_BiDAG() # set it back!
+
+saveRDS(all_results, "../local/allresults.rds")
 
 all_results <- readRDS("../local/allresults.rds")
 ```
