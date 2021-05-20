@@ -232,28 +232,28 @@ bic_score_optim_result <- function(res, data){
 #   # return(as.numeric(result$value))
 # }
 
-score_family <- function(node, predictors, data, method = "Nelder-Mead") {
-  # return marginal likelihood of data for family
-  # P(data | graph)
-  # node: child node (char)
-  # predictors: parent nodes (char list)
-  # data: dataframe
-  pars <- init_optim_pars(node, predictors, data)
-  score <- make_score_func(node, predictors)
-  result <- suppressWarnings(optim(
-    par = pars,
-    fn = score,
-    method = method, # BFGS need to add error catching!
-    control = list(fnscale = -1),
-    data = data
-  ))
-  
-  b <- -1*bic_score_optim_result(result, data)/2
-  # b <- bic_score_optim_result(result, data)/2
-  
-  return(b)
-  # return(as.numeric(result$value))
-}
+# score_family <- function(node, predictors, data, method = "Nelder-Mead") {
+#   # return marginal likelihood of data for family
+#   # P(data | graph)
+#   # node: child node (char)
+#   # predictors: parent nodes (char list)
+#   # data: dataframe
+#   pars <- init_optim_pars(node, predictors, data)
+#   score <- make_score_func(node, predictors)
+#   result <- suppressWarnings(optim(
+#     par = pars,
+#     fn = score,
+#     method = method, # BFGS need to add error catching!
+#     control = list(fnscale = -1),
+#     data = data
+#   ))
+#   
+#   b <- -1*bic_score_optim_result(result, data)/2
+#   # b <- bic_score_optim_result(result, data)/2
+#   
+#   return(b)
+#   # return(as.numeric(result$value))
+# }
 
 
 # # Model Fitting
@@ -517,3 +517,44 @@ find_node_coefs <- function(node, predictors, data) {
 }
 
 
+coefs_to_dirs <- function(coef_list){
+  parent_coefs <- coef_list[-(1:2)]
+  dirs <- .5+sign(parent_coefs)*.5 # recode -1,1 to 0,1
+  names(dirs) <- gsub("w_","d_",names(dirs)) # rename w_ to d_
+  
+  return(dirs)
+}
+
+
+cog_model_score_func <- function(node, parents, data, args=NULL){
+  
+  if (length(args)==0){ # gets passed as empty list I guess? 
+    return(score_family(node, parents, data))
+    
+  } else {
+    coefs <- find_node_coefs(node, parents, args$train_data)
+    dirs <- coefs_to_dirs(coefs)
+    
+    score_func <- make_score_func2(node, parents, dirs)
+    
+    ll <- score_func(data, abs(coefs))
+    
+    # # can see this works correctly and returns same value if data and args$train_data are the same
+    # k <- length(parents)*2 + 2 # num parameters
+    # n <- nrow(data) # num of obs
+    # 
+    # bic_val <- k*log(n) - 2*ll
+    # 
+    # marglikli <- -1 * bic_val/2
+    
+    return(ll) # but makes more sense to return log-likelihood for new predictions
+  }
+  
+}
+
+## tests -- this works!
+# cog_model_score_func("C", c("A","B"), dsim[1:400,])
+# cog_model_score_func("C", c("A","B"), dsim[401:500,], args=list(train_data=dsim[1:400,]))
+# cog_model_score_func("C", c("A","B"), dsim[1:400,], args=list(train_data=dsim[1:400,]))
+# cog_model_score_func("C", c(), dsim[1:400,])
+# cog_model_score_func("C", c(), dsim[1:400,], args=list(train_data=dsim[1:400,]))

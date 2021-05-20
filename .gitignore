@@ -54,3 +54,6 @@ redact.R
 # brms models
 /brms_models/*
 **/brms_models/*
+
+# mac
+.DS_Store
