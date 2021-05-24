@@ -13,6 +13,7 @@ rescale_beta <- function(x, lower, upper) {
   # rescales over theoretical bounds of measurement, specified by "upper" and "lower"
   
   N <- length(x)
+  N <- min(20, N) # bound to [.025,.975] 
   res <- (x - lower) / (upper - lower)
   res <- (res * (N - 1) + .5) / N
   

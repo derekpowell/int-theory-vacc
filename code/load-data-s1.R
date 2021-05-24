@@ -81,6 +81,10 @@ d3 <- d2 %>%
 
 # save dataframes for analysis
 
+s1_all <- left_join(d1, exclude_ids %>% mutate(exclude=1), by="workerId") %>% 
+  mutate(exclude = ifelse(is.na(exclude), 0 , 1)) %>% 
+  as_tibble()
+
 # demographics info (1 row per participant, demographics only)
 d_demo <- d3 %>%
   select(StartDate:comments) %>%
@@ -101,13 +105,14 @@ d_sum <- d_long %>%
   ungroup() %>%
   full_join(d_demo)
 
-# remove extraneous dataframes
-rm(d1, d2, d3)
+s1_long <- d_long
+s1_wide <- d_wide
+
 
 # make dataframe for heatmpa, efa, etc.
-d_efa <- d_wide %>% select(-c(StartDate, Duration, sex:comments)) %>%
-  remove_rownames() %>%
-  column_to_rownames("workerId")
+# d_efa <- d_wide %>% select(-c(StartDate, Duration, sex:comments)) %>%
+#   remove_rownames() %>%
+#   column_to_rownames("workerId")
 
 # make dataframe for graphical model fitting
 d_bn <- d_sum %>%
@@ -115,5 +120,8 @@ d_bn <- d_sum %>%
   spread(question_block, score) %>%
   remove_rownames() %>%
   column_to_rownames("workerId")
+
+# remove extraneous dataframes
+rm(d1, d2, d3, exclude_ids, d_long, d_sum)
 
 # setwd(working_dir) # reset working directory

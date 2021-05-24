@@ -48,7 +48,7 @@ nodes <- c(
 theory_bl <- tiers2blacklist(
   list(
     c("hb","nat"),
-    c("medSkept","overpar", "parentExpert"), 
+    c("medSkept", "overpar", "parentExpert"),  # idk if overparenting makes sense here
     c("diseaseRare","diseaseSevere","vaccEff","vaccTox","vaccStrain",
       "vaccDanger","infantImmLimCap","infantImmWeak"), 
     c("vaccIntent") 
@@ -101,11 +101,14 @@ hc_args <- list(score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000)
 models <- list(
   hc = partial(hc, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
   hc_intentdv = partial(hc, blacklist=intent_dv_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
+  hc_idv_abspar = partial(hc, blacklist=intent_dv_abstract_parents_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
   hc_theory = partial(hc, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
   mmhc_05 = partial(mmhc, restrict.args=list(alpha=.05), maximize.args = hc_args),
   mmhc_01 = partial(mmhc, restrict.args=list(alpha=.01), maximize.args = hc_args),
   mmhc_intentdv_05 = partial(mmhc, blacklist = intent_dv_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
   mmhc_intentdv_01 = partial(mmhc, blacklist = intent_dv_bl, restrict.args=list(alpha=.01), maximize.args = hc_args),
+  mmhc_idv_abspar_05 = partial(mmhc, blacklist = intent_dv_abstract_parents_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
+  mmhc_idv_abspar_01 = partial(mmhc, blacklist = intent_dv_abstract_parents_bl, restrict.args=list(alpha=.01), maximize.args = hc_args),
   mmhc_theory_05 = partial(mmhc, blacklist = theory_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
   mmhc_theory_01 = partial(mmhc, blacklist = theory_bl, restrict.args=list(alpha=.01), maximize.args = hc_args)
 )
@@ -115,12 +118,15 @@ do_cross_validation <- function(fold, data=NULL, model=NULL){
   test_fold <- data[-fold,]
   network <- model(train_fold)
   oos_score <- score(network, test_fold, type="custom", fun=cog_model_score_func, args=list(train_data=train_fold))
-  return(oos_score)
+  
+  return(
+    oos_score
+  )
 }
 
 ## split training data into k-folds
 set.seed(12345)
-cv <- caret::createMultiFolds(train$vaccIntent, k=5, times=1)
+cv <- caret::createMultiFolds(train$vaccIntent, k=10, times=10)
 
 print("beginning cross-validation ...")
 
@@ -149,7 +155,7 @@ for (i in 1:length(models)) {
   print(paste(model_name, "completed"))
 }
 
-saveRDS(res_df_all, file="cv-res.rds")
+saveRDS(res_df_all, file="../../local/cv-res.rds")
 
 print("all completed, output saved")
 
