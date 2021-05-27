@@ -232,40 +232,80 @@ d_post <- d_keep %>%
   rename_all(funs(gsub("_posttest", "", .))) %>%
   mutate(phase = "post")
 
-d <- bind_rows(d_pre, d_post) %>% 
-  gather(question, response, -c(workerId, phase)) %>%
-  mutate(phase = factor(phase,
-                        levels = c("pre", "post")),
-         reverse_cat = ifelse(grepl("_[1-9]r$", question), TRUE, FALSE),
-         # NOTE: "response" has already been reverse coded!
-         question = factor(question),
-         scale = factor(gsub("_.*$", "", question),
-                        levels = c("vaccIntent", "vaccDanger", "vaccEff", 
-                                   "vaccStrain", "vaccTox", 
-                                   "diseaseSevere", "diseaseRare", 
-                                   "infantImmLimCap", "infantImmWeak", 
-                                   "medSkept", "hb", "nat", 
-                                   "overpar", "parentExpert"))) %>%
-  full_join(d_demo) %>%
-  mutate(condition = factor(condition, levels = c("noInterv", "diseaseRisk"))) %>%
-  filter(!is.na(response), !is.na(workerId), !is.na(condition)) #%>%
-  # distinct()
+## problems here, redoing this below
 
-# score all scales
-d_scored <- d %>%
-  select(workerId, condition, phase, scale, response,
-         gender:duration_posttest) %>%
-  group_by(workerId, condition, phase, scale) %>%
-  mutate(response = as.numeric(response)) %>%
-  summarise(mean = mean(response, na.rm = TRUE)) %>%
-  ungroup() #%>%
-  # distinct()
+# d <- bind_rows(d_pre, d_post) %>% 
+#   gather(question, response, -c(workerId, phase)) %>%
+#   mutate(phase = factor(phase,
+#                         levels = c("pre", "post")),
+#          reverse_cat = ifelse(grepl("_[1-9]r$", question), TRUE, FALSE),
+#          # NOTE: "response" has already been reverse coded!
+#          question = factor(question),
+#          scale = factor(gsub("_.*$", "", question),
+#                         levels = c("vaccIntent", "vaccDanger", "vaccEff", 
+#                                    "vaccStrain", "vaccTox", 
+#                                    "diseaseSevere", "diseaseRare", 
+#                                    "infantImmLimCap", "infantImmWeak", 
+#                                    "medSkept", "hb", "nat", 
+#                                    "overpar", "parentExpert"))) %>%
+#   full_join(d_demo) %>%
+#   mutate(condition = factor(condition, levels = c("noInterv", "diseaseRisk"))) %>%
+#   filter(!is.na(response), !is.na(workerId), !is.na(condition)) #%>%
+#   # distinct()
+# 
+# # score all scales
+# d_scored <- d %>%
+#   # select(workerId, condition, phase, scale, response,
+#   #        gender:duration_posttest) %>%
+#   group_by(workerId, condition, phase, scale) %>%
+#   mutate(response = as.numeric(response)) %>%
+#   summarise(mean = mean(response, na.rm = TRUE)) %>%
+#   ungroup()
+#   # distinct()
 
 # rename
 
 s2_all <- d_all
 s2_demo <- d_demo %>% as_tibble()
-s2_scored <- d_scored %>% as_tibble()
+
+s2_long <- d_keep %>% 
+  # filter(!attn_fail_pretest, !attn_fail_posttest, !incomplete, !duplicate) %>% 
+  select(-attn_fail_pretest, -attn_fail_posttest, -incomplete, -duplicate, -attention_posttest) %>% 
+  gather(item, response, matches("_[0-9]_"), matches("_[0-9]r_")) %>% 
+  mutate(
+    phase = ifelse(grepl("_pretest", item), "pre", "post"),
+    scale = str_match(item, "([A-z]*)_")[,2],
+    item = gsub("(_pretest|_posttest)", "", item)
+    ) %>% 
+  select(-comments_pretest, -comments1_posttest) %>% 
+  rename(
+    is_parent = is_parent_posttest,
+    children_num = children_num_posttest,
+    children_oldest = children_oldest_posttest,
+    children_youngest = children_youngest_posttest,
+    plan_parent = plan_parent_posttest,
+    flushot_self = flushot_self_this_posttest,
+    flushot_self_next = flushot_self_next_posttest,
+    flushot_child = flushot_child_this_posttest,
+    flushot_child_next = flushot_child_next_posttest,
+    vax_delay_spread = vax_delay_spread_posttest,
+    vax_refuse = vax_refuse_posttest,
+    vax_exemption = vax_exemption_posttest
+  ) %>% 
+  relocate(workerId, condition, phase, scale, item, response)
+
+s2_scored <- s2_long %>% 
+  filter(!grepl("check",item)) %>% 
+  group_by(workerId, condition, phase, scale) %>% 
+  summarize(mean = mean(response, na.rm=TRUE)) %>% 
+  ungroup()
+
+
+s2_mdf <- s2_scored %>% 
+  mutate(mean = rescale_beta(mean, -3, 3)) %>%
+  spread(phase, mean) %>% 
+  mutate(condition = relevel(condition, ref="noInterv")) %>%
+  mutate(evid = ifelse(condition=="noInterv",0,1))
 
 s2_meta <- list(
   n_recruited = d_all %>% distinct(workerId) %>% nrow(),
@@ -276,5 +316,4 @@ s2_meta <- list(
   n_duplicate = d_all %>% filter(duplicate, !attn_fail_posttest) %>% distinct(workerId) %>% nrow()
 )
 
-rm(d_all, d_keep, d_demo, d_scored, d_pre, d_post, d_tidy, d_tidy_post, d_tidy_pre, d_raw_post, d_raw_pre )
-
+rm(d_all, d_keep, d_demo, d_pre, d_post, d_tidy, d_tidy_post, d_tidy_pre, d_raw_post, d_raw_pre )

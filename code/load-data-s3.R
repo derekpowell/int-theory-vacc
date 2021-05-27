@@ -41,7 +41,7 @@ df_pre <- pre %>%
   # select(-check_3, -check_5) %>% 
   select(workerId, matches(".*(_[0-9])"), -check_3, -check_5, parent,
          sex, age, race, religion, educ, income, expecting, children, 
-         youngest_child, refuse, return, StartDate) %>%
+         youngest_child, refuse, return, StartDate, study) %>%
   rename(StartDate_pre = StartDate) %>% 
   gather(item, resp, matches(".*(_[0-9])")) %>%
   mutate(item = paste0("pre_",item)) %>%
@@ -129,9 +129,21 @@ df_demo <- df %>%
   mutate(days_between = StartDate_post - StartDate_pre)
 
 s3_pre <- df_pre
-s3 <- df
+s3_long <- df
 s3_scored <- df_scored
 s3_demo <- df_demo
+
+
+s3_mdf <- s3_scored %>% 
+  select(-change) %>% 
+  gather(phase, mean, pre, post) %>% 
+  mutate(condition = factor(condition)) %>% 
+  # filter(scale == "vaccTox") %>%
+  mutate(mean = rescale_beta(mean, 1, 7)) %>%
+  spread(phase, mean) %>%
+  mutate(condition = relevel(condition, ref="noInterv")) %>%
+  mutate(evid = ifelse(condition=="noInterv",0,1))
+
 
 s3_meta <- list(
   n_recruited = pre %>% filter(Progress==100) %>% distinct(workerId) %>% nrow(),

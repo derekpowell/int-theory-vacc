@@ -1,24 +1,117 @@
 ---
-title: "Supplement"
+title: "Supplemental Materials"
+subtitle: "Untitled vaccination intuitive theory paper"
+authors: "Derek Powell, Kara Weisman, and Ellen M. Markman"
 output:
-  pdf_document: default
-  html_document: default
+  pdf_document: 
+    latex_engine: xelatex
+    fig_caption: yes
+figsintext : yes
+always_allow_html: true
+header-includes:
+ \usepackage{float}
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(fig.pos = 'H')
 ```
 
-```{r s1_load}
+# Modeling
+
+## Bayesian network parameterization
+
+Figure 1 shows an example of a simple Bayesian Network. The network itself is a _directed acyclic graph_ (DAG), a type of graphical model. Graphical models represent variables as nodes connected by edges. In a DAG, these edges are directed, flowing from parent to child, and are constrained so that they cannot form cycles or loops. In a Bayesian network, these directed edges encode conditional dependencies among variables, so that the conditional probability distribution for a given variable is defined only in terms of its direct parents. Together, a child node and its parents are called a _family_. 
+
+```{r, echo=F, message=F, warning=F, fig.width=4, fig.height=3, fig.align='center', fig.cap="Example DAG representing some variables related to wildfires"}
+
+library(DiagrammeR)
+library(DiagrammeRsvg)
+
+grViz(
+  diagram = "
+  digraph causal {
+	
+	  # Nodes
+	  node [shape = oval]
+	  D [label = 'Dry']
+	  H [label = 'Heat']
+	  F [label = 'Fire']
+	  S [label = 'Smoke']
+	  
+	  
+	  # Edges
+	  edge [color = black,
+	        arrowhead = vee]
+	  rankdir = LR
+	  D->F
+	  H->F
+	  F->S
+	  
+	  # Graph
+	  graph [overlap = true, fontsize = 8]
+	}"
+) %>%
+  export_svg() %>%
+  xml2::read_xml() %>%
+  xml2::write_xml("../local/graph.svg")
+
+knitr::include_graphics("../local/graph.svg")
+```
+
+The probability of a node Y can be defined from its parents X in many different ways. For binary nodes, the most flexible specification is a conditional probability table (CPT) with $2^n$ entries specifying the probability of Y given the entire joint probability distribution over X, where n is the number of parents X. Given the exponential complexity of the CPT, simpler functions are often used to specify the probability of the child node, such as the noisy-or and noisy-and-not functions. A noisy-or function assumes each of the parents are independent generative forces, each with a probability of generating the effect. A noisy-and-not function assumes each of the parents are independent preventive forces, specifying the probability of the child node as the probability that it is generated _and not_ prevented by any one of its possible preventers. We construct our cognitive model parameterization using a combination of these two functions, using a distribution sometimes referred to as a “DeMorgan gate” (Maaskant & Druzdel, 2008). In our model, the probability of the child node Y can be expressed as:
+
+$$y = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$ 
+
+Here, each parent is either a generative (i) or preventive (j) influence, that generates or prevents the child node with probability weight $w_i$ or $w_j$. The weight $w_0$ represents the “leak” probability, or the baseline probability that the child occurs without any other generating influences. The first term in brackets represents the probability that y is generated, or alternately, that not all of the possible generating forces fail to generate it. The second term represents the probability that it is not then prevented, or that all the preventing forces fail.
+
+A cognitive model composed of these types of relations is capable of capturing a causal system of non-interactive generative and preventive causes. Although people’s intuitive theories are likely more flexible than this, there is ample evidence that people are highly capable of reasoning according to these types of causal relationships (see Holyoak & Cheng, 2011 for a review), and moreover, that their causal learning is strongly biased toward learning these kinds of relations (e.g., Novick & Cheng, 2004).
+
+Given measures of participants’ credences in each of the parent beliefs $x_i$ and the child belief $y$, we assume the following beta regression model:
+
+$$ \mu = \exp\Bigg(\ln\Big(1 - \exp\big(\ln\big(1-w_0) + \sum_i(1-w_i)x_i\big)\big) \Big) + \ln\Big(\sum_i(1-w_i)(1-x_i)\Big)\Bigg) $$
+$$y \sim beta\big(\mu k, (1-\mu)k\big)$$
+
+Via maximum likelihood estimation, we estimate for each parent a discrete parameter $x_i$ determining whether the relationship is generative or preventive, and a continuous weight $w_i$ determining its strength. We also estimate $w_0$, the “leak probability” which is assumed to be generative, and _k_, a measure of dispersion in the responses _y_.
+
+
+## Structure learning
+
+One way to learn a Bayesian network structure from data is to search through a space of networks, “score” each and choose the best scoring network. Many scoring metrics are possible, but a directly meaningful one is p(d|G), the likelihood of the data given the graph structure. Asymptotically, this can be estimated using the Bayesian Information Criterion (BIC) (citation):
+
+$$BIC = k \ln (n) - 2\sum_{i}\hat{\ell}(x_i|x_{va(x_i)})$$
+
+Which we estimate using the maximum log-likelihood estimated for our statistical model, calculated as the sum of the maximum log-likelihood for each node given its parents, from a total of _k_ parameters and _n_ data points.
+
+### Generative model principle
+
+We constrained our search by applying what we call the “generative model principle”, assuming that the intuitive theory is a generative model, so that influence relations (edges) should flow from “generating” states of affairs toward states of affairs that result, such as from cause to effect. 
+
+We used “abstractness” as a heuristic for constraining structure learning according to the generative model assumption: We assume that abstract states of affairs generate more specific and concrete states of affairs, so that edges should flow from the abstract toward the concrete. For instance, an abstract belief, such as the belief that natural things are better than artificial things, could influence more concrete beliefs, such as the belief that vaccines are dangerous. We consider “naturalism” to be an abstract belief because it is a belief about two large classes of entities, “natural things” and “artificial things”. The belief that vaccines are dangerous is relatively more concrete: the class of “vaccines” is relatively smaller and largely subsumed by the class of “artificial things.” Here, what is true of a larger class influences what we should think about the more specific class. 
+
+Before constructing our model, we sorted the 14 measured beliefs into “tiers” based on how broad or abstract each belief was. For instance, we considered holistic balance and naturalism to be the most abstract beliefs among those we measured, and labeled these “worldviews”; we considered our outcome of interest, vaccine intentions, to be the most concrete measurement of a specific intended action. In between, we judged “medical skepticism”, “parental protectiveness”, and “parental expertise” to be more general than beliefs about diseases and vaccines, and so separated these into two tiers as well. We then applied the generative model principle to induce a partial-ordering of these beliefs, and a corresponding “blacklist” stipulating that certain edges must not appear in the final DAG. For instance, that there is no edge from vaccine intentions to naturalism. This constraint can be thought of as a strong prior over the possible structures of this intuitive theory (namely, P(G)=0 for any graph G not respecting the principle).
+
+
+### Cross validation of structure learning results
+
+To conduct an efficient search through the super-exponential space of DAGs, we tested several variants of two structure learning algorithms implemented in the “bnlearn” R package. The first is purely score-based “hill-climbing” algorithm (cite) and the second was a hybrid algorithm that combined the hill-climbing algorithm with a prior “restriction” phase that pruned down the space of DAGs. This pruning was accomplished with the “min-max parents and children” algorithm (cite), which can be tuned with a hyperparameter alpha, which we tested at several levels. To speed computations, we restricted the maximum number of parents in the graph to five for all nodes, as the complexity of the scoring function is exponential in the number of parents. In all resulting networks no node was found to have more than four parents, suggesting this did not impact the final results.
+
+We performed a series of 10-run 10-fold cross validation analyses to evaluate the success of these different structure learning strategies. In addition to the different algorithms, we also compared four different “blacklists” that imposed different constraints on the structure learning process. In addition to our theory-driven blacklist based on our generative model assumptions, we also explored unconstrained structure learning, and two additional blacklists: one which stipulated only that “intentions to vaccinate” should be a child node with no children of its own, and another that stipulated also that the most abstract beliefs “holistic balance” and “naturalism” should be allowed to have no parents other than each other. 
+
+Figure X presents the results of these cross validation tests. As seen in the figure, all structure learning approaches produced models with similar out-of-sample performance, with more variability among folds and runs than between algorithms. Thus the cross-validation does not uniquely identify an optimal structure learning strategy.
+
+```{r s1_load, include=FALSE}
 source("../code/load-data-s1.R", chdir = TRUE)
 
 library(tidyverse)
+library(brms)
 library(bnlearn)
 library(HydeNet)
 
 source("../code/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 source("../code/graph-model-tools.R")
 source("../code/custom-structure-learning/cog-model-jags-tools.R")
+source("../code/custom-structure-learning/cog-model-estimate-evid-ratio.R")
 
 d_bn_scaled <- d_bn %>%
  mutate_all(function(x){rescale_beta(x,-3,3)})
@@ -31,68 +124,130 @@ train <- d_bn_scaled[trainInd, ]
 test <- d_bn_scaled[-trainInd, ]
 ```
 
-```{r cross_validation}
+```{r load_data, include=F}
+suppressWarnings(suppressMessages(source("../code/load-data-s2.R", chdir=TRUE))) # dplyr being too verbose
+source("../code/load-data-s3.R") 
+source("../code/load-data-s4.R")
+```
+
+
+```{r cross_validation, echo=FALSE, fig.height=4, fig.width=6, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
+
+## uncomment to re-run cross validation
 # source("../code/custom-structure-learning/fit-cog-models-bnlearn.R")
+
 cv_res <- readRDS("../local/cv-res.rds")
 
 cv_res %>% 
   ggplot(aes(x=reorder(algo, loss), y=loss)) +
   geom_boxplot() +
-  coord_flip()
+  coord_flip() +
+  labs(y = "Log-likelihood loss", x = "Algorithm") 
 
-# cv_res %>% 
-#   group_by(algo) %>% 
-#   summarize(M = mean(loss), se = sd(loss)) %>% 
-#   ggplot(aes(x=algo, y=M, ymin=M-se, ymax=M+se)) +
-#   geom_pointrange() +
-#   coord_flip()
 ```
-All algorithms produce fits of similar quality. Data doesn't tell which to pick from among these. So it's basically up to us to choose whichever result makes most sense or we like for whatever reason. And to just caveat that it's not the "one true model." 
 
-```{r fit_all_models}
 
-hc_args <- list(score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000)
 
-models <- list(
-  hc = partial(hc, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
-  hc_intentdv = partial(hc, blacklist=intent_dv_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
-  hc_theory = partial(hc, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
-  mmhc_05 = partial(mmhc, restrict.args=list(alpha=.05), maximize.args = hc_args),
-  mmhc_01 = partial(mmhc, restrict.args=list(alpha=.01), maximize.args = hc_args),
-  mmhc_intentdv_05 = partial(mmhc, blacklist = intent_dv_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
-  mmhc_intentdv_01 = partial(mmhc, blacklist = intent_dv_bl, restrict.args=list(alpha=.01), maximize.args = hc_args),
-  mmhc_theory_05 = partial(mmhc, blacklist = theory_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
-  mmhc_theory_01 = partial(mmhc, blacklist = theory_bl, restrict.args=list(alpha=.01), maximize.args = hc_args)
-)
+```{r fit_all_models, include=FALSE}
 
-models <- mclapply(
-    models, 
-    function(f){f(train)}, 
-    mc.cores = detectCores(logical=TRUE)
+# hc_args <- list(score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000)
+# 
+# models <- list(
+#   hc = partial(hc, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
+#   hc_intentdv = partial(hc, blacklist=intent_dv_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
+#   hc_theory = partial(hc, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1000),
+#   mmhc_05 = partial(mmhc, restrict.args=list(alpha=.05), maximize.args = hc_args),
+#   mmhc_01 = partial(mmhc, restrict.args=list(alpha=.01), maximize.args = hc_args),
+#   mmhc_intentdv_05 = partial(mmhc, blacklist = intent_dv_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
+#   mmhc_intentdv_01 = partial(mmhc, blacklist = intent_dv_bl, restrict.args=list(alpha=.01), maximize.args = hc_args),
+#   mmhc_theory_05 = partial(mmhc, blacklist = theory_bl, restrict.args=list(alpha=.05), maximize.args = hc_args),
+#   mmhc_theory_01 = partial(mmhc, blacklist = theory_bl, restrict.args=list(alpha=.01), maximize.args = hc_args)
+# )
+# 
+# models <- mclapply(
+#     models, 
+#     function(f){f(train)}, 
+#     mc.cores = detectCores(logical=TRUE)
+#   )
+# 
+# arc_counts <- map(models, ~nrow(arcs(.x)))
+# arc_counts
+```
+
+
+Nevertheless, there were substantial differences among the approaches, especially from the application of different constraints through blacklists. In particular, structure learning conducted without any constraints produced a very different model than structure learning under the generative model constraints; although many edges were shared, the directions of these edges were very frequently reversed. For instance, in structures learned without constraints, vaccine intentions is very frequently a parent node with many children, rather than a child of other nodes. These findings underscore the need for top-down constraints in the use of structure learning algorithms to identify plausible cognitive models for relations among beliefs. Models identified without these constraints may serve fine for prediction, but appear unlikely to lend themselves to clear interpretations as cognitive models.
+
+Without any clear guidance from cross validation and with a clear need to apply top-down constraints, we elected to advance our modeling with a model learned with the hill-climbing algorithm and our generative model constraints. This model contained more arcs than models estimated with hybrid algorithms, because these hybrid algorithms include a restriction phase based on correlations rather than our statistical model, we preferred the unrestricted approach.
+
+
+## Interpreting the model
+
+We used a bootstrapping procedure to estimate the confidence in each of the links in this model, conducting the structure learning procedure repeatedly for N bootstrapped resamples of the original training data. Figure X visualizes the frequency with which each arc appeared in the resulting model across these replicates, and figure x visualizes the model with the coefficients for each link encoded by color. [interpret the models]  
+
+```{r fit_main_model, include=FALSE, cache=TRUE}
+set.seed(73566)
+
+theory_bl <- tiers2blacklist(
+  list(
+    c("hb","nat"),
+    c("medSkept", "overpar", "parentExpert"),  # idk if overparenting makes sense here
+    c("diseaseRare","diseaseSevere","vaccEff","vaccTox","vaccStrain",
+      "vaccDanger","infantImmLimCap","infantImmWeak"), 
+    c("vaccIntent") 
+    )
   )
 
-arc_counts <- map(models, ~nrow(arcs(.x)))
-arc_counts
-```
-
-```{r}
 # this is the favorite son (most likely)
-h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(models$hc_theory)))
+main_model <- hc(train, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1e3, restart=5)
+h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
 plot(h)
 ```
-HC theory looks nice and interpretable, tho there are a fair number of edges. 
 
-We should maybe think on our theory-based hierarchy structure a bit more too. Where does overparenting belong? Maybe the abstract as parents intent dv is the way to go? 
 
-```{r}
+```{r, include=FALSE}
 # # can bootstrap strength of arcs for winning model approach, focus interpretations on strength of arcs / parameterizations
 
-## very slow!
-# boot.strength(train, R=200, algorithm="hc", algorithm.args = list(score="custom", fun=cog_model_score_func))
+# set.seed(49126)
+# 
+# train_noise <- train %>%
+#   mutate_all(~.x+rnorm(n(),0,.002))
+# 
+# cl = parallel::makeCluster(detectCores(logical=TRUE))
+# 
+# clusterCall(cl,
+#             function(){
+#               source("../code/custom-structure-learning/cog-model-main.R", chdir=TRUE)
+#               library(purrr)
+#               }
+#   )
+# 
+# ## very slow!
+# boot_res <- boot.strength(
+#   train_noise,  #train
+#   R = 200,
+#   algorithm = "hc",
+#   algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e3),
+#   cluster = cl
+#   )
+# 
+# stopCluster(cl)
+# 
+# saveRDS(boot_res,"../local/boot_res.rds")
+
+# this runs for hours and hits an error on optim(), 
+# possibly a bootstrap replicate was not full rank / produced huge colinearity?
+# possibly getting a perfect prediction and coef --> infinity for some variable?
+# maybe adding a tiny bit of noise would help?
 ```
 
 
-```{r}
+<fig: model arc visualizations >
+
+## Validating the model
+
+We validated our final model by testing its predictions on the held-out testing data. The models’ predictions are plotted against the true values for the testing data in figure X below. As seen in the figure, the quality of predictions varied across beliefs, but in many cases was quite strong. 
+
+```{r, include=FALSE, cache=TRUE}
 
 predict_node <- function(targVar, model_string, data){
   
@@ -104,7 +259,7 @@ predict_node <- function(targVar, model_string, data){
 }
 
 
-main_model <- models$hc_theory
+# main_model <- models$hc_theory
 model_string <- suppressWarnings(write_jags_model(main_model, train))
 
 # takes ~3m on 8 cores -------
@@ -112,23 +267,24 @@ start_time <- Sys.time()
 
 predictions <- test %>% mutate_all(function(x){NA}) %>% mutate_all(as.numeric)
 
-x <- mclapply(
+test_preds <- mclapply(
   colnames(test),
   predict_node,
   model_string = model_string,
   data = test,
-  mc.cores=8
+  mc.cores = detectCores(logical=TRUE)
 )
 
-names(x) <- colnames(test)
+names(test_preds) <- colnames(test)
 
 print(Sys.time() - start_time)
 ```
 
-Inspect absolute fit
 
-```{r validation_plot fig.height=6, fig.width=10}
-predictions <- as_tibble(x) %>% mutate(subj = 1:n()) %>% gather(varName, predValue, -subj) 
+```{r validation_plot, echo=FALSE, fig.height=6, fig.width=10, fig.align="center", fig.cap="Model predictions versus observed values for test data from Study 1."}
+
+predictions <- as_tibble(test_preds) %>% mutate(subj = 1:n()) %>% gather(varName, predValue, -subj) 
+
 test_analyze <- test %>%
   gather(varName, value) %>% 
   mutate(predValue = predictions$predValue)
@@ -155,15 +311,15 @@ predObsCor <- cor(test_analyze$value,test_analyze$predValue)
 corrDF <- test_analyze %>%
   mutate(varName = recode_nodes(varName)) %>%
   group_by(varName) %>%
-  summarize(cor = cor(value,predValue)) %>%
-  mutate(cor = format(round(cor,2),nsmall=2))
+  summarize(cor = cor(value,predValue)) #%>%
+  # mutate(cor = format(round(cor,2),nsmall=2))
 
 plt.valid <- test_analyze %>%
   mutate(varName = recode_nodes(varName)) %>%
   ggplot(aes(x=predValue, y=value)) + 
   geom_abline(slope=1, intercept=0, linetype="dashed", alpha=.33) +
   geom_point(shape=1, size=.5, color="darkturquoise") + 
-  geom_text(data=corrDF, aes(label=paste("r =", cor)),
+  geom_text(data=corrDF, aes(label=paste("r =", round(cor,2))),
             x=-Inf, y=Inf, hjust=-0.12, vjust=1.4,
             size = 10*.352777778,
             color="grey25") +
@@ -179,24 +335,196 @@ plt.valid <- test_analyze %>%
   theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
 plt.valid
-# ggsave(plot = plt.valid, filename = "../local/s1_predobs_plot.png", width=8.5, height=4)
+```
+For each node, we also compared the Bayesian network model’s predictions to a maximal naive model using values on all other belief scales as predictors. This captures the degree to which each belief is predictable from the others as a whole. As shown in table X, the relatively simpler Bayesian network model does not sacrifice any predictive power compared to the suite of maximal naive models.
+
+Finally, we can also compare the quality of our model predictions to the test-retest reliability of the belief scales, establishing an overall upper-bound on the predictability of these measures. As shown in table X, the Bayesian network model did approximately as well as possible for seven beliefs, but fell short for the other seven. These failures suggest that the model is missing the information that would be needed to predict these beliefs. Although the notion of an intuitive theory presupposes that there is some collective unit of cognitive machinery defining people’s thinking about a particular domain, defining the boundaries of an intuitive theory is far from straightforward. It could be that new measurements are needed to fully capture these aspects of the intuitive theory, or these beliefs are sufficiently peripheral that they should not be considered part of the intuitive theory. Given the fuzzy nature of the problem, and of cognition more generally, we expect that these types of decisions will be driven as much by investigators' pragmatic concerns as they are by psychological facts. 
+
+```{r, echo=FALSE, message=F, warning=F}
+# compare S1 model predictions to test-retest reliability?
+
+test_retest_cor <- function(node){
+    df <- s2_scored %>%
+    filter(condition == "noInterv", scale == node) %>%
+    spread(phase, mean)
+    
+  return( cor(df$pre, df$post) )
+}
+
+test_retest <- tibble(node=as.character(colnames(d_bn))) %>%
+  mutate(fit = map_dbl(node, test_retest_cor))
+
+library(betareg)
+
+build_formula <- function(node, all_nodes){
+  
+  lhs_nodes <- all_nodes[all_nodes != node]
+  
+  f <- paste(node, "~ ")
+  for (n in lhs_nodes){
+    f <- paste0(f, n, " + ")
+  }
+  
+  f <- substr(f,1,nchar(f)-3)
+  
+  return(f)
+}
+
+make_model <- function(node){
+  nodes <- colnames(train)
+  betareg(as.formula(build_formula(node, nodes)), 
+        data = train)
+}
+
+calc_oos_fit <- function(model, node){ # break this up
+
+  p <- predict(model, test)
+  
+  cor(p, test[,node])
+}
+
+## don't think we need to show this to make the points
+# calc_change <- function(model,node){
+#   df <- s1_scored %>%
+#     filter(condition=="diseaseRisk") %>%
+#     group_by(scale, phase) %>%
+#     summarize(mean = mean(mean)) %>%
+#     spread(phase, mean)
+#   
+#   df1 <- df %>%
+#     select(scale, pre) %>%
+#     spread(scale, pre)
+#   
+#   # df2 <- df %>%
+#   #   select(scale,post) %>%
+#   #   spread(scale, post)
+#   
+#   df1[2,] <- df1[1,]  # can swap to have all changing ...
+#   df1[2,"diseaseSevere"] <- df[6, "post"]
+#   
+#   p <- predict(model, df1)
+#   
+#   p[2] - p[1]
+# }
+
+oos_fits <- tibble(node=as.character(colnames(d_bn))) %>%
+  mutate(model = map(node, make_model)) %>%
+  mutate(fit = map2_dbl(model, node, calc_oos_fit)) #%>%
+  # mutate(pred_change = map2_dbl(model, node, calc_change))
+
+r_lower <- function(r,n){
+  map2_dbl(r, n, function(r,n){psych::r.con(r,n)[1]})
+}
+
+r_upper <- function(r,n){
+  map2_dbl(r, n, function(r,n){psych::r.con(r,n)[2]})
+}
+
+model_fits <- tibble(
+  varName = as.character(colnames(d_bn)),
+  # model_fit = c(.50, .66, .48, .63, .64, .56, .71, .35, .63, .90, .83, .86, .81, .87),
+  `test-retest` = test_retest$fit,
+  `maximal` = oos_fits$fit
+  ) %>%
+  mutate(varName = recode_nodes(varName)) %>% 
+  left_join(corrDF, by ="varName") %>% 
+  rename(`Bayesian network` = cor) %>% 
+  gather(model, fit, `Bayesian network`, `test-retest`, `maximal`) %>%
+  mutate(n = ifelse(model=="test_retest", 233, 226)) %>%
+  mutate(ul = r_upper(fit,n), ll= r_lower(fit,n))
+
+# model_fits %>%
+#   # filter(model!="full_fit") %>%
+#   # mutate(model = ifelse(model=="model_fit", "model", "test-retest")) %>%
+#   ggplot(aes(x=reorder(varName, -fit), y = fit, color=model, ymin = ll, ymax =ul)) +
+#   # geom_errorbar(position = position_dodge(width=.25)) +
+#   geom_pointrange(size =.25, position = position_dodge(width=.25)) +
+#   ylim(0,1) +
+#   theme_bw(base_size = 14) +
+#   labs(x="Belief", y = "Correlation") +
+#   theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+library(kableExtra)
+model_fits_print <- model_fits %>% 
+  select(varName, model, fit) %>% 
+  rename(
+    `Belief scale` = varName,
+    Measure = model
+  ) %>% 
+  spread(Measure, fit) %>% 
+  arrange(desc(`test-retest`))
+
+kbl(model_fits_print, booktabs = T,
+    digits = 3, 
+    align = c('l','c','c','c'),
+    # format = "latex",
+    caption = "Correlations for observed and predicted out-of-sample values") %>% 
+  kable_classic(full_width = F, html_font = "Cambria")
 ```
 
-Maybe compare predicted correlation matrix against true correlation matrix? Could bootstrap resample and create distributon of distances to represent null, see where this falls? Hope would be for non-sig result, that the reconstructed corr matrix is within resampling error. Maybe not necessary to do this tho?
+## Estimating the strength of evidence from changes in belief reports
 
-# Study 1
+To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in figure #) with an additional node representing the evidence. For instance, to model the effects of the “disease risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node (following Pearl, 1988). To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
 
-NOTE: these code blocks are cut/pasted from other nb and not yet tested.
+$$ O(h|d) = O(h) + ln(\frac{P(d|h=1)}{P(d|h=0)}) $$
 
-```{r s1}
-# data is already loaded
-source("../code/load-data-s1.R")
+Where the final term is the evidence ratio, defined as:
 
+$$ER = \frac{P(d|h=1)}{P(d|h=0)}$$
+
+The evidence ratio can be estimated from a model that is linear in the log-odds. This allowed for estimation of the evidence ratio from the with the following beta-regression model:
+
+$$logit(\mu) = logit(pretest) + \ln(ER_0) + x\ln(ER_{1})$$
+$$y \sim beta\big(\mu k, (1-\mu)k\big)$$
+
+Where x was a binary variable representing the presence (1) or absence (0) of evidence at posttest, and participants’ prior and posterior (pretest and posttest) credences were transformed by the logit function. This allowed us to estimate the log evidence ratio implied by participants’ reactions to the intervention (ER1) as well as the intervening time period without any explicit evidence (ER0). Then, we constructed a CPT consistent with ER1. For instance, with an evidence ratio below 1, we set:
+
+$$ p(evidence = 1 | x ) = .50*ER_1$$ 
+$$ p(evidence = 0 | x) = .50. $$
+
+We used this approach to predict how evidence (either interventions or real-world events) would change participants’ beliefs in Studies 2-4 (see results for each study below). It should be noted that, with the exception of the data used to estimate this evidence ratio, these are out-of-sample and out-of-task predictions.
+
+
+# Methods
+
+
+## Qualitative Studies
+
+Before discovering a network connecting beliefs, we first needed to identify a set of beliefs that might plausibly influence vaccination decisions and develop ways of measuring these beliefs.  
+
+To do this, we drew on a variety of sources, including academic articles on anti-vaccine skepticism (e.g., CITE) and anti-vaccine websites, and a qualitative survey with self-identified vaccine skeptics (_n_=16) via Amazon Mechanical Turk (MTurk). [add details of this study here]
+
+Ultimately, we generated a list of 13 underlying beliefs that might influence people’s decisions about whether to vaccinate their children (_vaccine intentions_, the last of our 14 beliefs). We translated these qualitative insights into 14 psychometrically-valid scales. In developing these scales, we stipulated that each scale should be brief, composed of 4-6 statements for participants to evaluate; include at least one reverse-coded item; and be highly reliable (Cronbach’s α ≥ .80). After extensive piloting and refinement, we created 14 scales that met these criteria, including one preexisting scale (the “holistic balance” subscale from McFadden et al., 2010).
+
+
+## General Methods: Studies 1-4
+
+Studies 1-4 were conducted using online surveys (administered with Qualtrics survey software) with participants recruited from Amazon’s mechanical turk (mTurk) work distribution website. All studies were conducted between [dates]. Repeat participation was prevented, with no participants involved in more than one study, except as noted in Study 4. A total of # participants completed their participation in these studies. All participants had gained approval for ≥ 95% of previous work (≥ 100 assignments); had verified US MTurk accounts; and indicated that they were ≥ 18 years old. See the participant demographics summary section below for full demographic information.
+
+### Method.
+
+Participants in all of these studies were asked to respond at least once to 14 belief scales measuring beliefs relevant to vaccination decisions (as previously described). Across all studies, these scales were each presented on a separate survey page. On each page, participants were asked to rate “how much you agree or disagree” on a 7-point scale from Strongly disagree (coded as -3) to Strongly agree (+3). Scales, and questions within each scale, were presented in a random order for each participant. Two to four attention checks (“Please select somewhat agree” and “Please select somewhat disagree”) were embedded within two to four randomly chosen scales.
+
+_Data processing._ For each scale, we generated a score for each participant by averaging their responses to each question in that scale (after reverse-coding where appropriate), and then rescaling these values to fall between 0 and 1, to represent a credence.
+
+## Study 1
+
+### Participants
+
+```{r s1_meta, include=FALSE}
+s1_meta <- list(
+  n_total = nrow(s1_all),
+  n_exclude = s1_all %>% filter(exclude==1) %>%  nrow(),
+  n_include =  s1_all %>% filter(exclude==0) %>%  nrow()
+)
 ```
 
-A total of `r nrow(s1_all)` people recruited from Amazon Mechanical Turk (mTurk) participated in this study conducted in August of 2017. Participants were paid $1.60 for about 8 minutes of their time. `r s1_n_excluded` participants (6%) failed at least one of two attention check questions and were excluded from further analysis, leaving a final sample of n = `nrow(d_demo)`. After completing all 14 scales, participants were asked standard demographics questions as well as a handful of questions about whether they were or were expecting to be a parent. They were also debriefed with a brief statement noting that vaccines are safe and pointing them toward a WHO website for further information. 
 
-```{r}
+A total of `r s1_meta$n_total` people recruited from Amazon Mechanical Turk (mTurk) participated in this study conducted in August of 2017. Participants were paid \$1.60 for about 8 minutes of their time. `r s1_meta$n_exclude` participants (6%) failed at least one of two attention check questions and were excluded from further analysis, leaving a final sample of n = `r s1_meta$n_include`. After completing all 14 scales, participants were asked standard demographics questions as well as a handful of questions about whether they were or were expecting to be a parent. They were also debriefed with a brief statement noting that vaccines are safe and pointing them toward a WHO website for further information. 
+
+### Results
+
+```{r, echo=FALSE}
 
 compute_alpha <- function(data, varName){
   data %>%
@@ -216,24 +544,19 @@ names(alpha_values) <- var_names
 
 # do something to pretty this up
 
-as_tibble(alpha_values) %>% 
-  gather(scale, alpha)
+# as_tibble(alpha_values) %>% 
+#   gather(scale, alpha) %>% 
+#   knitr::kable()
 
 ```
 
-# Study 2
+Figure X presents correlations among the 14 belief scales measured in Study 1. As the figure shows, there are strong correlations among many of the beliefs, suggesting they are related by an underlying intuitive theory.
 
-```{r s2}
-# load data
-suppressWarnings(suppressMessages(source("../code/load-data-s2.R", chdir=TRUE)))
-```
+```{r, echo=FALSE, message=F, fig.height=8, fig.width=8, fig.align='center', fig.cap = "Correlations among 14 the belief scales measured in Study 1. Correlation matrix is arranged by hierarhical clustering algorithm to highlight connections among beliefs."}
+# plot correlation matrix
+library(corrplot)
 
-_Participants._ We recruited `r s2_meta$n_recruited` people to participate in a two-day study via mTurk in April 2018. Two days later, participants who completed part 1 and passed attention checks were invited via email to participate in Day 2 of the study, with `r s2_meta$n_recruited_post` participants returning (`r s2_meta$n_eligible` invited, retaining `r round(s2_meta$n_recruited_post/s2_meta$n_eligible*100,1)`% of the Day 1 sample). Participants were paid \$1.35 for their participation in each phase of the study. `r s2_meta$n_failed_post` participants (`r round( (s2_meta$n_failed_post/s2_meta$n_recruited_post)*100,1)`%) failed at least one attention check on Day 2 and were excluded from further analysis. We also excluded from analyses `r s2_meta$n_duplicate` additional participants who accessed the second survey more than once. This left a final sample of `r s2_meta$n_complete` participants.
-
-
-```{r}
-
-recode_scales <- function(x){
+recode_nodes2 <- function(x){
   recode(x,
          "diseaseRare" = "Disease Rarity",
          "diseaseSevere" = "Disease Severity",
@@ -250,6 +573,58 @@ recode_scales <- function(x){
          "vaccStrain" = "IIS: Vaccines Strain",
          "vaccTox" = "Vaccines Toxicity")}
 
+
+temp_order <- corrMatOrder(cor(d_bn))
+
+temp_cor <- cor(d_bn)[temp_order, temp_order] %>%
+  data.frame() %>%
+  rownames_to_column("scale1") %>%
+  mutate(order1 = 1:14) %>%
+  gather(scale2, cor, -c(scale1, order1)) 
+
+temp_cor_df <- temp_cor %>%
+  full_join(temp_cor %>% 
+              distinct(scale1, order1) %>%
+              rename(scale2 = scale1, order2 = order1)) %>%
+  mutate_at(vars(scale1, scale2), recode_nodes2)
+
+ggplot(temp_cor_df,
+       aes(x = reorder(scale1, desc(order1)), 
+           y = reorder(scale2, order2), 
+           fill = cor)) +
+  geom_tile(color = "black") +
+  geom_text(aes(label = format(round(cor, 2), digits = 2)), size = 3.5) +
+  scale_fill_distiller(palette ="RdBu", limits = c(-1, 1),
+                     guide = guide_colorbar(barheight = 15)) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        axis.title = element_blank(),
+        aspect.ratio=1) +
+  labs(fill = "Corr.")
+```
+
+## Study 2
+
+### Participants. 
+
+We recruited `r s2_meta$n_recruited` people to participate in a two-day study via mTurk in April 2018. Two days later, participants who completed part 1 and passed attention checks were invited via email to participate in Day 2 of the study, with `r s2_meta$n_recruited_post` participants returning (`r s2_meta$n_eligible` invited, retaining `r round(s2_meta$n_recruited_post/s2_meta$n_eligible*100, 1)`% of the Day 1 sample). Participants were paid \$1.35 for their participation in each phase of the study. `r s2_meta$n_failed_post` participants (`r round( (s2_meta$n_failed_post/s2_meta$n_recruited_post)*100, 1)`%) failed at least one attention check on Day 2 and were excluded from further analysis. We also excluded from analyses `r s2_meta$n_duplicate` additional participants who accessed the second survey more than once. This left a final sample of `r s2_meta$n_complete` participants.
+
+
+### Method. 
+
+Procedures for part 1 of Study 2 were nearly identical to Study 1, save for the use of four rather than two attention check questions, and the removal of debriefing statements at the end of the survey. On Day 2 (XX days later), participants completed a study that was designed to be very similar to Horne, Powell, et al.’s (2015) original study. Participants were randomly assigned to either the Disease Risk condition or the No Intervention condition, with the constraint that the distributions of participants’ Day 1 _vaccine intentions_ should be similar across the two conditions; we accomplished this by stratifying participants into groups based on their pretest vaccine intentions, and randomly assigning them to conditions in equal numbers within each group. 
+
+Participants were presented with a slightly modified version of the “Disease Risk” intervention from Horne, Powell et al.’s (2015) original study, which was based on materials available on the CDC website (XX). Compared with Horne, Powell et al. (2015), we modified the intervention to present these parts in a fixed (rather than randomized) order, made slight changes to wording to improve clarity, and added a final statement summarizing the take-home message of the intervention. Full text of this intervention can be found in appendix B of these supplementary materials. 
+
+After reading this intervention, participants completed the same 14 belief scales that they had completed on Day 1. Finally, participants were asked about their own vaccination behavior, including whether they had received a flu shot this season, and whether they planned to get a flu shot next season. They were also asked whether they were parents, how many children they had, and their children’s ages. Parents were then asked additional questions about their vaccination decisions regarding their children, including whether their children had received flu shots and would receive them next season; whether they had ever chosen to delay a vaccine for their child; refused a vaccine for their child; or obtained an exemption for their child to attend school without a vaccination. At the end of the survey, participants were asked whether they had paid attention, avoided distractions, and taken the survey seriously.
+
+Participants in the No Intervention condition (_n_=XX) completed an identical set of questions, except that they did not read any material before completing the 14 belief scales and the questions about their personal background.
+
+
+### Results
+
+```{r s2_mean_diff_plot, echo=F, message=F, warning=F, fig.height=4, fig.width=6, fig.align='center', fig.cap="Mean difference scores from pretest to posttest for the 14 belief scales measured in Study 2. Error bars represent 95\\% confidence intervals."}
+
 # create plot of differences for all 14 scales
 
 s2_scored %>% 
@@ -257,7 +632,7 @@ s2_scored %>%
   drop_na(scale) %>% 
   mutate(diff = post-pre) %>% 
   mutate(
-    scale = recode_scales(scale),
+    scale = recode_nodes2(scale),
     condition = ifelse(condition=="noInterv", "Control", "Disease Risk")
     ) %>% 
   group_by(condition, scale) %>%
@@ -272,29 +647,89 @@ s2_scored %>%
     ) +
   labs(title="Study 2", y = "Mean difference", x = "Belief scale", color="Intervention")
 ```
-```{r}
+
+```{r s2_model, include=F}
+# -- TODO: recode phase/condition 5/25/21, 11:07 AM
+
 # compare conditions on vaccIntent scale w/ regression model
 # probably do ordinal model with brms
+s2_reg <- s2_long %>% 
+  filter(scale=="vaccIntent") %>% 
+  mutate(
+    phase = relevel(factor(phase), ref="pre"),
+    condition = relevel(factor(condition), ref="noInterv"),
+    response = response+4
+    )
 
-# fit evidence node
+fit_s2_vaccIntent <- brm(
+  response ~ phase*condition + (1|item) + (1|workerId),
+  family = cumulative("logit"),
+  data = s2_reg,
+  chains = 6,
+  cores = 6,
+  control = list(adapt_delta=.95),
+  seed = 46179,
+  file = "../local/fit_s2_vaccIntent.rds"
+)
 
-# generate model predictions + create plot
+summary(fit_s2_vaccIntent)
 ```
 
+We conducted a mixed-effects Bayesian linear regression to assess the effects of the disease risk intervention on the _Vaccination Intentions_ score, using the “brms” package for R (CITE). We regressed phase (Day 1 vs. 2, dummy-coded with Day 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and an interaction between phase and condition onto participants’ _Vaccination Intentions_ scores, including random intercepts by subject. In this model, the unique effect of the intervention on vaccination intention scores is assessed by the interaction term (indicating the unique effect of phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (interaction effect: _b_ = -0.15, 95% CI: [-0.27, -0.04]). We consider this to be a full replication of Horne, Powell, et al.’s (XX) results. See Figure XX, upper left, for a visualization of these findings.
 
-# Study 3a and 3b
 
-```{r s3}
-# load data
-source("../code/load-data-s3.R")
+To model the changes in the belief network, we estimate the “evidence ratio” using the method described in the modeling section. The maximum likelihood estimate of the evidence ratio was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
+
+Figure X shows the correlation between predicted and observed belief changes conditional on the disease risk intervention.
+
+```{r, echo=FALSE}
+# create cognitive model for predicting change scores
+base_model <- create_bnlearn_cog_model(main_model, train)
 ```
 
-_Participants._ We recruited `r s3_meta$n_recruited` people to participate in a two-day study via mTurk in April (Experiment 3A) and June (Experiment 3B) of 2018. One day after their initial participation, participants who completed part 1 and passed attention checks were invited via email to participate in Day 2 of the study, with `r s3_meta$n_recruited_post` participants returning (`r s3_meta$n_eligible` invited, retaining `r round(s3_meta$n_recruited_post/s3_meta$n_eligible*100,1)`% of the Day 1 sample). Participants were paid \$1.35 for their participation in each phase of the study and were allowed to participate in part 2 up to two days after their initial participation in part 1. `r s3_meta$n_failed_post` participants (`r round( (s3_meta$n_failed_post/s3_meta$n_recruited_post)*100,1)`%) failed at least one attention check on Day 2 and were excluded from further analysis.  This left a final sample of `r s3_meta$n_complete` participants.
+```{r s2_model_pred, echo=FALSE, fig.height=4, fig.width=4, fig.align="center", fig.cap="Mean observed and predicted change scores for Experiment 2. Error bars represent 95\\% confidence intervals."}
+# Generate model predictions + create plot
+# odd, I remember the results being slightly better than this, job talk says r=.87
+obs_pred <- make_pred_df(s2_mdf, base_model, "diseaseSevere")
 
-```{r}
+cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
 
-# compare conditions on vaccIntent w/ regression model
+(obs_pred_plot <- obs_pred %>% # a bit of a hack
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point(size=2.5) +
+  geom_errorbar(alpha=.5, width=0) +
+  annotate(geom="text", x=.03, y=-.04, label= paste("r =", cor_val)) +
+  coord_cartesian(xlim=c(-.06,.06), ylim=c(-.06,.06)) +
+  theme_bw(base_size=14) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(aspect.ratio = 1)) +
+  labs(title="Belief changes", subtitle="Experiment 2")
 
+# obs_pred %>%
+#   gather(type, Mean, observed, predicted) %>%
+#   ggplot(aes(y = reorder(scale, Mean), x = Mean, xmin = ll, xmax = ul, color=type)) +
+#   geom_point() +
+#   geom_errorbarh(height=0)
+```
+
+## Studies 3a and 3b
+
+### Participants.
+
+We recruited `r s3_meta$n_recruited` people to participate in a two-day study via mTurk in April (Experiment 3A) and June (Experiment 3B) of 2018. One day after their initial participation, participants who completed part 1 and passed attention checks were invited via email to participate in Day 2 of the study, with `r s3_meta$n_recruited_post` participants returning (`r s3_meta$n_eligible` invited, retaining `r round(s3_meta$n_recruited_post/s3_meta$n_eligible*100,1)`% of the Day 1 sample). Participants were paid \$1.35 for their participation in each phase of the study and were allowed to participate in part 2 up to two days after their initial participation in part 1. `r s3_meta$n_failed_post` participants (`r round( (s3_meta$n_failed_post/s3_meta$n_recruited_post)*100,1)`%) failed at least one attention check on Day 2 and were excluded from further analysis.  This left a final sample of `r s3_meta$n_complete` participants.
+
+
+### Methods. 
+
+Procedures for studies 3a and 3b closely followed those of Study 2, but these studies tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. Full text of this intervention is available in appendix C of these supplementary materials. In study 3a, participants were randomly assigned to either a no-intervention control condition or to the novel vaccine toxins intervention. In study 3b, the no-intervention control condition was replaced with a brief control intervention [describing X].
+
+
+### Results. 
+
+Due to the similarity of their designs, we combined data from studies 3a and 3b for analysis. As in study 2, we conducted a mixed-effects Bayesian linear regression to assess the effects of the vaccine toxins intervention on participants’ _Vaccination Intentions_ scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to the control conditions (interaction effect: b = [statistics]). However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions (phase effect: b = [statistics]), suggesting that these attitudes were also being influenced by other factors during the course of the study. 
+
+```{r, echo=FALSE, message=F, warning=F, fig.align="center", fig.cap = "Mean difference scores from pretest to posttest for the 14 belief scales measured in Experiment 3. Error bars represent 95\\% confidence intervals."}
 # create plot of differences for all 14 scales
 
 s3_scored %>% 
@@ -302,7 +737,7 @@ s3_scored %>%
   drop_na(scale) %>% 
   mutate(diff = post-pre) %>% 
   mutate(
-    scale = recode_scales(scale),
+    scale = recode_nodes2(scale),
     condition = ifelse(condition=="noInterv", "Control", "Disease Risk")
     ) %>% 
   group_by(condition, scale) %>%
@@ -317,16 +752,104 @@ s3_scored %>%
     ) +
   labs(title="Study 3a and 3b", y = "Mean difference", x = "Belief scale", color="Intervention")
 
-# fit evidence node
-
-# generate model predictions + create plot
 ```
 
-# Study 4
+```{r, include=FALSE}
+# compare conditions on vaccIntent w/ regression model
+# -- TODO: recode phase/condition 5/25/21, 11:07 AM
+s3_reg <- s3_long %>% 
+  filter(scale=="vaccIntent") %>% 
+  mutate(
+    phase = relevel(factor(phase), ref="pre"),
+    condition = relevel(factor(condition), ref="noInterv"),
+    response = resp
+    )
 
-```{r}
-# load data
-source("../code/load-data-s4.R")
+
+fit_s3_vaccIntent <- brm(
+  response ~ phase*condition + (1|item) + (1|workerId),
+  family = cumulative("logit"),
+  data = s3_reg,
+  chains = 6,
+  cores = 6,
+  control = list(adapt_delta=.95),
+  seed = 69568,
+  file = "../local/fit_s3_vaccIntent.rds"
+)
+
+summary(fit_s3_vaccIntent)
+```
+
+To model the effect of the vaccine toxicity intervention, we followed the same procedure as in Study 2, but this time augmented the model with a node representing the vaccine toxicity intervention as a child of the vaccine toxins belief node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
+
+Figure X shows the correlation between predicted and observed belief changes conditional on the vaccine toxicity intervention.
+
+
+```{r, echo=F, fig.width=4, fig.height=4, fig.align="center", fig.cap="Mean observed and predicted change scores for Experiment 3. Error bars represent 95\\% confidence intervals."}
+
+# this is not quite getting vacctox node right, could be because of effects in the control condition.
+
+# fit evidence node
+obs_pred <- make_pred_df(s3_mdf, base_model, "vaccTox")
+
+cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
+
+(
+  obs_pred_plot <- obs_pred %>% 
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point(size=2.5) +
+  geom_errorbar(alpha=.5, width=0) +
+  # coord_fixed(ratio=1) +
+  coord_cartesian(xlim=c(-.12,.08), ylim=c(-.12,.08)) +
+  annotate(geom="text", x=.05, y=-.1, label= paste("r =", cor_val)) +
+  theme_bw(base_size=14) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(aspect.ratio = 1) +
+  labs(title="Belief changes",subtitle="Experiment 3a & 3b")
+)
+```
+
+
+## Study 4
+
+
+### _Participants_. 
+
+```{r process_s4_data, include=FALSE}
+
+# combine with S1
+s4_reg <- s4_long  %>%
+  filter(workerId %in% s1_wide$workerId) %>% 
+  filter(scale!="check") %>% 
+  select(workerId, item, scale, resp, vacc_news) %>% 
+  mutate(phase = "posttest") %>% 
+  rename(response = resp) %>% 
+  bind_rows(
+    s1_long %>% 
+      as_tibble() %>% 
+      filter(workerId %in% s4_long$workerId) %>% 
+      rename(item = question, scale = question_block) %>% 
+      select(workerId, item, scale, response_num_rev) %>% 
+      mutate(phase = "pretest") %>% 
+      mutate(response = response_num_rev + 4) %>% 
+      select(-response_num_rev)
+  ) %>% 
+  group_by(workerId) %>% 
+  mutate(
+    vacc_news = first(na.omit(vacc_news)),
+    phase = relevel(factor(phase), ref="pretest")
+  ) # carry this through for each respondent
+
+s4_mdf <- s4_reg %>% 
+  mutate(phase = gsub("test","", phase)) %>% 
+  group_by(workerId, scale, phase, vacc_news) %>% 
+  summarize(Mean = mean(response, na.rm=TRUE)) %>% 
+  ungroup() %>% 
+  mutate(Mean = rescale_beta(Mean, 1, 7)) %>%
+  # gather(phase, mean, pre, post) %>%
+  spread(phase, Mean) %>%
+  mutate(evid = vacc_news)
 
 s4_meta <- list(
   n_recruited = s4_wide %>% filter(workerId %in% s1_all$workerId) %>%  distinct(workerId) %>% nrow(),
@@ -339,29 +862,37 @@ s4_meta <- list(
 )
 ```
 
-We attempted to contact and re-recruit as many of the `r nrow(d_bn)` participants who completed Study 1 to participate in a follow-up study in May of 2019. We were able to re-recruit `r s4_meta$n_recruited` participants and of these`r n_complete` successfully completed the study including passing all attention checks.
+We attempted to contact and re-recruit as many of the `r nrow(d_bn)` participants who completed Study 1 to participate in a follow-up study in May of 2019. We were able to re-recruit `r s4_meta$n_recruited` participants and of these`r s4_meta$n_complete` successfully completed the study including passing all attention checks.
 
-```{r}
-s1 <- d_sum %>%
-  rename(scale = question_block) %>%
-  group_by(scale, workerId) %>% 
-  summarize(s1 = mean(score, na.rm = T)) %>%
-  ungroup()
+### _Results._ 
+
+```{r, include=FALSE}
+
+x <- s1_long %>% 
+  group_by(workerId, question_block) %>%
+  summarise(score = mean(response_num_rev, na.rm = T)) %>%
+  ungroup() %>%
+  rename(scale = question_block) #%>%
+  # group_by(scale, workerId) %>%
+  # summarize(s1 = mean(score, na.rm = T)) %>%
+  # ungroup()
 
 combined <- s4_long  %>%
   # filter(check_5==5, check_3==3, Progress==100) %>% 
-  filter(workerId %in% s1$workerId) %>%
+  filter(workerId %in% x$workerId) %>%
   # select(workerId, scale, item, resp, vacc_news) %>%
   group_by(workerId, scale, vacc_news) %>%
   summarize(posttest = mean(resp)-4) %>%
   ungroup() %>% 
-  right_join(s1) %>%
-  rename(pretest = s1) %>%
+  right_join(x) %>%
+  rename(pretest = score) %>%
   mutate(returned = !is.na(posttest))
+
+rm(x)
 ```
 
 
-```{r s4}
+```{r s4_diff_plot, echo=FALSE, message=F, warning=F, fig.align='center', fig.cap="Mean difference scores from pretest to posttest for the 14 belief scales measured in Study 3. Thick error bars represent standard errors, thin error bars represent 95\\% confidence intervals."}
 # compare effects in graph
 
 combined %>% 
@@ -369,7 +900,7 @@ combined %>%
   mutate(diff = posttest-pretest) %>%
   mutate(
     vacc_news = as.factor(vacc_news),
-    scale = recode_scales(scale)
+    scale = recode_nodes2(scale)
     ) %>%
   group_by(vacc_news,scale) %>%
   summarize(
@@ -395,19 +926,85 @@ combined %>%
     legend.position = "right",
     panel.grid = element_blank()) +
   labs(title="Study 4", y = "Change scores", x = "Belief scale", color ="News\nexposure")
-
+```
+```{r, include=FALSE}
 # compare conditions on vaccIntent w/ regression model
+# not run yet 5/25/21, 11:52 AM
 
-# fit evidence node
-
-# generate model predictions + create plot
+fit_s4_vaccIntent <- brm(
+  response ~ phase*vacc_news + (1|item) + (1|workerId),
+  family = cumulative("logit"),
+  data = s4_reg %>% filter(scale=="vaccIntent"),
+  chains = 6,
+  cores = 6,
+  control = list(adapt_delta=.95),
+  seed = 40725,
+  file = "../local/fit_s4_vaccIntent.rds"
+)
 ```
 
-# Overall demographics
 
-```{r}
+
+We again conducted a series of mixed-effects Bayesian linear regression models to assess the effect of recent news exposures on participants’ attitudes toward vaccines. Mirroring our prior analyses, we regressed phase (X 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ _Vaccination Intentions _scores, including random intercepts by subject. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (stats). 
+
+To model the effects of news exposure we followed the same procedure as in previous studies, but here augmented the model with a node representing news exposure as a child of the vaccine intentions node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
+
+Figure X shows the correlation between predicted and observed belief changes for participants who were aware of the New York measles outbreak in May 2019.
+
+
+```{r, echo=FALSE, fig.height=4, fig.width=4, fig.align="center", fig.cap="Mean observed and predicted change scores for Experiment 2. Error bars represent 95\\% confidence intervals."}
+# fit evidence node -- do diagnosis w/ bootstrapping? or just assume vaccIntent? I think just assume
+# generate model predictions + create plot
+
+obs_pred <- make_pred_df(s4_mdf, base_model, "vaccIntent")
+
+cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
+
+(obs_pred_plot <- obs_pred %>% # a bit of a hack
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_point(size=2.5) +
+  geom_errorbar(alpha=.5, width=0) +
+  annotate(geom="text", x=.04, y=-.04, label= paste("r =", cor_val)) +
+  coord_cartesian(xlim=c(-.07,.06), ylim=c(-.07,.06)) +
+  theme_bw(base_size=14) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(aspect.ratio = 1)) +
+  labs(title="Belief changes",subtitle="Study 4 - vaccIntent")
+
+```
+
+## Participant demographic summary
+
+[table will go here]
+
+```{r, include=FALSE}
 # compute overall demographics for all studies for paper
+s1_demo <- s1_all %>% 
+  filter(exclude==0) %>% 
+  select(workerId, age, sex, race, religion, educ, income, parent)
+
+# s2_demo needs recoding / renaming
+# s3_demo good 
+# s4_demo same as s1
+
 
 # and create big table with table1 and t1kable()
 ```
+
+\newpage
+
+# Appendix A
+
+Scale items + reliability coefficients
+
+\newpage
+# Appendix B
+
+Disease severity intervention
+
+\newpage
+# Appendix C
+
+Vaccine toxicity intervention
 

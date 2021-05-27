@@ -37,3 +37,4 @@ s4_long <- s4_wide %>%
   mutate(resp = as.numeric(resp))
 
 rm(df4_raw)
+
