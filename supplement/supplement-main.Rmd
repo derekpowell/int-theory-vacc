@@ -2,6 +2,7 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
+date: "May 27, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -23,7 +24,7 @@ knitr::opts_chunk$set(fig.pos = 'H')
 
 Figure 1 shows an example of a simple Bayesian Network. The network itself is a _directed acyclic graph_ (DAG), a type of graphical model. Graphical models represent variables as nodes connected by edges. In a DAG, these edges are directed, flowing from parent to child, and are constrained so that they cannot form cycles or loops. In a Bayesian network, these directed edges encode conditional dependencies among variables, so that the conditional probability distribution for a given variable is defined only in terms of its direct parents. Together, a child node and its parents are called a _family_. 
 
-```{r dag_example, echo=F, fig.align='center', out.width = '40%', fig.cap="Example DAG illustrating some variables related to wildfiles."}
+```{r dag_example, echo=F, fig.align='center', out.width = '40%', fig.cap="Example DAG illustrating some variables related to wildfires."}
 
 library(DiagrammeR)
 library(DiagrammeRsvg)
@@ -196,12 +197,88 @@ theory_bl <- tiers2blacklist(
 
 # this is the favorite son (most likely)
 main_model <- hc(train, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1e3, restart=5)
-h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
+
 
 ```
 
-```{r main_model_plot, echo=F, fig.align='center', fig.width=7, fig.height=7, fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions."}
-plot(h)
+
+```{r, include=F}
+source("../code/custom_plotting.R")
+
+
+recode_nodes <- function(x){
+  recode(x,
+         "diseaseRare" = "Disease Rarity",
+         "diseaseSevere" = "Disease Severity",
+         "hb" = "Holistic Balance",
+         "infantImmLimCap" = "IIS: Limited\nCapacity",
+         "infantImmWeak" = "IIS: Weakness",
+         "medSkept" = "Medical\nSkepticism",
+         "nat" = "Naturalism",
+         "overpar" = "Parental\nProtectiveness",
+         "parentExpert" = "Parental\nExpertise",
+         "vaccDanger" = "Vaccine\nDanger",
+         "vaccEff" = "Vaccine\nEffectiveness",
+         "vaccIntent" = "Vaccination\nIntentions",
+         "vaccStrain" = "IIS: Vaccines\nStrain",
+         "vaccTox" = "Vaccines\nToxicity"
+         )
+  }
+h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
+
+c <- find_dag_coefs(main_model, train)
+```
+
+```{r main_model_plot, echo=F, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
+
+
+map_to_viridis <- function(vec, bins=64, option="D"){
+
+  binned <- cut(vec, bins)
+  levels(binned) <- viridis::viridis(bins, option=option)
+  
+  return(as.character(binned))
+}
+
+
+map_to_brewer <- function(vec, bins=11, option="RdYlBu"){
+  binned <- cut(vec, bins)
+  levels(binned) <- RColorBrewer::brewer.pal(bins, name=option)
+  
+  return(as.character(binned))
+}
+
+z <- custom_plot.HydeNetwork(h)
+
+coefs <- tidy_coefs(c)
+
+coefs %>%
+  filter(parameter!="phi",parameter!="w_leak") %>%
+  rename(from = parameter) %>%
+  mutate(from = gsub("w_","",from)) %>%
+  select(to, from, value) %>%
+  merge(z$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
+  mutate(from = id) %>%
+  select(-id) %>%
+  merge(z$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
+  mutate(to = id) %>%
+  arrange(to,from) -> edge_df_mod
+  # select(value, id.x, id.y) %>%
+  # mutate(from = id.x, to = id.y)
+
+# z$nodes_df
+z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
+z$nodes_df$fontname <- "Helvetica"
+z$nodes_df$shape <- "ellipse"
+# z$nodes_df$fillcolor <- ifelse(z$nodes_df$id==13, "grey","white")
+z$nodes_df$fixedsize <- FALSE
+z$edges_df$penwidth <- abs(edge_df_mod$value)*2
+z$edges_df$penwidth <- 1.5
+# z$edges_df$label <- round(edge_df_mod$value,2)
+# z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
+z$edges_df$color <- map_to_brewer(edge_df_mod$value, option="RdBu")
+render_graph(z)
+
 ```
 
 
@@ -212,28 +289,31 @@ set.seed(49126)
 
 # train_noise <- train %>%
 #   mutate_all(~.x+rnorm(n(),0,.002))
+if (!file.exists("../local/boot_res.rds")){
+  cl = parallel::makeCluster(detectCores(logical=TRUE))
 
-cl = parallel::makeCluster(detectCores(logical=TRUE))
-
-clusterCall(cl,
-            function(){
-              source("../code/custom-structure-learning/cog-model-main.R", chdir=TRUE)
-              library(purrr)
-              }
-  )
-
-## very slow!
-boot_res <- boot.strength(
-  train,  #train
-  R = 50,
-  algorithm = "hc",
-  algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e3),
-  cluster = cl
-  )
-
-stopCluster(cl)
-
-saveRDS(boot_res,"../local/boot_res.rds")
+  clusterCall(cl,
+              function(){
+                source("../code/custom-structure-learning/cog-model-main.R", chdir=TRUE)
+                library(purrr)
+                }
+    )
+  
+  ## very slow!
+  boot_res <- boot.strength(
+    train,  #train
+    R = 200,
+    algorithm = "hc",
+    algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e3),
+    cluster = cl
+    )
+  
+  stopCluster(cl)
+  
+  saveRDS(boot_res,"../local/boot_res.rds")
+} else {
+  boot_res <- readRDS("../local/boot_res.rds")
+}
 
 # this runs for hours and hits an error on optim(), 
 # possibly a bootstrap replicate was not full rank / produced huge collinearity?
@@ -242,7 +322,42 @@ saveRDS(boot_res,"../local/boot_res.rds")
 ```
 
 
-<fig: model arc visualizations >
+```{r boot_strength_plot, echo=F, message=F, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across X bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown."}
+
+hyde_str <- df_to_hyde_string(boot_res %>% filter(strength>.2, direction>0) %>% select(from,to))
+h2 <- HydeNetwork(as.formula(hyde_str))
+# plot(h2)
+
+z2 <- custom_plot.HydeNetwork(h2)
+boot_res %>%
+  filter(direction>0, strength>.2) %>% 
+  # filter(parameter!="phi",parameter!="w_leak") %>%
+  # rename(from = parameter) %>%
+  # mutate(from = gsub("w_","",from)) %>%
+  select(to, from, strength) %>%
+  merge(z2$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
+  mutate(from = id) %>%
+  select(-id) %>%
+  merge(z2$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
+  mutate(to = id) %>%
+  arrange(to,from) -> edge_df_mod
+
+
+# z$nodes_df
+z2$nodes_df <- z2$nodes_df %>% mutate(label = recode_nodes(label))
+z2$nodes_df$fontname <- "Helvetica"
+z2$nodes_df$shape <- "ellipse"
+# z2$nodes_df$fillcolor <- ifelse(z2$nodes_df$id==13, "grey","white")
+z2$nodes_df$fixedsize <- FALSE
+z2$edges_df$penwidth <- abs(edge_df_mod$strength)*2
+z2$edges_df$penwidth <- 2
+# z$edges_df$label <- round(edge_df_mod$value,2)
+# z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
+z2$edges_df$color <- map_to_brewer(edge_df_mod$strength, bins=9, option="RdPu")
+# z2$edges_df$color <- map_to_viridis(edge_df_mod$strength, option="magma")
+
+render_graph(z2)
+```
 
 ## Validating the model
 
@@ -290,22 +405,6 @@ test_analyze <- test %>%
   gather(varName, value) %>% 
   mutate(predValue = predictions$predValue)
 
-recode_nodes <- function(x){
-  recode(x,
-         "diseaseRare" = "Disease Rarity",
-         "diseaseSevere" = "Disease Severity",
-         "hb" = "Holistic Balance",
-         "infantImmLimCap" = "IIS: Limited\nCapacity",
-         "infantImmWeak" = "IIS: Weakness",
-         "medSkept" = "Medical\nSkepticism",
-         "nat" = "Naturalism",
-         "overpar" = "Parental\nProtectiveness",
-         "parentExpert" = "Parental\nExpertise",
-         "vaccDanger" = "Vaccine\nDanger",
-         "vaccEff" = "Vaccine\nEffectiveness",
-         "vaccIntent" = "Vaccination\nIntentions",
-         "vaccStrain" = "IIS: Vaccines\nStrain",
-         "vaccTox" = "Vaccines\nToxicity")}
 
 predObsCor <- cor(test_analyze$value,test_analyze$predValue)
 
@@ -978,7 +1077,7 @@ cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
 
 The table below presents demographic information for participants across all four studies.
 
-```{r, include=FALSE}
+```{r, echo=FALSE, message=F, warning=F}
 library(table1)
 
 # compute overall demographics for all studies for paper
@@ -1073,8 +1172,8 @@ label(df_demo$parent) <- "Parent?"
 # and create big table with table1 and t1kable()
 demographics_tbl <- table1::table1(~ sex + age + race + religion + educ + income + parent  | study, data=df_demo)
 
-table1::t1kable(demographics_tbl, full_width=F) %>% 
-  kable_classic()
+table1::t1kable(demographics_tbl) %>% 
+  kable_classic(latex_options="scale_down")
 
 ```
 
