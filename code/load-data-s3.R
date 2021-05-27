@@ -54,9 +54,9 @@ df_pre <- pre %>%
     ),
     race = case_when(
       race == 1 ~ "White",
-      race == 2 ~ "Hispanic/latino",
-      race == 3 ~ "Black",
-      race == 4 ~ "hawaiian or PI",
+      race == 2 ~ "Hispanic/Latino",
+      race == 3 ~ "Black or African American",
+      race == 4 ~ "Hawaiian or PI",
       race == 5 ~ "Asian",
       race == 6 ~ "Native American",
       race == 7 ~ "Other or prefer not to say"
@@ -71,28 +71,29 @@ df_pre <- pre %>%
       religion == 7 ~ "Other or prefer not to say"
     ),
     educ = case_when(
-      educ == 1 ~ "No diplomae",
-      educ == 2 ~ "HS",
-      educ == 3 ~ "some undergrad",
-      educ == 4 ~ "undergrad",
-      educ == 5 ~ "some grad",
-      educ == 6 ~ "graduate",
-      educ == 7 ~ "doctorate",
-      educ == 8 ~ "prefer not to say"
+      educ == 1 ~ "No Diploma",
+      educ == 2 ~ "High School",
+      educ == 3 ~ "Some Undergraduate",
+      educ == 4 ~ "Undergraduate Degree",
+      educ == 5 ~ "Some Graduate",
+      educ == 6 ~ "Graduate Degree",
+      educ == 7 ~ "Doctorate",
+      educ == 8 ~ "Prefer not to say"
     ),
     income = case_when(
-      income == 1 ~ "0-20k",
-      income == 2 ~ "20-30k",
-      income == 3 ~ "30-50k",
-      income == 4 ~ "50-70k",
-      income == 5 ~ "70-100k",
-      income == 6 ~ "100k+",
-      income == 0 ~ "prefer not to say",
+      income == 1 ~ "Less than $20,000",
+      income == 2 ~ "$20,000 - $30,000",
+      income == 3 ~ "$30,001 - $50,000",
+      income == 4 ~ "$50,001 - $70,000",
+      income == 5 ~ "$70,001 - $100,000",
+      income == 6 ~ "More than $100,000",
+      income == 0 ~ "Prefer not to say",
     ),
     expecting = case_when(
       expecting == 23 ~ "yes", #F@!&ing qualtrics
       expecting == 24 ~ "no"
-    )
+    ),
+    parent = ifelse(parent==1, "Yes","No")
   )
 
 df_post <- post %>%

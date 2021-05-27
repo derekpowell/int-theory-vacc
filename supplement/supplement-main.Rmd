@@ -1,7 +1,7 @@
 ---
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
-authors: "Derek Powell, Kara Weisman, and Ellen M. Markman"
+author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -23,7 +23,7 @@ knitr::opts_chunk$set(fig.pos = 'H')
 
 Figure 1 shows an example of a simple Bayesian Network. The network itself is a _directed acyclic graph_ (DAG), a type of graphical model. Graphical models represent variables as nodes connected by edges. In a DAG, these edges are directed, flowing from parent to child, and are constrained so that they cannot form cycles or loops. In a Bayesian network, these directed edges encode conditional dependencies among variables, so that the conditional probability distribution for a given variable is defined only in terms of its direct parents. Together, a child node and its parents are called a _family_. 
 
-```{r, echo=F, message=F, warning=F, fig.width=4, fig.height=3, fig.align='center', fig.cap="Example DAG representing some variables related to wildfires"}
+```{r dag_example, echo=F, fig.align='center', out.width = '40%', fig.cap="Example DAG illustrating some variables related to wildfiles."}
 
 library(DiagrammeR)
 library(DiagrammeRsvg)
@@ -51,17 +51,12 @@ grViz(
 	  # Graph
 	  graph [overlap = true, fontsize = 8]
 	}"
-) %>%
-  export_svg() %>%
-  xml2::read_xml() %>%
-  xml2::write_xml("../local/graph.svg")
-
-knitr::include_graphics("../local/graph.svg")
+)
 ```
 
 The probability of a node Y can be defined from its parents X in many different ways. For binary nodes, the most flexible specification is a conditional probability table (CPT) with $2^n$ entries specifying the probability of Y given the entire joint probability distribution over X, where n is the number of parents X. Given the exponential complexity of the CPT, simpler functions are often used to specify the probability of the child node, such as the noisy-or and noisy-and-not functions. A noisy-or function assumes each of the parents are independent generative forces, each with a probability of generating the effect. A noisy-and-not function assumes each of the parents are independent preventive forces, specifying the probability of the child node as the probability that it is generated _and not_ prevented by any one of its possible preventers. We construct our cognitive model parameterization using a combination of these two functions, using a distribution sometimes referred to as a “DeMorgan gate” (Maaskant & Druzdel, 2008). In our model, the probability of the child node Y can be expressed as:
 
-$$y = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$ 
+$$P(y) = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$ 
 
 Here, each parent is either a generative (i) or preventive (j) influence, that generates or prevents the child node with probability weight $w_i$ or $w_j$. The weight $w_0$ represents the “leak” probability, or the baseline probability that the child occurs without any other generating influences. The first term in brackets represents the probability that y is generated, or alternately, that not all of the possible generating forces fail to generate it. The second term represents the probability that it is not then prevented, or that all the preventing forces fail.
 
@@ -131,7 +126,7 @@ source("../code/load-data-s4.R")
 ```
 
 
-```{r cross_validation, echo=FALSE, fig.height=4, fig.width=6, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
+```{r cross_validation, echo=FALSE, fig.align='center', fig.height=3, fig.width=4, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
 
 ## uncomment to re-run cross validation
 # source("../code/custom-structure-learning/fit-cog-models-bnlearn.R")
@@ -140,9 +135,11 @@ cv_res <- readRDS("../local/cv-res.rds")
 
 cv_res %>% 
   ggplot(aes(x=reorder(algo, loss), y=loss)) +
-  geom_boxplot() +
+  geom_boxplot(fill="skyblue") +
   coord_flip() +
-  labs(y = "Log-likelihood loss", x = "Algorithm") 
+  labs(y = "Log-likelihood loss", x = "Algorithm") +
+  theme_bw() +
+  theme(panel.grid = element_blank())
 
 ```
 
@@ -200,6 +197,10 @@ theory_bl <- tiers2blacklist(
 # this is the favorite son (most likely)
 main_model <- hc(train, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1e3, restart=5)
 h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
+
+```
+
+```{r main_model_plot, echo=F, fig.align='center', fig.width=7, fig.height=7, fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions."}
 plot(h)
 ```
 
@@ -207,35 +208,35 @@ plot(h)
 ```{r, include=FALSE}
 # # can bootstrap strength of arcs for winning model approach, focus interpretations on strength of arcs / parameterizations
 
-# set.seed(49126)
-# 
+set.seed(49126)
+
 # train_noise <- train %>%
 #   mutate_all(~.x+rnorm(n(),0,.002))
-# 
-# cl = parallel::makeCluster(detectCores(logical=TRUE))
-# 
-# clusterCall(cl,
-#             function(){
-#               source("../code/custom-structure-learning/cog-model-main.R", chdir=TRUE)
-#               library(purrr)
-#               }
-#   )
-# 
-# ## very slow!
-# boot_res <- boot.strength(
-#   train_noise,  #train
-#   R = 200,
-#   algorithm = "hc",
-#   algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e3),
-#   cluster = cl
-#   )
-# 
-# stopCluster(cl)
-# 
-# saveRDS(boot_res,"../local/boot_res.rds")
+
+cl = parallel::makeCluster(detectCores(logical=TRUE))
+
+clusterCall(cl,
+            function(){
+              source("../code/custom-structure-learning/cog-model-main.R", chdir=TRUE)
+              library(purrr)
+              }
+  )
+
+## very slow!
+boot_res <- boot.strength(
+  train,  #train
+  R = 50,
+  algorithm = "hc",
+  algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e3),
+  cluster = cl
+  )
+
+stopCluster(cl)
+
+saveRDS(boot_res,"../local/boot_res.rds")
 
 # this runs for hours and hits an error on optim(), 
-# possibly a bootstrap replicate was not full rank / produced huge colinearity?
+# possibly a bootstrap replicate was not full rank / produced huge collinearity?
 # possibly getting a perfect prediction and coef --> infinity for some variable?
 # maybe adding a tiny bit of noise would help?
 ```
@@ -281,7 +282,7 @@ print(Sys.time() - start_time)
 ```
 
 
-```{r validation_plot, echo=FALSE, fig.height=6, fig.width=10, fig.align="center", fig.cap="Model predictions versus observed values for test data from Study 1."}
+```{r validation_plot, echo=FALSE, fig.height=6, fig.width=10, fig.align="center", fig.cap="Model predictions versus observed values for test data from Study 1. Dashed lines represent perfect fits."}
 
 predictions <- as_tibble(test_preds) %>% mutate(subj = 1:n()) %>% gather(varName, predValue, -subj) 
 
@@ -422,7 +423,6 @@ r_upper <- function(r,n){
 
 model_fits <- tibble(
   varName = as.character(colnames(d_bn)),
-  # model_fit = c(.50, .66, .48, .63, .64, .56, .71, .35, .63, .90, .83, .86, .81, .87),
   `test-retest` = test_retest$fit,
   `maximal` = oos_fits$fit
   ) %>%
@@ -552,7 +552,7 @@ names(alpha_values) <- var_names
 
 Figure X presents correlations among the 14 belief scales measured in Study 1. As the figure shows, there are strong correlations among many of the beliefs, suggesting they are related by an underlying intuitive theory.
 
-```{r, echo=FALSE, message=F, fig.height=8, fig.width=8, fig.align='center', fig.cap = "Correlations among 14 the belief scales measured in Study 1. Correlation matrix is arranged by hierarhical clustering algorithm to highlight connections among beliefs."}
+```{r, echo=FALSE, message=F, fig.height=7, fig.width=7, fig.align='center', fig.cap = "Correlations among 14 the belief scales measured in Study 1. Correlation matrix is arranged by hierarhical clustering algorithm to highlight connections among beliefs."}
 # plot correlation matrix
 library(corrplot)
 
@@ -593,10 +593,10 @@ ggplot(temp_cor_df,
            y = reorder(scale2, order2), 
            fill = cor)) +
   geom_tile(color = "black") +
-  geom_text(aes(label = format(round(cor, 2), digits = 2)), size = 3.5) +
+  geom_text(aes(label = format(round(cor, 2), digits = 2)), size = 3) +
   scale_fill_distiller(palette ="RdBu", limits = c(-1, 1),
                      guide = guide_colorbar(barheight = 15)) +
-  theme_minimal() +
+  theme_minimal(base_size=12) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         axis.title = element_blank(),
         aspect.ratio=1) +
@@ -976,20 +976,106 @@ cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
 
 ## Participant demographic summary
 
-[table will go here]
+The table below presents demographic information for participants across all four studies.
 
 ```{r, include=FALSE}
+library(table1)
+
 # compute overall demographics for all studies for paper
 s1_demo <- s1_all %>% 
   filter(exclude==0) %>% 
-  select(workerId, age, sex, race, religion, educ, income, parent)
+  mutate(age = as.numeric(age)) %>% 
+  select(workerId, age, sex, race, religion, educ, income, parent) %>% 
+  mutate(study = "1") %>% 
+  mutate(
+    # educ = gsub(" or Professional Degree", "Degree", educ),
+    educ = gsub(" or Professional","", educ),
+    educ = gsub(" Education","", educ),
+    educ = gsub(" or Equivalent", "", educ),
+    educ = ifelse(grepl("Click to", educ),NA,educ),
+    income = gsub("30,0000","30,000", income),
+    religion = gsub(",","", religion),
+    parent = ifelse(parent=="", NA, parent)
+  )
 
-# s2_demo needs recoding / renaming
-# s3_demo good 
-# s4_demo same as s1
+df_demo <- s1_demo %>% 
+  bind_rows(
+    s2_demo %>% 
+      select(workerId, age, sex, race, religion, educ, income, parent) %>% 
+      mutate(
+        study = "2",
+        )
+  ) %>% 
+  bind_rows(
+    s3_demo %>% 
+      mutate(
+        study = paste0("3",study),
+        sex = ifelse(sex=="female","Female","Male")
+        ) %>% 
+      select(workerId, age, sex, race, religion, educ, income, parent, study)
+  ) %>% 
+  bind_rows(
+    s1_demo %>% 
+      filter(workerId %in% s4_wide$workerId) %>% 
+      mutate(study = "4")
+  ) %>% 
+  mutate(
+    race = ordered(race,
+                   levels = c(
+                          "White",
+                          "Black or African American",
+                          "Hispanic/Latino",
+                          "Hawaiian or PI",
+                          "Asian",
+                          "Native American",
+                          "Other or prefer not to say"
+                          )
+                   ),
+    educ = ordered(educ,
+                   levels = c(
+                          "No Diploma",
+                          "High School",
+                          "Some Undergraduate",
+                          "Undergraduate Degree",
+                          "Some Graduate",
+                          "Graduate Degree",
+                          "Doctorate",
+                          "Prefer not to say"
+                          )
+                   ),
+    income = ordered(income,
+                     levels = c(
+                          "Less than $20,000",
+                          "$20,000 - $30,000",
+                          "$30,001 - $50,000",
+                          "$50,001 - $70,000",
+                          "$70,001 - $100,000",
+                          "More than $100,000",
+                          "Prefer not to say"
+                          )
+                     )
 
+  ) %>% 
+  mutate(
+    age = ifelse(age < 18,NA,age),
+    income = str_replace_all(income, "\\$",""),
+    study = paste("Study", study)
+    ) 
+
+label(df_demo$sex) <- "Gender"
+label(df_demo$age) <- "Age"
+label(df_demo$race) <- "Race"
+label(df_demo$religion) <- "Religion"
+label(df_demo$educ) <- "Education"
+label(df_demo$income) <- "Income ($)"
+label(df_demo$parent) <- "Parent?"
 
 # and create big table with table1 and t1kable()
+demographics_tbl <- table1::table1(~ sex + age + race + religion + educ + income + parent  | study, data=df_demo)
+
+table1::t1kable(demographics_tbl, full_width=F) %>% 
+  kable_classic()
+
 ```
 
 \newpage

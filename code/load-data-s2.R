@@ -213,7 +213,65 @@ d_demo <- d_keep %>%
          children_youngest_posttest, plan_parent_posttest,
          starts_with("flushot_"), starts_with("vax_"), starts_with("attention_"),
          starts_with("comments"), starts_with("duration"), starts_with("attn_")
-         )
+         ) %>% 
+  rename(
+    sex = gender,
+    race = ethnicity,
+    educ = education,
+    ) %>% 
+  mutate(
+    sex = case_when(
+      sex==1 ~ "Male",
+      sex== 2 ~ "Female",
+      TRUE ~ "Other or prefer not to say"
+    ),
+    race = case_when(
+      race == 1 ~ "White",
+      race == 2 ~ "Hispanic/Latino",
+      race == 3 ~ "Black or African American",
+      race == 4 ~ "Hawaiian or PI",
+      race == 5 ~ "Asian",
+      race == 6 ~ "Native American",
+      race == 7 ~ "Other or prefer not to say"
+    ),
+    # religion = case_when(
+    #   religion == 1 ~ "Christian",
+    #   religion == 2 ~ "Muslim",
+    #   religion == 3 ~ "Jewish",
+    #   religion == 4 ~ "Hindu",
+    #   religion == 5 ~ "Buddhist",
+    #   religion == 6 ~ "Non-religious",
+    #   religion == 7 ~ "Other or prefer not to say"
+    # ),
+    religion = NA,
+    educ = case_when(
+      educ == 1 ~ "No Diploma",
+      educ == 2 ~ "High School",
+      educ == 3 ~ "Some Undergraduate",
+      educ == 4 ~ "Undergraduate Degree",
+      educ == 5 ~ "Some Graduate",
+      educ == 6 ~ "Graduate Degree",
+      educ == 7 ~ "Doctorate",
+      educ == 8 ~ "Prefer not to say"
+    ),
+    income = case_when(
+      income == 1 ~ "Less than $20,000",
+      income == 2 ~ "$20,000 - $30,000",
+      income == 3 ~ "$30,001 - $50,000",
+      income == 4 ~ "$50,001 - $70,000",
+      income == 5 ~ "$70,001 - $100,000",
+      income == 6 ~ "More than $100,000",
+      income == 0 ~ "Prefer not to say",
+    ),
+    parent = case_when(
+    is_parent_posttest == 0 ~ "No",
+    is_parent_posttest == 1 ~ "Yes"
+    )
+    # expecting = case_when(
+    #   expecting == 23 ~ "yes", #F@!&ing qualtrics
+    #   expecting == 24 ~ "no"
+    # )
+  )
 
 
 d_pre <- d_keep %>% 
