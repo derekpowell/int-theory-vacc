@@ -2,7 +2,7 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "May 27, 2021 (DRAFT)"
+date: "Jun 1, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -108,7 +108,7 @@ source("../code/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 source("../code/graph-model-tools.R")
 source("../code/custom-structure-learning/cog-model-jags-tools.R")
 source("../code/custom-structure-learning/cog-model-estimate-evid-ratio.R")
-
+source("../code/custom_plotting.R")
 d_bn_scaled <- d_bn %>%
  mutate_all(function(x){rescale_beta(x,-3,3)})
 
@@ -143,8 +143,6 @@ cv_res %>%
   theme(panel.grid = element_blank())
 
 ```
-
-
 
 ```{r fit_all_models, include=FALSE}
 
@@ -203,8 +201,15 @@ main_model <- hc(train, blacklist=theory_bl, score="custom", fun=cog_model_score
 
 
 ```{r, include=F}
-source("../code/custom_plotting.R")
 
+h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
+
+c <- find_dag_coefs(main_model, train)
+```
+
+```{r main_model_plot, echo=F, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
+
+source("../code/custom_plotting.R")
 
 recode_nodes <- function(x){
   recode(x,
@@ -224,13 +229,6 @@ recode_nodes <- function(x){
          "vaccTox" = "Vaccines\nToxicity"
          )
   }
-h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
-
-c <- find_dag_coefs(main_model, train)
-```
-
-```{r main_model_plot, echo=F, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
-
 
 map_to_viridis <- function(vec, bins=64, option="D"){
 
@@ -277,15 +275,33 @@ z$edges_df$penwidth <- 1.5
 # z$edges_df$label <- round(edge_df_mod$value,2)
 # z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
 z$edges_df$color <- map_to_brewer(edge_df_mod$value, option="RdBu")
+
+export_graph(z, "../local/main-graph.pdf")
 render_graph(z)
 
+```
+
+
+```{r}
+## NOTE: I just can't figure out how to nicely display the graph and legend in code
+## it's must easier just to export them both and then combine with a graphics app
+
+main_graph_legend <- (tibble(
+  weight = seq(min(edge_df_mod$value), max(edge_df_mod$value), length=11),
+) %>% 
+  ggplot(aes(y=1, x = weight, fill = weight)) +
+  geom_tile() +
+  scale_fill_distiller(palette="RdBu", direction=1)) %>% 
+  cowplot::get_legend()
+
+cowplot::ggdraw(main_graph_legend)
 ```
 
 
 ```{r, include=FALSE}
 # # can bootstrap strength of arcs for winning model approach, focus interpretations on strength of arcs / parameterizations
 
-set.seed(49126)
+set.seed(77267)
 
 # train_noise <- train %>%
 #   mutate_all(~.x+rnorm(n(),0,.002))
@@ -304,7 +320,7 @@ if (!file.exists("../local/boot_res.rds")){
     train,  #train
     R = 200,
     algorithm = "hc",
-    algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e3),
+    algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e4),
     cluster = cl
     )
   
@@ -315,10 +331,6 @@ if (!file.exists("../local/boot_res.rds")){
   boot_res <- readRDS("../local/boot_res.rds")
 }
 
-# this runs for hours and hits an error on optim(), 
-# possibly a bootstrap replicate was not full rank / produced huge collinearity?
-# possibly getting a perfect prediction and coef --> infinity for some variable?
-# maybe adding a tiny bit of noise would help?
 ```
 
 
@@ -358,6 +370,20 @@ z2$edges_df$color <- map_to_brewer(edge_df_mod$strength, bins=9, option="RdPu")
 
 render_graph(z2)
 ```
+
+```{r}
+boot_graph_legend <- (tibble(
+  Probability = seq(min(edge_df_mod$strength), max(edge_df_mod$strength), length=11),
+) %>% 
+  ggplot(aes(y=1, x = Probability, fill = Probability)) +
+  geom_tile() +
+  scale_fill_distiller(palette="RdPu", direction=1)
+) %>% 
+  cowplot::get_legend()
+
+cowplot::ggdraw(boot_graph_legend)
+```
+
 
 ## Validating the model
 
@@ -565,7 +591,7 @@ kbl(model_fits_print, booktabs = T,
 
 To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in figure #) with an additional node representing the evidence. For instance, to model the effects of the “disease risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node (following Pearl, 1988). To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
 
-$$ O(h|d) = O(h) + ln(\frac{P(d|h=1)}{P(d|h=0)}) $$
+$$ ln\big(O(h|d)\big) = ln \big(O(h)\big) + ln\Bigg(\frac{P(d|h=1)}{P(d|h=0)}\Bigg) $$
 
 Where the final term is the evidence ratio, defined as:
 
@@ -623,32 +649,6 @@ A total of `r s1_meta$n_total` people recruited from Amazon Mechanical Turk (mTu
 
 ### Results
 
-```{r, echo=FALSE}
-
-compute_alpha <- function(data, varName){
-  data %>%
-  filter(question_block == varName) %>%
-  select(workerId, question, response_num_rev) %>%
-  spread(question, response_num_rev) %>%
-  remove_rownames() %>%
-  column_to_rownames("workerId") %>%
-  psych::alpha()
-}
-
-# scale reliability analyses
-
-var_names <- as.character(unique(s1_long$question_block))
-alpha_values <- map(var_names, ~compute_alpha(s1_long,.x)$total[[2]])
-names(alpha_values) <- var_names
-
-# do something to pretty this up
-
-# as_tibble(alpha_values) %>% 
-#   gather(scale, alpha) %>% 
-#   knitr::kable()
-
-```
-
 Figure X presents correlations among the 14 belief scales measured in Study 1. As the figure shows, there are strong correlations among many of the beliefs, suggesting they are related by an underlying intuitive theory.
 
 ```{r, echo=FALSE, message=F, fig.height=7, fig.width=7, fig.align='center', fig.cap = "Correlations among 14 the belief scales measured in Study 1. Correlation matrix is arranged by hierarhical clustering algorithm to highlight connections among beliefs."}
@@ -693,8 +693,8 @@ ggplot(temp_cor_df,
            fill = cor)) +
   geom_tile(color = "black") +
   geom_text(aes(label = format(round(cor, 2), digits = 2)), size = 3) +
-  scale_fill_distiller(palette ="RdBu", limits = c(-1, 1),
-                     guide = guide_colorbar(barheight = 15)) +
+  scale_fill_distiller(palette ="RdBu", limits = c(-1, 1), direction = 1,
+                     guide = guide_colorbar(barheight = 15)) + # direction = -1
   theme_minimal(base_size=12) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
         axis.title = element_blank(),
@@ -747,7 +747,7 @@ s2_scored %>%
   labs(title="Study 2", y = "Mean difference", x = "Belief scale", color="Intervention")
 ```
 
-```{r s2_model, include=F}
+```{r s2_model, echo=FALSE, message=F, warning=F}
 # -- TODO: recode phase/condition 5/25/21, 11:07 AM
 
 # compare conditions on vaccIntent scale w/ regression model
@@ -771,10 +771,29 @@ fit_s2_vaccIntent <- brm(
   file = "../local/fit_s2_vaccIntent.rds"
 )
 
-summary(fit_s2_vaccIntent)
+make_table <- function(fit, caption=NULL){
+  fit_sum <- summary(fit)
+
+  tbl_sum <- as_tibble(fit_sum$fixed, rownames="Term") %>% 
+    bind_rows(
+      as_tibble(fit_sum$random$item, rownames="Term") %>% 
+        mutate(Term = paste0("item_",Term))
+    ) %>% 
+    bind_rows(
+      as_tibble(fit_sum$random$workerId, rownames="Term") %>% 
+        mutate(Term = paste0("subj_",Term))
+    ) %>% 
+    select(-Rhat, -Est.Error, -Bulk_ESS, -Tail_ESS)
+  
+  kableExtra::kbl(tbl_sum, digits = 2, booktabs = T, caption=caption) %>% 
+    kableExtra::kable_classic(full_width=F)
+}
+
+make_table(fit_s2_vaccIntent, "Bayesian regression model coefficients for model of Vaccine Intentions in Experiment 2.")
+
 ```
 
-We conducted a mixed-effects Bayesian linear regression to assess the effects of the disease risk intervention on the _Vaccination Intentions_ score, using the “brms” package for R (CITE). We regressed phase (Day 1 vs. 2, dummy-coded with Day 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and an interaction between phase and condition onto participants’ _Vaccination Intentions_ scores, including random intercepts by subject. In this model, the unique effect of the intervention on vaccination intention scores is assessed by the interaction term (indicating the unique effect of phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (interaction effect: _b_ = -0.15, 95% CI: [-0.27, -0.04]). We consider this to be a full replication of Horne, Powell, et al.’s (XX) results. See Figure XX, upper left, for a visualization of these findings.
+We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the disease risk intervention on responses to the _Vaccination Intentions_ scale items, using the “brms” package for R (CITE). We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention responses is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (see Table X). We consider this to be a full replication of Horne, Powell, et al.’s (XX) results.
 
 
 To model the changes in the belief network, we estimate the “evidence ratio” using the method described in the modeling section. The maximum likelihood estimate of the evidence ratio was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
@@ -814,6 +833,72 @@ cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
 
 ## Studies 3a and 3b
 
+```{r echo=F, message=F}
+
+# this is some code to genrate predictions of vacc intent change based on
+# hypothetical interventions
+
+add_evid_node_custom <- function(bnlearn_model, parents_string, evid_cpt) {
+
+  model_list <- lapply(bnlearn_model, function(x){x$prob})
+  model_list$evid <- evid_cpt
+
+  model_string <- modelstring(bnlearn_model)
+  model_string <- paste0(model_string,"[evid|", parents_string, "]")
+  model_network <- model2network(model_string)
+  predModel <- custom.fit(model_network, dist = model_list)
+
+  return(predModel)
+}
+
+
+node_names <- nodes(main_model)
+vaccIntent_pred_results <- data.frame(scale=nodes(main_model), value = NA)
+  
+for (i in 1:length(node_names)) {
+  if (cor(d_bn[,"vaccIntent"], d_bn[,node_names[i]]) >= 0) {
+    evid_ratio <- 2
+  } else {
+    evid_ratio <- .5
+  }
+  evid_cpt <- hyde_to_bn_cpt(make_evid_cpt_custom(node_names[i], evid_ratio))
+  vaccIntent_predNet <- add_evid_node_custom(base_model, node_names[i], evid_cpt)
+  
+  preds <- cogModel_predictions(vaccIntent_predNet) %>%
+    filter(scale=="vaccIntent")
+  
+  vaccIntent_pred_results[i,"value"] <- preds[1,"Mean"]
+  
+}
+
+
+## combine this with observed correlations from study 1
+
+corrmat <- cor(d_bn)
+
+interv_sim <- corrmat["vaccIntent",] %>%
+  tibble(scale = names(.), value = ., type="correlation") %>%
+  bind_rows(vaccIntent_pred_results %>% mutate(type="model_pred")) %>%
+  spread(type,value)
+
+interv_sim %>%
+  ggplot(aes(x=abs(correlation), y = model_pred)) +
+  geom_point()
+
+(pred_change_plot <- interv_sim %>% 
+  filter(scale!="vaccIntent") %>%
+    mutate(scale = recode_nodes2(scale)) %>% 
+  ggplot(aes(x=reorder(scale, model_pred), y = model_pred)) + 
+  geom_bar(stat="identity") + 
+  coord_flip() +
+  labs(x="Targeted belief", y = "Predicted change in intentions") +
+  theme_bw(base_size=22) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme(aspect.ratio = 1.5))
+  
+```
+
+
 ### Participants.
 
 We recruited `r s3_meta$n_recruited` people to participate in a two-day study via mTurk in April (Experiment 3A) and June (Experiment 3B) of 2018. One day after their initial participation, participants who completed part 1 and passed attention checks were invited via email to participate in Day 2 of the study, with `r s3_meta$n_recruited_post` participants returning (`r s3_meta$n_eligible` invited, retaining `r round(s3_meta$n_recruited_post/s3_meta$n_eligible*100,1)`% of the Day 1 sample). Participants were paid \$1.35 for their participation in each phase of the study and were allowed to participate in part 2 up to two days after their initial participation in part 1. `r s3_meta$n_failed_post` participants (`r round( (s3_meta$n_failed_post/s3_meta$n_recruited_post)*100,1)`%) failed at least one attention check on Day 2 and were excluded from further analysis.  This left a final sample of `r s3_meta$n_complete` participants.
@@ -826,7 +911,8 @@ Procedures for studies 3a and 3b closely followed those of Study 2, but these st
 
 ### Results. 
 
-Due to the similarity of their designs, we combined data from studies 3a and 3b for analysis. As in study 2, we conducted a mixed-effects Bayesian linear regression to assess the effects of the vaccine toxins intervention on participants’ _Vaccination Intentions_ scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to the control conditions (interaction effect: b = [statistics]). However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions (phase effect: b = [statistics]), suggesting that these attitudes were also being influenced by other factors during the course of the study. 
+Due to the similarity of their designs, we combined data from studies 3a and 3b for analysis. As in study 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the vaccine toxins intervention on participants’ Vaccination Intentions scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to the control conditions. However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions, suggesting that these attitudes were also being influenced by other factors during the course of the study.
+
 
 ```{r, echo=FALSE, message=F, warning=F, fig.align="center", fig.cap = "Mean difference scores from pretest to posttest for the 14 belief scales measured in Experiment 3. Error bars represent 95\\% confidence intervals."}
 # create plot of differences for all 14 scales
@@ -853,7 +939,7 @@ s3_scored %>%
 
 ```
 
-```{r, include=FALSE}
+```{r, echo=FALSE, message=F, warning=F}
 # compare conditions on vaccIntent w/ regression model
 # -- TODO: recode phase/condition 5/25/21, 11:07 AM
 s3_reg <- s3_long %>% 
@@ -876,7 +962,8 @@ fit_s3_vaccIntent <- brm(
   file = "../local/fit_s3_vaccIntent.rds"
 )
 
-summary(fit_s3_vaccIntent)
+
+make_table(fit_s3_vaccIntent, "Bayesian regression model coefficients for model of Vaccine Intentions in Experiment 3.")
 ```
 
 To model the effect of the vaccine toxicity intervention, we followed the same procedure as in Study 2, but this time augmented the model with a node representing the vaccine toxicity intervention as a child of the vaccine toxins belief node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
@@ -911,7 +998,6 @@ cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
 
 
 ## Study 4
-
 
 ### _Participants_. 
 
@@ -1026,7 +1112,8 @@ combined %>%
     panel.grid = element_blank()) +
   labs(title="Study 4", y = "Change scores", x = "Belief scale", color ="News\nexposure")
 ```
-```{r, include=FALSE}
+
+```{r, echo=FALSE, message=F, warning=F}
 # compare conditions on vaccIntent w/ regression model
 # not run yet 5/25/21, 11:52 AM
 
@@ -1040,11 +1127,12 @@ fit_s4_vaccIntent <- brm(
   seed = 40725,
   file = "../local/fit_s4_vaccIntent.rds"
 )
+
+make_table(fit_s4_vaccIntent, "Bayesian regression model coefficients for model of Vaccine Intentions in Study 4.")
 ```
 
 
-
-We again conducted a series of mixed-effects Bayesian linear regression models to assess the effect of recent news exposures on participants’ attitudes toward vaccines. Mirroring our prior analyses, we regressed phase (X 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ _Vaccination Intentions _scores, including random intercepts by subject. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (stats). 
+Mirroring our analyses of interventions, we regressed responses to the vaccine intentions scale items on predictors for phase (X 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (see Table X). 
 
 To model the effects of news exposure we followed the same procedure as in previous studies, but here augmented the model with a node representing news exposure as a child of the vaccine intentions node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
 
@@ -1170,7 +1258,8 @@ label(df_demo$income) <- "Income ($)"
 label(df_demo$parent) <- "Parent?"
 
 # and create big table with table1 and t1kable()
-demographics_tbl <- table1::table1(~ sex + age + race + religion + educ + income + parent  | study, data=df_demo)
+# trying wrapping with factor() to get it to print integer counts
+demographics_tbl <- table1::table1(~ factor(sex) + age + factor(race) + factor(religion) + factor(educ) + factor(income) + factor(parent)  | study, data=df_demo)
 
 table1::t1kable(demographics_tbl) %>% 
   kable_classic(latex_options="scale_down")
@@ -1180,6 +1269,34 @@ table1::t1kable(demographics_tbl) %>%
 \newpage
 
 # Appendix A
+
+
+```{r, echo=FALSE}
+
+compute_alpha <- function(data, varName){
+  data %>%
+  filter(question_block == varName) %>%
+  select(workerId, question, response_num_rev) %>%
+  spread(question, response_num_rev) %>%
+  remove_rownames() %>%
+  column_to_rownames("workerId") %>%
+  psych::alpha()
+}
+
+# scale reliability analyses
+
+var_names <- as.character(unique(s1_long$question_block))
+alpha_values <- map(var_names, ~compute_alpha(s1_long,.x)$total[[2]])
+names(alpha_values) <- var_names
+
+# do something to pretty this up
+
+# as_tibble(alpha_values) %>% 
+#   gather(scale, alpha) %>% 
+#   knitr::kable()
+
+```
+
 
 Scale items + reliability coefficients
 
