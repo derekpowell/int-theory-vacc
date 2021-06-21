@@ -2,7 +2,7 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "Jun 1, 2021 (DRAFT)"
+date: "June 21, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -210,7 +210,7 @@ plot(main_cpdag)
 ruled_out <- inner_join(as.data.frame(undirected.arcs(main_cpdag)), as.data.frame(theory_bl), by=c("from","to")) 
 
 # leaves 5 arcs that are unconstrained by both data and theory
-anti_join(as.data.frame(undirected.arcs(main_cpdag)), (ruled_out %>% bind_rows(ruled_out %>% rename(to="from", from="to")) ), by = c("from", "to"))
+uncompelled_edges <- anti_join(as.data.frame(undirected.arcs(main_cpdag)), (ruled_out %>% bind_rows(ruled_out %>% rename(to="from", from="to")) ), by = c("from", "to"))
 
 # most substantive are vaccTox <--> vaccDanger, vaccEff
 ```
@@ -363,20 +363,25 @@ z <- custom_plot.HydeNetwork(h)
 
 coefs <- tidy_coefs(c)
 
-coefs %>%
+edge_df_mod <- coefs %>%
   filter(parameter!="phi",parameter!="w_leak") %>%
   rename(from = parameter) %>%
   mutate(from = gsub("w_","",from)) %>%
   select(to, from, value) %>%
   merge(z$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
-  mutate(from = id) %>%
-  select(-id) %>%
+  # mutate(from = id) %>%
+  rename(from_id = id) %>% 
   merge(z$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
-  mutate(to = id) %>%
-  arrange(to,from) -> edge_df_mod
-  # select(value, id.x, id.y) %>%
-  # mutate(from = id.x, to = id.y)
+  rename(to_id = id) %>%
+  arrange(to_id,from_id) 
 
+## flag edges that could be flipped
+edge_df_mod <- uncompelled_edges %>% 
+  mutate(label="*") %>% 
+  right_join(edge_df_mod, by = c("to", "from")) %>% 
+  mutate(label = ifelse(is.na(label), "", label)) %>% 
+  arrange(to_id,from_id) 
+  
 # z$nodes_df
 z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
 z$nodes_df$fontname <- "Helvetica"
@@ -385,13 +390,27 @@ z$nodes_df$shape <- "ellipse"
 z$nodes_df$fixedsize <- FALSE
 z$edges_df$penwidth <- abs(edge_df_mod$value)*2
 z$edges_df$penwidth <- 1.5
-z$edges_df$label <- round(edge_df_mod$value,2)
+# z$edges_df$label <- round(edge_df_mod$value,2)
+z$edges_df$label <- edge_df_mod$label
 # z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
-z$edges_df$color <- map_to_brewer(edge_df_mod$value, option="RdBu")
+z$edges_df$color <- map_to_brewer(edge_df_mod$value, bins=11, option="RdBu")
 
 export_graph(z, "../local/main-graph.pdf")
 render_graph(z)
 
+```
+```{r}
+coefs %>%
+  filter(parameter!="phi",parameter!="w_leak") %>%
+  rename(from = parameter) %>%
+  mutate(from = gsub("w_","",from)) %>%
+  select(to, from, value) %>%
+  merge(z$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
+  # mutate(from = id) %>%
+  rename(from_id = id) %>% 
+  merge(z$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
+  rename(to_id = id) %>%
+  arrange(to_id,from_id)
 ```
 
 
@@ -407,7 +426,9 @@ main_graph_legend <- (tibble(
   scale_fill_distiller(palette="RdBu", direction=1)) %>% 
   cowplot::get_legend()
 
+cowplot::save_plot("../local/graph-legend.svg", main_graph_legend)
 cowplot::ggdraw(main_graph_legend)
+
 ```
 
 
@@ -1071,7 +1092,7 @@ fit_s3_vaccIntent %>%
       TRUE ~ gsub("(intervention|post)","", Term)
     )
   ) %>% 
-make_table("Bayesian regression model coefficients for model of Vaccine Intentions in Experiment 3.")
+make_table("Bayesian regression model coefficients for model of Vaccine Intentions combining data from Experiments 3a and 3b.")
 ```
 
 We also analyzed each experiment individually.
