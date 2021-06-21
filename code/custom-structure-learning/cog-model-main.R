@@ -5,7 +5,7 @@
 
 source("cog-model-scoring.R")
 source("cog-model-jags-tools.R")
-source("cog-model-bidag-functions.R")
+# source("cog-model-bidag-functions.R")
 source("cog-model-discrete-funcs.R")
 
 rescale_beta <- function(x, lower, upper) {

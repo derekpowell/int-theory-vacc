@@ -195,8 +195,6 @@ theory_bl <- tiers2blacklist(
 
 # this is the favorite son (most likely)
 main_model <- hc(train, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1e3, restart=5)
-
-
 ```
 
 
@@ -399,7 +397,7 @@ render_graph(z)
 
 ```{r}
 ## NOTE: I just can't figure out how to nicely display the graph and legend in code
-## it's must easier just to export them both and then combine with a graphics app
+## it's easier just to export them both and then combine with a graphics app
 
 main_graph_legend <- (tibble(
   weight = seq(min(edge_df_mod$value), max(edge_df_mod$value), length=11),

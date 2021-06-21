@@ -8,6 +8,7 @@ source("../load-data-s1.R", chdir=TRUE)
 library(tidyverse)
 library(bnlearn)
 library(HydeNet)
+library(parallel)
 
 source("cog-model-main.R")
 source("../graph-model-tools.R")
