@@ -8,12 +8,13 @@ Manuscript in preparation, title may change. Nothing here is final. please conta
 
 ## _Related abstract_
 
-How can we leverage the cognitive science of lay theories to inform interventions aimed at correcting misconceptions and changing behaviors? Focusing on the problem of vaccine skepticism, we identified a set of 14 beliefs we hypothesized would be relevant to vaccination decisions. We developed reliable scales to measure these beliefs across a large sample of participants (n = 1130) and employed state-of-the-art graphical structure learning algorithms to uncover the relationships among these beliefs. This resulted in a graphical model describing the system of beliefs relevant to childhood vaccinations, with beliefs represented as nodes and their interconnections as directed edges. This model sheds light on how these beliefs relate to one another and can be used to predict how interventions aimed at specific beliefs will play out across the larger system. Moving forward, we hope this modeling approach will help guide the development of effective, theory-based interventions promoting childhood vaccination.
+> How can we leverage the cognitive science of lay theories to inform interventions aimed at correcting misconceptions and changing behaviors? Focusing on the problem of vaccine skepticism, we identified a set of 14 beliefs we hypothesized would be relevant to vaccination decisions. We developed reliable scales to measure these beliefs across a large sample of participants (n = 1130) and employed state-of-the-art graphical structure learning algorithms to uncover the relationships among these beliefs. This resulted in a graphical model describing the system of beliefs relevant to childhood vaccinations, with beliefs represented as nodes and their interconnections as directed edges. This model sheds light on how these beliefs relate to one another and can be used to predict how interventions aimed at specific beliefs will play out across the larger system. Moving forward, we hope this modeling approach will help guide the development of effective, theory-based interventions promoting childhood vaccination.
 
 ## Repository Overview
 
 * __`paper/`__: Rmarkdown and supporting files for creation of the manuscript. Must run supplemental materials notebook first.
 * __`supplement/`__: Rmarkdown and supporting files for creation of the supplemental materials.
+* __`data/`__: Data for all studies reported in paper.
 * __`code/`__: Code scripts on which all Rmarkdown notebooks depend.
   * __`../custom-structure-learning/`__: Code implementing custom scoring algorithms and plotting tools used in Bayesian Network structure learning and inference.
 * __`pilots/`__: Anonymized data and analysis notebooks for pilot studies. These are being released for transparency but have not been commented or edited carefully for public consumption.
@@ -23,7 +24,7 @@ How can we leverage the cognitive science of lay theories to inform intervention
 To reproduce the manuscript and all analyses, follow the following steps after cloning this repository.
 
 1. Create a `local/` folder in the repository (at the terminal: `mkdir local`)
-2. Install required packages or install docker and utilize `cogdatasci/rstudio` docker container. Recommend you run with the following options:
+2. Install required packages or install [Docker](https://www.docker.com/) and utilize `cogdatasci/rstudio` docker container. Recommend you run with the following options:
 ```bash
 docker run -d -p 8787:8787 -v "`pwd`":/home/rstudio/working \
  -e PASSWORD=my_password_here cogdatasci/rstudio
