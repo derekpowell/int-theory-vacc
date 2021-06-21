@@ -413,7 +413,7 @@ score_family <- function(node, predictors, data) { # comment to switch back to o
         par = pars,
         fn = score,
         method = "L-BFGS-B", # BFGS need to add error catching!
-        upper = c(Inf, 1, rep(1,length(predictors))),
+        upper = c(Inf, 1, rep(1,length(predictors))), # maybe constrain to .99?
         lower = c(0, 0, rep(0,length(predictors))),
         control = list(fnscale = -1),
         data = data
