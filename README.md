@@ -29,6 +29,6 @@ To reproduce the manuscript and all analyses, follow the following steps after c
 docker run -d -p 8787:8787 -v "`pwd`":/home/rstudio/working \
  -e PASSWORD=my_password_here cogdatasci/rstudio
  ```
-then navigate to `localhost:8787` in your browser to access the rstudio interface. Either way you can run `install-packages.R` to make sure you have all packages needed.
+then navigate to `localhost:8787` in your browser to access the rstudio interface. Either way you can run `install-packages.R` to make sure you have all packages needed. 
 3. Open and knit `supplement/supplement-main.Rmd` to generate supplement PDF and save files needed for reproduction of manuscript.
 4. (In the near future) Open and knit `paper/paper-main.Rmd` to generate manuscript PDF.
