@@ -12,23 +12,23 @@ Manuscript in preparation, title may change. Nothing here is final. please conta
 
 ## Repository Overview
 
-* __`paper/`__: Rmarkdown and supporting files for creation of the manuscript. Must run supplemental materials notebook first.
-* __`supplement/`__: Rmarkdown and supporting files for creation of the supplemental materials.
-* __`data/`__: Data for all studies reported in paper.
-* __`code/`__: Code scripts on which all Rmarkdown notebooks depend.
-  * __`../custom-structure-learning/`__: Code implementing custom scoring algorithms and plotting tools used in Bayesian Network structure learning and inference.
-* __`pilots/`__: Anonymized data and analysis notebooks for pilot studies. These are being released for transparency but have not been commented or edited carefully for public consumption.
+* `paper/`: Rmarkdown and supporting files for creation of the manuscript. Must run supplemental materials notebook first.
+* `supplement/`: Rmarkdown and supporting files for creation of the supplemental materials.
+* `data/`: Data for all studies reported in paper.
+* `code/`: Code scripts on which all Rmarkdown notebooks depend.
+  * `../custom-structure-learning/`: Code implementing custom scoring algorithms and plotting tools used in Bayesian Network structure learning and inference.
+* `pilots/`: Anonymized data and analysis notebooks for pilot studies. These are being released for transparency but have not been commented or edited carefully for public consumption.
 
 ## Reproducibility notes
 
 To reproduce the manuscript and all analyses, follow the following steps after cloning this repository.
 
 1. Create a `local/` folder in the repository (at the terminal: `mkdir local`)
-2. Install required packages or install [Docker](https://www.docker.com/) and utilize `cogdatasci/rstudio` docker container. Recommend you run with the following options:
+2. Install required packages with or install [Docker](https://www.docker.com/) and utilize `cogdatasci/rstudio` docker container. Recommend you run with the following options:
 ```bash
 docker run -d -p 8787:8787 -v "`pwd`":/home/rstudio/working \
  -e PASSWORD=my_password_here cogdatasci/rstudio
  ```
-then navigate to `localhost:8787` in your browser to access the rstudio interface
+then navigate to `localhost:8787` in your browser to access the rstudio interface. Either way you can run `install-packages.R` to make sure you have all packages needed.
 3. Open and knit `supplement/supplement-main.Rmd` to generate supplement PDF and save files needed for reproduction of manuscript.
 4. (In the near future) Open and knit `paper/paper-main.Rmd` to generate manuscript PDF.
