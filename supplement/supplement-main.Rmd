@@ -71,9 +71,8 @@ A cognitive model composed of these types of relations is capable of capturing a
 
 This gives us a formalism for representing relations within an intuitive theory. Now we need methods for estimating the relationship that are actually represented within people’s intuitive theories. Given measures of participants’ credences in each of the parent beliefs $x_i$ and the child belief $y$, we assume the following beta regression model:
 
-$$\mu = \exp\Bigg(\ln\Big(1 - \exp\big(\ln\big(1-w_0) + \sum_i(1-w_i)x_i\big)\big) \Big) + \ln\Big(\sum_i(1-w_i)(1-x_i)\Big)\Bigg)$$
-
 $$y \sim beta\big(\mu k, (1-\mu)k\big)$$
+$$\mu = \exp\Bigg(\ln\Big(1 - \exp\big(\ln\big(1-w_0) + \sum_i(1-w_i)x_i\big)\big) \Big) + \ln\Big(\sum_i(1-w_i)(1-x_i)\Big)\Bigg)$$
 
 Via maximum likelihood estimation, we estimate for each parent a discrete parameter $x_i$ determining whether the relationship is generative or preventive, and a continuous weight $w_i$ determining its strength. We also estimate $w_0$, the “leak probability” which is assumed to be generative, and $k$, a measure of dispersion in the responses $y$.
 
@@ -218,7 +217,7 @@ if (!file.exists("../local/boot_res.rds")){
 
 ```
 
-```{r, echo=F}
+```{r, echo=F, include=F}
 ## examine bootstrapping results 
 
 ## which arcs are most likely?
@@ -648,14 +647,12 @@ $$ER = \frac{P(d|h=1)}{P(d|h=0)}$$
 
 The evidence ratio can be estimated from a model that is linear in the log-odds. This allows for estimation of the evidence ratio from the with the following beta-regression model:
 
-$$logit(\mu) = logit(pretest) + \ln(ER_0) + x\ln(ER_{1})$$
-
 $$y \sim beta\big(\mu k, (1-\mu)k\big)$$
+$$logit(\mu) = logit(pretest) + \ln(ER_0) + x\ln(ER_{1})$$
 
 Where x was a binary variable representing the presence (1) or absence (0) of evidence at posttest, and participants’ prior and posterior (pretest and posttest) credences were transformed by the logit function. This allowed us to estimate the log evidence ratio implied by participants’ reactions to the intervention (ER1) as well as the intervening time period without any explicit evidence (ER0). Then, we constructed a CPT consistent with ER1. For instance, with an evidence ratio below 1, we set:
 
 $$ p(evidence = 1 | x ) = .50*ER_1$$ 
-
 $$ p(evidence = 0 | x) = .50. $$
 
 We used this approach to predict how evidence (either interventions or real-world events) would change participants’ beliefs in Studies 2-4 (see results for each study below). It should be noted that, with the exception of the data used to estimate this evidence ratio, these are out-of-sample and out-of-task predictions.
@@ -707,7 +704,6 @@ s1_meta <- list(
 ```
 
 A total of `r s1_meta$n_total` people recruited from Amazon Mechanical Turk (mTurk) participated in this study conducted in August of 2017. Participants were paid \$1.60 for about 8 minutes of their time. `r s1_meta$n_exclude` participants (6%) failed at least one of two attention check questions and were excluded from further analysis, leaving a final sample of n = `r s1_meta$n_include`. After completing all 14 scales, participants were asked standard demographics questions as well as a handful of questions about whether they were or were expecting to be a parent. They were also debriefed with a brief statement noting that vaccines are safe and pointing them toward a WHO website for further information. 
-
 
 ### Results
 
