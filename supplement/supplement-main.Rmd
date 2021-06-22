@@ -138,8 +138,9 @@ source("../code/load-data-s4.R")
 
 ```{r cross_validation, echo=FALSE, fig.align='center', fig.height=3, fig.width=4, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
 
-## uncomment to re-run cross validation
-# source("../code/custom-structure-learning/fit-cog-models-bnlearn.R")
+if (!file.exists("../local/cv-res.rds")){
+  source("../code/custom-structure-learning/fit-cog-models-bnlearn.R", chdir=TRUE)
+}
 
 cv_res <- readRDS("../local/cv-res.rds")
 
@@ -227,7 +228,7 @@ boot_res %>%
 ## what is strength of each arc in final graph?
 bnlearn_to_df(main_model) %>% 
   left_join(boot_res, by=c("from","to"))  %>% 
-  filter(strength > .80)
+  filter(strength > .95)
 ```
 
 ```{r, include=F}
