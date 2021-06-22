@@ -32,7 +32,8 @@ custom_plot.HydeNetwork <- function(x,
   
   DiagrammeR::create_graph(nodes_df = node_df,
                            edges_df = edge_df,
-                           attr_theme = NULL)
+                           ...
+                           )
   
 }
 

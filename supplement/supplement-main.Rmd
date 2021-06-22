@@ -352,10 +352,10 @@ h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
 c <- find_dag_coefs(main_model, train)
 ```
 
-```{r main_model_plot, echo=F, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
+```{r main_model_plot, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
 
 
-z <- custom_plot.HydeNetwork(h)
+z <- custom_plot.HydeNetwork(h, attr_theme="tb")
 
 coefs <- tidy_coefs(c)
 
@@ -382,7 +382,7 @@ edge_df_mod <- uncompelled_edges %>%
 z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
 z$nodes_df$fontname <- "Helvetica"
 z$nodes_df$shape <- "ellipse"
-# z$nodes_df$fillcolor <- ifelse(z$nodes_df$id==13, "grey","white")
+z$nodes_df$fillcolor <- ifelse(z$nodes_df$id==11, "grey","white")
 z$nodes_df$fixedsize <- FALSE
 z$edges_df$penwidth <- abs(edge_df_mod$value)*2
 z$edges_df$penwidth <- 1.5
