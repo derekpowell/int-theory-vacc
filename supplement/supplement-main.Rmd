@@ -138,11 +138,12 @@ source("../code/load-data-s4.R")
 
 ```{r cross_validation, echo=FALSE, fig.align='center', fig.height=3, fig.width=4, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
 
-if (!file.exists("../local/cv-res.rds")){
+if (!file.exists("../outputs/cv-res.rds")){
   source("../code/custom-structure-learning/fit-cog-models-bnlearn.R", chdir=TRUE)
+} else {
+  cv_res <- readRDS("../outputs/cv-res.rds")
 }
 
-cv_res <- readRDS("../local/cv-res.rds")
 
 cv_res %>% 
   ggplot(aes(x=reorder(algo, loss), y=loss)) +
@@ -190,7 +191,7 @@ set.seed(77267)
 
 # train_noise <- train %>%
 #   mutate_all(~.x+rnorm(n(),0,.002))
-if (!file.exists("../local/boot_res.rds")){
+if (!file.exists("../outputs/boot-res.rds")){
   cl = parallel::makeCluster(detectCores(logical=TRUE))
 
   clusterCall(cl,
@@ -211,9 +212,9 @@ if (!file.exists("../local/boot_res.rds")){
   
   stopCluster(cl)
   
-  saveRDS(boot_res,"../local/boot_res.rds")
+  saveRDS(boot_res,"../outputs/boot-res.rds")
 } else {
-  boot_res <- readRDS("../local/boot_res.rds")
+  boot_res <- readRDS("../outputs/boot-res.rds")
 }
 
 ```
