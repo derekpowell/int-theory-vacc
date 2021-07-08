@@ -203,7 +203,7 @@ if (!file.exists("../local/boot_res.rds")){
   ## very slow!
   boot_res <- boot.strength(
     train,  #train
-    R = 200,
+    R = 500,
     algorithm = "hc",
     algorithm.args = list(score="custom", fun=cog_model_score_func, blacklist = theory_bl, maxp=5, max.iter=1e4),
     cluster = cl
@@ -332,16 +332,28 @@ Next, we can ask about the directions of the relationships within the model by e
 
 main_cpdag <- cpdag(main_model)
 
-# do plotting -- will likely see lots of ambiguity??
+
+# there are 15 undirected edges, here's a plot 
 plot(main_cpdag)
 
-# CPDAG edge directions ruled out by blacklist (10)
+# CPDAG edge directions ruled out by blacklist (10 of 15)
 ruled_out <- inner_join(as.data.frame(undirected.arcs(main_cpdag)), as.data.frame(theory_bl), by=c("from","to")) 
 
 # leaves 5 arcs that are unconstrained by both data and theory
 uncompelled_edges <- anti_join(as.data.frame(undirected.arcs(main_cpdag)), (ruled_out %>% bind_rows(ruled_out %>% rename(to="from", from="to")) ), by = c("from", "to"))
 
 # most substantive are vaccTox <--> vaccDanger, vaccEff
+
+## can start setting these as makes sense theoretically
+my_model <- bnlearn::set.arc(main_model, "vaccTox", "vaccDanger", check.cycles=TRUE)
+# my_model <- set.arc(main_model, "vaccDanger", "vaccTox")
+my_model <- bnlearn::set.arc(my_model, "vaccTox", "vaccEff", check.cycles=TRUE)
+
+## setting those two compels edge for vaccine efficacy --> vaccine danger
+## leaves just HB--naturalism and medskept -- parental expertise undirected
+ruled_out <- inner_join(as.data.frame(undirected.arcs(cpdag(my_model))), as.data.frame(theory_bl), by=c("from","to")) 
+
+anti_join(as.data.frame(undirected.arcs(cpdag(my_model))), (ruled_out %>% bind_rows(ruled_out %>% rename(to="from", from="to")) ), by = c("from", "to"))
 ```
 
 
@@ -371,23 +383,23 @@ edge_df_mod <- coefs %>%
   rename(to_id = id) %>%
   arrange(to_id,from_id) 
 
-## flag edges that could be flipped
-edge_df_mod <- uncompelled_edges %>% 
-  mutate(label="*") %>% 
-  right_join(edge_df_mod, by = c("to", "from")) %>% 
-  mutate(label = ifelse(is.na(label), "", label)) %>% 
-  arrange(to_id,from_id) 
+# flag edges that could be flipped
+edge_df_mod <- uncompelled_edges %>%
+  mutate(label="*") %>%
+  right_join(edge_df_mod, by = c("to", "from")) %>%
+  mutate(label = ifelse(is.na(label), "", label)) %>%
+  arrange(to_id,from_id)
   
 # z$nodes_df
 z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
 z$nodes_df$fontname <- "Helvetica"
 z$nodes_df$shape <- "ellipse"
-z$nodes_df$fillcolor <- ifelse(z$nodes_df$id==11, "grey","white")
+z$nodes_df$fillcolor <- ifelse(z$nodes_df$label=="Vaccination\nIntentions", "grey","white")
 z$nodes_df$fixedsize <- FALSE
 z$edges_df$penwidth <- abs(edge_df_mod$value)*2
 z$edges_df$penwidth <- 1.5
 # z$edges_df$label <- round(edge_df_mod$value,2)
-z$edges_df$label <- edge_df_mod$label
+# z$edges_df$label <- edge_df_mod$label
 # z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
 z$edges_df$color <- map_to_brewer(edge_df_mod$value, bins=11, option="RdBu")
 
@@ -859,6 +871,9 @@ library(patchwork)
 s2_diff_plot <- s2_scored %>% 
   spread(phase, mean) %>% 
   drop_na(scale) %>% 
+  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>% 
+  # group_by(scale) %>% 
+  # mutate(post = post/sd(post), pre = pre/sd(pre)) %>% 
   mutate(diff = post-pre) %>% 
   mutate(
     scale = recode_nodes2(scale),
@@ -1100,6 +1115,7 @@ Figure X shows the correlation between predicted and observed belief changes con
 s3_diff_plot <- s3_scored %>% 
   # spread(phase, mean) %>% 
   drop_na(scale) %>% 
+  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>% 
   mutate(diff = post-pre) %>% 
   mutate(
     scale = recode_nodes2(scale),
@@ -1270,6 +1286,7 @@ Figure X shows the correlation between predicted and observed belief changes for
 ```{r echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
 s4_diff_plot <- combined %>% 
   filter(returned==TRUE, !is.na(vacc_news)) %>% # somehow 5? participants slippd by without answering 
+  mutate(posttest = rescale_beta(posttest, -3, 3), pretest = rescale_beta(pretest, -3, 3)) %>% 
   mutate(diff = posttest-pretest) %>%
   mutate(
     vacc_news = as.factor(vacc_news),
