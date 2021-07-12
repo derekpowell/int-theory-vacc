@@ -808,7 +808,7 @@ fit_s2_vaccIntent <- brm(
   data = s2_reg,
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.95),
+  control = list(adapt_delta=.99),
   seed = 46179,
   file = "../local/fit_s2_vaccIntent.rds"
 )
@@ -832,17 +832,18 @@ make_table_df <- function(fit){
 
 make_table <- function(table_df, caption=NULL){
     
-  kableExtra::kbl(table_df, digits = 2, booktabs = T, caption=caption, escape = T, format = "latex") %>% 
+  kableExtra::kbl(table_df, digits = 2, booktabs = T, caption=caption, escape = F, format="latex") %>% 
     kableExtra::kable_classic(full_width=F)
 }
 
 fit_s2_vaccIntent %>% 
   make_table_df() %>% 
+  rename(`$CI_{2.5\\%}$` = `l-95% CI`,`$CI_{97.5\\%}$` = `u-95% CI`) %>% 
   mutate(
     Term = case_when(
-      # grepl("(diseaseRisk|post)", Term) ~ paste0("$\\beta{", 
-      #                                            gsub("(diseaseRisk|post)", "", Term),
-      #                                            "}$"),
+      grepl("(diseaseRisk|post)", Term) ~ paste0("$\\beta_{",
+                                                 gsub("(diseaseRisk|post)", "", Term),
+                                                 "}$"),
       grepl("Intercept\\[", Term) ~ gsub("Intercept\\[(.*)\\]","$\\\\alpha_{\\1}$", Term),
       Term == "item_sd(Intercept)" ~ "$\\sigma_{item}$",
       Term == "subj_sd(Intercept)" ~ "$\\sigma_{subj}$",
@@ -886,6 +887,7 @@ s2_diff_plot <- s2_scored %>%
   geom_pointrange(position=position_dodge(width=.25)) +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=c("#0067b1","#c50024")) +
+  scale_shape_manual(values=c(17,16)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
@@ -1037,11 +1039,12 @@ fit_s3_vaccIntent <- brm(
 
 fit_s3_vaccIntent %>% 
   make_table_df() %>% 
+  rename(`$CI_{2.5\\%}$` = `l-95% CI`,`$CI_{97.5\\%}$` = `u-95% CI`) %>% 
   mutate(
     Term = case_when(
-      # grepl("(diseaseRisk|post)", Term) ~ paste0("$\\beta{", 
-      #                                            gsub("(diseaseRisk|post)", "", Term),
-      #                                            "}$"),
+      grepl("(intervention|post)", Term) ~ paste0("$\\beta_{",
+                                                 gsub("(intervention|phase)", "", Term),
+                                                 "}$"),
       grepl("Intercept\\[", Term) ~ gsub("Intercept\\[(.*)\\]","$\\\\alpha_{\\1}$", Term),
       Term == "item_sd(Intercept)" ~ "$\\sigma_{item}$",
       Term == "subj_sd(Intercept)" ~ "$\\sigma_{subj}$",
@@ -1061,7 +1064,7 @@ fit_s3a_vaccIntent <- brm(
   data = s3_reg %>% filter(study=="A"),
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.95),
+  control = list(adapt_delta=.99),
   seed = 69568,
   file = "../local/fit_s3a_vaccIntent.rds"
 )
@@ -1072,18 +1075,19 @@ fit_s3b_vaccIntent <- brm(
   data = s3_reg %>% filter(study=="B"),
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.95),
+  control = list(adapt_delta=.99),
   seed = 69568,
   file = "../local/fit_s3b_vaccIntent.rds"
 )
 
 fit_s3a_vaccIntent %>% 
   make_table_df() %>% 
+  rename(`$CI_{2.5\\%}$` = `l-95% CI`,`$CI_{97.5\\%}$` = `u-95% CI`) %>% 
   mutate(
     Term = case_when(
-      # grepl("(diseaseRisk|post)", Term) ~ paste0("$\\beta{", 
-      #                                            gsub("(diseaseRisk|post)", "", Term),
-      #                                            "}$"),
+      grepl("(intervention|post)", Term) ~ paste0("$\\beta_{",
+                                                 gsub("(intervention|phase)", "", Term),
+                                                 "}$"),
       grepl("Intercept\\[", Term) ~ gsub("Intercept\\[(.*)\\]","$\\\\alpha_{\\1}$", Term),
       Term == "item_sd(Intercept)" ~ "$\\sigma_{item}$",
       Term == "subj_sd(Intercept)" ~ "$\\sigma_{subj}$",
@@ -1094,11 +1098,12 @@ make_table("Bayesian regression model coefficients for model of Vaccine Intentio
 
 fit_s3b_vaccIntent %>% 
   make_table_df() %>% 
+  rename(`$CI_{2.5\\%}$` = `l-95% CI`,`$CI_{97.5\\%}$` = `u-95% CI`) %>% 
   mutate(
     Term = case_when(
-      # grepl("(diseaseRisk|post)", Term) ~ paste0("$\\beta{", 
-      #                                            gsub("(diseaseRisk|post)", "", Term),
-      #                                            "}$"),
+      grepl("(intervention|post)", Term) ~ paste0("$\\beta_{",
+                                                 gsub("(intervention|phase)", "", Term),
+                                                 "}$"),
       grepl("Intercept\\[", Term) ~ gsub("Intercept\\[(.*)\\]","$\\\\alpha_{\\1}$", Term),
       Term == "item_sd(Intercept)" ~ "$\\sigma_{item}$",
       Term == "subj_sd(Intercept)" ~ "$\\sigma_{subj}$",
@@ -1128,6 +1133,7 @@ s3_diff_plot <- s3_scored %>%
   geom_pointrange(position=position_dodge(width=.25)) +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=c("#0067b1","#c50024")) +
+  scale_shape_manual(values=c(17,16)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
@@ -1256,22 +1262,23 @@ fit_s4_vaccIntent <- brm(
   data = s4_reg %>% filter(scale=="vaccIntent"),
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.95),
+  control = list(adapt_delta=.99),
   seed = 40725,
   file = "../local/fit_s4_vaccIntent.rds"
 )
 
 fit_s4_vaccIntent %>% 
 make_table_df() %>% 
+  rename(`$CI_{2.5\\%}$` = `l-95% CI`,`$CI_{97.5\\%}$` = `u-95% CI`) %>% 
   mutate(
     Term = case_when(
-      # grepl("(diseaseRisk|post)", Term) ~ paste0("$\\beta{", 
-      #                                            gsub("(diseaseRisk|post)", "", Term),
-      #                                            "}$"),
+      grepl("(vacc_news|post)", Term) ~ paste0("$\\beta_{",
+                                                 gsub("(posttest)", "", Term),
+                                                 "}$"),
       grepl("Intercept\\[", Term) ~ gsub("Intercept\\[(.*)\\]","$\\\\alpha_{\\1}$", Term),
       Term == "item_sd(Intercept)" ~ "$\\sigma_{item}$",
       Term == "subj_sd(Intercept)" ~ "$\\sigma_{subj}$",
-      TRUE ~ gsub("(intervention|posttest)","", Term)
+      TRUE ~ gsub("(posttest)","", Term)
     ),
     Term = gsub("vacc_news", "awareness", Term)
   ) %>% 
@@ -1311,6 +1318,7 @@ s4_diff_plot <- combined %>%
   # geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
   geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
   scale_color_manual(values=c("#0067b1","grey")) +
+  # scale_shape_manual(values=c(17,16)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
