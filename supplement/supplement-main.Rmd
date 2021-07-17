@@ -2,11 +2,13 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "June 21, 2021 (DRAFT)"
+date: "Jul 17, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
     fig_caption: yes
+bibliography: references.bib
+csl: pnas.csl
 figsintext : yes
 always_allow_html: true
 header-includes:
@@ -28,9 +30,9 @@ Then, we describe our empirical methods in detail. This begins with the qualitat
 
 ## Bayesian network parameterization
 
-Figure 1 shows an example of a simple Bayesian Network. The network itself is a _directed acyclic graph_ (DAG), a type of graphical model. Graphical models represent variables as nodes connected by edges. In a DAG, these edges are directed, flowing from parent to child, and are constrained so that they cannot form cycles or loops. In a Bayesian network, these directed edges encode conditional dependencies among variables, so that the conditional probability distribution for a given variable is defined only in terms of its direct parents. Together, a child node and its parents are called a _family_. 
+Figure \@ref(fig:dag-example) shows an example of a simple Bayesian Network. The network itself is a _directed acyclic graph_ (DAG), a type of graphical model. Graphical models represent variables as nodes connected by edges. In a DAG, these edges are directed, flowing from parent to child, and are constrained so that they cannot form cycles or loops. In a Bayesian network, these directed edges encode conditional dependencies among variables, so that the conditional probability distribution for a given variable is defined only in terms of its direct parents. Together, a child node and its parents are called a _family_. 
 
-```{r dag_example, echo=F, fig.align='center', out.width = '40%', fig.cap="Example DAG illustrating some variables related to wildfires."}
+```{r dag-example, echo=F, fig.align='center', out.width = '40%', fig.cap="Example DAG illustrating some variables related to wildfires."}
 
 library(DiagrammeR)
 library(DiagrammeRsvg)
@@ -61,13 +63,13 @@ grViz(
 )
 ```
 
-In this graph, the edge $FIRE \rightarrow SMOKE$ captures that fire causes smoke.^[The example of cause and effect is especially intuitive, but these edges need not be causal. Instead, they are better thought of as representing “influence relations”, which may also include relationships like logical implication and set membership (Williamson, 2001).] This relationship is represented as a probabilistic function, where the probability of smoke depends on the probability of fire. The probability of a node Y can be defined from its parents X in many different ways. For binary nodes, the most flexible specification is a conditional probability table (CPT) with 2^n^ entries specifying the probability of Y given the entire joint probability distribution over X, where n is the number of parents X. Given the exponential complexity of the CPT, simpler functions are often used to specify the probability of the child node, such as the noisy-or and noisy-and-not functions. A noisy-or function assumes each of the parents are independent generative forces, each with a probability of generating the effect. A noisy-and-not function assumes each of the parents are independent preventive forces, specifying the probability of the child node as the probability that it is generated _and not_ prevented by any one of its possible preventers. We construct our cognitive model parameterization using a combination of these two functions, using a distribution sometimes referred to as a “DeMorgan gate” (Maaskant & Druzdel, 2008). In our model, the probability of the child node Y can be expressed as:
+In this graph, the edge $FIRE \rightarrow SMOKE$ captures that fire causes smoke.^[The example of cause and effect is especially intuitive, but these edges need not be causal. Instead, they are better thought of as representing “influence relations”, which may also include relationships like logical implication and set membership (Williamson, 2001).] This relationship is represented as a probabilistic function, where the probability of smoke depends on the probability of fire. The probability of a node Y can be defined from its parents X in many different ways. For binary nodes, the most flexible specification is a conditional probability table (CPT) with 2^n^ entries specifying the probability of Y given the entire joint probability distribution over X, where n is the number of parents X. Given the exponential complexity of the CPT, simpler functions are often used to specify the probability of the child node, such as the noisy-or and noisy-and-not functions. A noisy-or function assumes each of the parents are independent generative forces, each with a probability of generating the effect. A noisy-and-not function assumes each of the parents are independent preventive forces, specifying the probability of the child node as the probability that it is generated _and not_ prevented by any one of its possible preventers. We construct our cognitive model parameterization using a combination of these two functions, using a distribution sometimes referred to as a “DeMorgan gate” [@maaskant.druzdzel2008]. In our model, the probability of the child node Y can be expressed as:
 
 $$P(y) = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$ 
 
 Here, each parent is either a generative (i) or preventive (j) influence, that generates or prevents the child node with probability weight $w_i$ or $w_j$. The weight $w_0$ represents the “leak” probability, or the baseline probability that the child occurs without any other generating influences. The first term in brackets represents the probability that y is generated, or alternately, that not all of the possible generating forces fail to generate it. The second term represents the probability that it is not then prevented, or that all the preventing forces fail.
 
-A cognitive model composed of these types of relations is capable of capturing a causal system of non-interactive generative and preventive causes. Although people’s intuitive theories are likely more flexible than this, there is ample evidence that people are highly capable of reasoning according to these types of causal relationships (see Holyoak & Cheng, 2011 for a review), and moreover, that their causal learning is strongly biased toward learning these kinds of relations (e.g., Novick & Cheng, 2004).
+A cognitive model composed of these types of relations is capable of capturing a causal system of non-interactive generative and preventive causes. Although people’s intuitive theories are likely more flexible than this, there is ample evidence that people are highly capable of reasoning according to these types of causal relationships [see @holyoak.cheng2011 for a review], and moreover, that their causal learning is strongly biased toward learning these kinds of relations [e.g. @novick.cheng2004].
 
 This gives us a formalism for representing relations within an intuitive theory. Now we need methods for estimating the relationship that are actually represented within people’s intuitive theories. Given measures of participants’ credences in each of the parent beliefs $x_i$ and the child belief $y$, we assume the following beta regression model:
 
@@ -87,7 +89,6 @@ $$BIC = k \ln (n) - 2\sum_{i}\hat{\ell}(x_i|x_{va(x_i)})$$
 
 Which we estimate using the maximum log-likelihood estimated for our statistical model, calculated as the sum of the maximum log-likelihood for each node given its parents, from a total of $k$ parameters and $n$ data points.
 
-
 ### Generative model principle
 
 We constrained our search by applying what we call the “generative model principle”, assuming that the intuitive theory is a generative model, so that influence relations (edges) should flow from “generating” states of affairs toward states of affairs that result, such as from cause to effect. 
@@ -98,11 +99,11 @@ Before constructing our model, we sorted the 14 measured beliefs into “tiers�
 
 ### Cross validation of structure learning results
 
-To conduct an efficient search through the super-exponential space of DAGs, we tested several variants of two structure learning algorithms implemented in the “bnlearn” R package. The first is a purely score-based “hill-climbing” algorithm (cite) and the second was a hybrid algorithm that combined the hill-climbing algorithm with a prior “restriction” phase that pruned down the space of DAGs. This pruning was accomplished with the “min-max parents and children” algorithm (cite), which can be tuned with a hyperparameter alpha, which we tested at several levels. To speed computations, we restricted the maximum number of parents in the graph to five for all nodes, as the complexity of the scoring function is exponential in the number of parents. In all resulting networks no node was found to have more than four parents, suggesting this did not impact the final results.
+To conduct an efficient search through the super-exponential space of DAGs, we tested several variants of two structure learning algorithms implemented in the “bnlearn” R package [@scutari2010a]. The first is a purely score-based “hill-climbing” algorithm  and the second was a hybrid algorithm that combined the hill-climbing algorithm with a prior “restriction” phase that pruned down the space of DAGs. This pruning was accomplished with the “min-max parents and children” algorithm, which can be tuned with a hyperparameter alpha, which we tested at several levels. To speed computations, we restricted the maximum number of parents in the graph to five for all nodes, as the complexity of the scoring function is exponential in the number of parents. In all resulting networks no node was found to have more than four parents, suggesting this did not impact the final results.
 
 We performed a series of 10-run 10-fold cross validation analyses to evaluate the success of these different structure learning strategies. In addition to the different algorithms, we also compared four different “blacklists” that imposed different constraints on the structure learning process. In addition to our theory-driven blacklist based on our generative model assumptions, we also explored unconstrained structure learning, and two additional blacklists: one which stipulated only that “intentions to vaccinate” should be a child node with no children of its own, and another that stipulated also that the most abstract beliefs “holistic balance” and “naturalism” should be allowed to have no parents other than each other. 
 
-Figure X presents the results of these cross validation tests. As seen in the figure, all structure learning approaches produced models with similar out-of-sample performance, with more variability among folds and runs than between algorithms. Thus the cross-validation does not uniquely identify an optimal structure learning strategy.
+Figure \@ref(fig:cross-validation) presents the results of these cross validation tests. As seen in the figure, all structure learning approaches produced models with similar out-of-sample performance, with more variability among folds and runs than between algorithms. Thus the cross-validation does not uniquely identify an optimal structure learning strategy.
 
 ```{r s1_load, include=FALSE}
 source("../code/load-data-s1.R", chdir = TRUE)
@@ -136,7 +137,7 @@ source("../code/load-data-s4.R")
 ```
 
 
-```{r cross_validation, echo=FALSE, fig.align='center', fig.height=3, fig.width=4, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
+```{r cross-validation, echo=FALSE, fig.align='center', fig.height=3, fig.width=4, fig.cap="Cross-validation performance for diffrent structure learning algorithms on the training data from Study 1."}
 
 if (!file.exists("../outputs/cv-res.rds")){
   source("../code/custom-structure-learning/fit-cog-models-bnlearn.R", chdir=TRUE)
@@ -161,7 +162,7 @@ Without any clear guidance from cross validation and with a clear need to apply 
 
 ## Interpreting the model
 
-We used a bootstrapping procedure to estimate the confidence in each of the links in this model, conducting the structure learning procedure repeatedly for 200 bootstrapped resamples of the original training data. Figure X visualizes the frequency with which each arc appeared in the resulting model across these replicates, and figure x visualizes the model with the coefficients for each link encoded by color. 
+We used a bootstrapping procedure to estimate the confidence in each of the links in this model, conducting the structure learning procedure repeatedly for 200 bootstrapped resamples of the original training data. Figure \@ref(fig:disp-bootgraph) visualizes the frequency with which each arc appeared in the resulting model across these replicates, and figure \@ref(fig:disp-maingraph) visualizes the model with the coefficients for each link encoded by color. 
 
 ```{r fit_main_model, include=FALSE, cache=TRUE}
 set.seed(73566)
@@ -179,10 +180,6 @@ theory_bl <- tiers2blacklist(
 # this is the favorite son (most likely)
 main_model <- hc(train, blacklist=theory_bl, score="custom", fun=cog_model_score_func, maxp=5, max.iter=1e3, restart=5)
 ```
-
-Though we found the uncovered network structure to be quite revealing and informative, there are also some important limitations that should be acknowledged. In particular, the edges from the vaccine danger and vaccine effectiveness nodes to the vaccine toxicity node strike us as counterintuitive. Intuitively, we might imagine that vaccines having toxins could cause them to be dangerous and ineffective. Yet the edges in the model run from in the opposite direction, and so do not support a clear causal interpretation. 
-
-We can examine the robustness of the model’s features in two ways. First, we can ask about the “skeleton” of the graphical model: whether the relationships between pairs of nodes are robust, irrespective of their directions. To test this, we applied our chosen structure learning algorithm against 1000 bootstrapped replicates of our data (following Friedman et al., 2013). As shown in figure X, we have a high degree of confidence in the “skeleton” of the graph: nodes which are connected in the final graph are reliably connected across bootstrapping runs. 
 
 ```{r, include=FALSE}
 # # can bootstrap strength of arcs for winning model approach, focus interpretations on strength of arcs / parameterizations
@@ -274,59 +271,74 @@ map_to_brewer <- function(vec, bins=11, option="RdYlBu"){
 
 ```
 
-```{r boot_strength_plot, echo=F, message=F, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across X bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown."}
+```{r boot_strength_plot, include=F, fig.width=5, fig.height=8}
 # 
-# hyde_str <- df_to_hyde_string(boot_res %>% filter(strength>.2, direction>0) %>% select(from,to))
-# h2 <- HydeNetwork(as.formula(hyde_str))
-# # plot(h2)
-# 
-# z2 <- custom_plot.HydeNetwork(h2)
-# boot_res %>%
-#   filter(direction>0, strength>.2) %>% 
-#   # filter(parameter!="phi",parameter!="w_leak") %>%
-#   # rename(from = parameter) %>%
-#   # mutate(from = gsub("w_","",from)) %>%
-#   mutate(strength = strength*direction) %>% 
-#   select(to, from, strength) %>%
-#   merge(z2$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
-#   mutate(from = id) %>%
-#   select(-id) %>%
-#   merge(z2$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
-#   mutate(to = id) %>%
-#   arrange(to,from) -> edge_df_mod
-# 
-# 
-# # z$nodes_df
-# z2$nodes_df <- z2$nodes_df %>% mutate(label = recode_nodes(label))
-# z2$nodes_df$fontname <- "Helvetica"
-# z2$nodes_df$shape <- "ellipse"
-# # z2$nodes_df$fillcolor <- ifelse(z2$nodes_df$id==13, "grey","white")
-# z2$nodes_df$fixedsize <- FALSE
-# z2$edges_df$penwidth <- abs(edge_df_mod$strength)*2
-# z2$edges_df$penwidth <- 2
-# # z$edges_df$label <- round(edge_df_mod$value,2)
-# # z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
-# z2$edges_df$color <- map_to_brewer(edge_df_mod$strength, bins=9, option="RdPu")
-# # z2$edges_df$color <- map_to_viridis(edge_df_mod$strength, option="magma")
+hyde_str <- df_to_hyde_string(boot_res %>% filter(strength>.2, direction>0) %>% select(from,to))
+h2 <- HydeNetwork(as.formula(hyde_str))
+# plot(h2)
+
+z2 <- custom_plot.HydeNetwork(h2)
+
+boot_res %>%
+  filter(direction>0, strength>.2) %>%
+  # filter(parameter!="phi",parameter!="w_leak") %>%
+  # rename(from = parameter) %>%
+  # mutate(from = gsub("w_","",from)) %>%
+  mutate(strength = strength*direction) %>%
+  select(to, from, strength) %>%
+  merge(z2$nodes_df %>% rename(from = label) %>% select(id, from), by="from") %>%
+  mutate(from = id) %>%
+  select(-id) %>%
+  merge(z2$nodes_df %>% rename(to = label) %>% select(id, to), by="to") %>%
+  mutate(to = id) %>%
+  arrange(to,from) -> edge_df_mod
+
+
+# z$nodes_df
+z2$nodes_df <- z2$nodes_df %>% mutate(label = recode_nodes(label))
+z2$nodes_df$fontname <- "Helvetica"
+z2$nodes_df$shape <- "ellipse"
+z2$nodes_df$fillcolor <- ifelse(z2$nodes_df$label=="Vaccination\nIntentions", "grey","white")
+z2$nodes_df$fixedsize <- FALSE
+z2$edges_df$penwidth <- abs(edge_df_mod$strength)*2
+z2$edges_df$penwidth <- 1.5
+# z$edges_df$label <- round(edge_df_mod$value,2)
+# z$edges_df$color <- ifelse(edge_df_mod$value > 0, "blue","red")
+z2$edges_df$color <- map_to_brewer(edge_df_mod$strength, bins=9, option="RdPu")
+# z2$edges_df$color <- map_to_viridis(edge_df_mod$strength, option="magma")
 # 
 # render_graph(z2)
+
+export_graph(z2, "../local/boot-graph.pdf")
 ```
 
-```{r, echo=F, warning=F, message=F}
-# boot_graph_legend <- (tibble(
-#   Probability = seq(min(edge_df_mod$strength), max(edge_df_mod$strength), length=11),
-# ) %>% 
-#   ggplot(aes(y=1, x = Probability, fill = Probability)) +
-#   geom_tile() +
-#   scale_fill_distiller(palette="RdPu", direction=1)
-# ) %>% 
-#   cowplot::get_legend()
-# 
+```{r, include=F}
+boot_graph_legend <- (tibble(
+  Probability = seq(min(edge_df_mod$strength), max(edge_df_mod$strength), length=11),
+) %>%
+  ggplot(aes(y=1, x = Probability, fill = Probability)) +
+  geom_tile() +
+  scale_fill_distiller(palette="RdPu", direction=1)
+) %>%
+  cowplot::get_legend()
+
+cowplot::save_plot("../local/boot-graph-legend.svg", boot_graph_legend)
 # cowplot::ggdraw(boot_graph_legend)
 ```
 
 
-Next, we can ask about the directions of the relationships within the model by examining the “completed partially directed acyclic graph” (CPDAG) derived from the structure learning algorithm. This is a graph with both directed and undirected edges which represents the “Markov equivalence class” of DAGs: the set of DAGs representing equivalent patterns of conditional (in)dependence among variables. Alternatively, this can be conceived of as “score equivalence,” the set of graphs which would produce equivalent scores for the observed data (Chickering, 2013). The CPDAG derived from our fit model contains 14 directed edges and 15 undirected arcs—indicating that the data do not constrain the directions of 15 of the edges in the final model. Of these undirected arcs, 10 directions are determined by our generative model constraints that we applied before fitting the model. Five arcs were determined neither by these constraints nor the data: these were $\text{holistic balance} \leftrightarrow \text{naturalism}$; $\text{medical skepticism} \leftrightarrow  \text{parental expertise}$, $\text{vaccine toxicity} \leftrightarrow \text{vaccine efficacy}$, $\text{vaccine toxicity} \leftrightarrow \text{vaccine danger}$ and $\text{vaccine danger} \leftrightarrow \text{vaccine efficacy}$. Thus, we feel that no strong conclusions should be drawn surrounding the counterintuitive relationships regarding vaccine toxicity, danger, and effectiveness. 
+```{r disp-bootgraph, echo=F, fig.width=8, fig.height=5, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across 200 bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown."}
+
+## assemble bootstrapping graph and legend into pdf and display here
+knitr::include_graphics("../local/boot-graph.pdf") 
+```
+
+
+Though we found the uncovered network structure to be quite revealing and informative, there are also some important limitations that should be acknowledged. In particular, the edges from the vaccine danger and vaccine effectiveness nodes to the vaccine toxicity node strike us as counterintuitive. Intuitively, we might imagine that vaccines having toxins could cause them to be dangerous and ineffective. Yet the edges in the model run from in the opposite direction, and so do not support a clear causal interpretation. 
+
+A Bayesian network is a factorized representation of a probability distribution and any given network is a member of a "Markov equivalence class"—a set of networks capable of factorizing the same distribution. This set of DAGs can be represented as a "completed partially directed acyclic graph" (CPDAG), a graph with both directed and undirected edges. The equivalence class for our model can be represented as a CPDAG with 14 directed edges and 15 undirected edges—indicating that the data do not constrain the directions of 15 of the edges in the final model. However, 10 of these edges’ directions are directly constrained by our top-down "generative model" constraints, which in turn constrains all but two of the remaining undirected edges, including the counterintuitive edges running toward vaccine toxins. This is also reflected in a bootstrapping analysis applying our chosen structure learning algorithm against 1000 bootstrapped replicates of our data. We found that the direction of some edges within the graph differed across bootstrapped runs (Holistic balance -- naturalism, medical skepticism -- parental expertise), but that these unintuitive relationships surrounding vaccine toxins were robust. 
+
+Altogether, these findings might be seen as demonstrating the need for a heavier hand in establishing top-down constraints on the model fitting. Certainly, they call for caution in interpreting the relationships represented in this model. Due to their tight connections with structural causal networks, it is tempting to interpret the edges in Bayesian networks as “causal.” However, these relationships are best thought of as probabilistic dependencies or “influence” relations (Williamson, 2001). Indeed, there are other cases where it is unclear if an edge should be directed at all: e.g., it is not obvious to us what would be the “correct” direction for the edge between naturalism and holistic balance. We might even speculate there is an additional unmeasured variable that connects these beliefs and that would best account for their association. Ultimately, this model should be understood as offering a plausible, but not definitive, account for a cognitive model connecting these different beliefs. 
 
 ```{r, include=F}
 ## explore cpdag
@@ -357,6 +369,14 @@ ruled_out <- inner_join(as.data.frame(undirected.arcs(cpdag(my_model))), as.data
 anti_join(as.data.frame(undirected.arcs(cpdag(my_model))), (ruled_out %>% bind_rows(ruled_out %>% rename(to="from", from="to")) ), by = c("from", "to"))
 ```
 
+What does the resulting model reveal about the intuitive theory undergirding vaccination decisions? 
+
+The three nodes with direct connections to _vaccine intentions_ are beliefs about _vaccine effectiveness_, _vaccine danger_, and the severity of childhood diseases (_disease severity_)---concrete beliefs that are, at face value, especially closely related to vaccination decisions. The directionality of these edges is informed by the constraints we applied via the generative model principle, but the identification of these three factors as the most proximal to vaccine intentions is a product of the structure learning approach. This gives us some confidence that the model is capturing important relationships. 
+
+Other parts of the model shed new light on the role of lay theories in vaccine decisions. For example, _naturalism_—--the general view that natural things are better than artificial things—appears to be strongly related to _medical skepticism_ and _parental expertise_; all three of these abstract beliefs are related to concrete beliefs that, in turn, feed into participants’ vaccination intentions. This hierarchical structure is at least partly a product of our constraints that sorted these beliefs into “tiers” of abstractness. However, the fact that a model with these constraints still functions well for prediction demonstrates that this hierarchical structure is plausible.
+
+Finally, this model structure also helps explain some initially surprising findings. For example, before collecting these data we speculated that dispelling the misconceptions about the capacity of the infant immune system could promote positive attitudes toward vaccination. We were disappointed to observe the weak first-order correlation between this belief and vaccine intentions in our behavioral data ($r$ = -.09 in our training split). The model sheds light on this surprising (lack of) relationship: Although the belief that the infant immune system is limited in capacity is positively related to the belief that vaccines strain the immune system—discouraging vaccination, as we had assumed—it also seems to promote the belief that childhood diseases have severe consequences for young children (_disease severity_), which might, in turn, encourage vaccination. These countervailing forces—which, on average, seem to have canceled each other out in this sample—dissuaded us from our plans to develop an intervention aimed at dispelling misconceptions about limited capacity in order to encourage childhood vaccination.
+
 
 ```{r, include=F}
 
@@ -365,7 +385,7 @@ h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
 c <- find_dag_coefs(main_model, train)
 ```
 
-```{r main_model_plot, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
+```{r main_model_plot, include=F}
 
 
 z <- custom_plot.HydeNetwork(h, attr_theme="tb")
@@ -408,14 +428,12 @@ z$edges_df$color <- map_to_brewer(edge_df_mod$value, bins=11, option="RdBu")
 graph_text <- DiagrammeR::generate_dot(z)
 write_file(graph_text, "graph-dot-code.txt")
 
-# export graph image and render
+# export graph image
 export_graph(z, "../local/main-graph.pdf")
-render_graph(z)
+# render_graph(z)
 ```
 
-
-
-```{r, echo=F, warning=F, message=F}
+```{r, include=F}
 ## NOTE: I just can't figure out how to nicely display the graph and legend in code
 ## it's easier just to export them both and then combine with a graphics app
 
@@ -428,8 +446,16 @@ main_graph_legend <- (tibble(
   cowplot::get_legend()
 
 cowplot::save_plot("../local/graph-legend.svg", main_graph_legend)
-cowplot::ggdraw(main_graph_legend)
+# cowplot::ggdraw(main_graph_legend)
 
+```
+
+
+```{r disp-maingraph, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
+
+## assemble main model graph and legend into pdf and display here (main-graph-combined.pdf)
+## currently just the output graph w/ no legend (main-graph.pdf)
+knitr::include_graphics("../local/main-graph.pdf") 
 ```
 
 Altogether, these findings might be seen as demonstrating the need for a heavier hand in establishing top-down constraints on the model fitting. Certainly, they call for caution in interpreting the relationships represented in this model. Due to their tight connections with structural causal networks, it is tempting to interpret the edges in Bayesian networks as “causal”. However, these relationships are best thought of simply as probabilistic dependencies or “influence” relations (cite). Indeed, there are other cases where it is unclear if an edge should be directed at all: e.g., it is not obvious to us what would be the “correct” direction for the edge between naturalism and holistic balance. We might even speculate there is an additional unmeasured variable that connects these beliefs and that would best account for their association. Ultimately, this model should be understood as offering a plausible, but not definitive, account for a cognitive model connecting these different beliefs. 
@@ -523,9 +549,9 @@ plt.valid
 ```
 For each node, we also compared the Bayesian network model’s predictions to a naive “maximal” model using values on all other belief scales as predictors. Our intention was to capture the degree to which each belief is predictable from the others as a whole. As shown in table X, the relatively simpler Bayesian network model does not sacrifice any predictive power compared to the suite of maximal naive models.
 
-Finally, we can also compare the quality of our model predictions to the test-retest reliability of the belief scales, establishing an overall upper-bound on the predictability of these measures. As shown in table X, the Bayesian network model did approximately as well as possible for seven beliefs, but fell short for the other seven. These failures suggest that the model is missing the information that would be needed to predict these beliefs. Although the notion of an intuitive theory presupposes that there is some collective unit of cognitive machinery defining people’s thinking about a particular domain, defining the boundaries of an intuitive theory is far from straightforward. It could be that new measurements are needed to fully capture these aspects of the intuitive theory, or these beliefs are sufficiently peripheral that they should not be considered part of the intuitive theory. Given the fuzzy nature of the problem, and of cognition more generally, we expect that these types of decisions will be driven as much by investigators' pragmatic concerns as they are by psychological facts. 
+Finally, we can also compare the quality of our model predictions to the test-retest reliability of the belief scales (estimated from the pre-test and post-test measures in the control condition of Study 2), establishing an overall upper-bound on the predictability of these measures. As shown in Table \@ref(tab:model_valid_table), the Bayesian network model did approximately as well as possible for seven beliefs, but fell short for the other seven. These failures suggest that the model is missing the information that would be needed to predict these beliefs. Although the notion of an intuitive theory presupposes that there is some collective unit of cognitive machinery defining people’s thinking about a particular domain, defining the boundaries of an intuitive theory is far from straightforward. It could be that new measurements are needed to fully capture these aspects of the intuitive theory, or these beliefs are sufficiently peripheral that they should not be considered part of the intuitive theory. Given the fuzzy nature of the problem, and of cognition more generally, we expect that these types of decisions will be driven as much by investigators' pragmatic concerns as they are by psychological facts. 
 
-```{r, echo=FALSE, message=F, warning=F}
+```{r model_valid_table, echo=FALSE, message=F, warning=F}
 # compare S1 model predictions to test-retest reliability?
 
 test_retest_cor <- function(node){
@@ -645,13 +671,14 @@ kbl(model_fits_print, booktabs = T,
     caption = "Correlations for observed and predicted out-of-sample values") %>% 
   kable_classic(full_width = F, html_font = "Cambria")
 ```
+
 ## Estimating the strength of evidence from changes in belief reports
 
-Returning to the DAG shown in Figure 1 above, consider the subgraph $FIRE \rightarrow SMOKE$, capturing the fact that fire causes smoke. This relationship is represented as a probabilistic function, where the probability of SMOKE depends on the probability of FIRE. If we observe the presence of SMOKE, we can draw inferences about FIRE. 
+Returning to the DAG shown in Figure \@ref(fig:dag_example) above, consider the subgraph $FIRE \rightarrow SMOKE$, capturing the fact that fire causes smoke. This relationship is represented as a probabilistic function, where the probability of SMOKE depends on the probability of FIRE. If we observe the presence of SMOKE, we can draw inferences about FIRE. 
 
-However, sometimes reasoners have only indirect evidence at their disposal. For instance, a person might not directly observe smoke, but instead hear from a witness who claimed to have seen it. Indirect or partial observations can be captured by augmenting the network, creating the graph $FIRE \rightarrow SMOKE \rightarrow WITNESS$. Here, a new node WITNESS represents another person’s testimony that they saw smoke, providing imperfect evidence for SMOKE, encoded by another probabilistic function. Observing WITNESS informs beliefs about SMOKE, in turn informing beliefs about FIRE. This approach to representing uncertain evidence is known as “virtual evidence” (Pearl, 1988).
+However, sometimes reasoners have only indirect evidence at their disposal. For instance, a person might not directly observe smoke, but instead hear from a witness who claimed to have seen it. Indirect or partial observations can be captured by augmenting the network, creating the graph $FIRE \rightarrow SMOKE \rightarrow WITNESS$. Here, a new node WITNESS represents another person’s testimony that they saw smoke, providing imperfect evidence for SMOKE, encoded by another probabilistic function. Observing WITNESS informs beliefs about SMOKE, in turn informing beliefs about FIRE. This approach to representing uncertain evidence is known as “virtual evidence” [@pearl1988].
 
-To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in figure #) with an additional node representing the evidence. For instance, to model the effects of the “disease risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node. To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
+To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in Figure \@ref(fig:disp-maingraph)) with an additional node representing the evidence. For instance, to model the effects of the “disease risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node. To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
 
 $$ log\big(O(h|d)\big) = log\big(O(h)\big) + ln\Big(\frac{P(d|h=1)}{P(d|h=0)}\Big) $$
 
@@ -664,7 +691,7 @@ The evidence ratio can be estimated from a model that is linear in the log-odds.
 $$y \sim beta\big(\mu k, (1-\mu)k\big)$$
 $$logit(\mu) = logit(pretest) + \ln(ER_0) + x\ln(ER_{1})$$
 
-Where x was a binary variable representing the presence (1) or absence (0) of evidence at posttest, and participants’ prior and posterior (pretest and posttest) credences were transformed by the logit function. This allowed us to estimate the log evidence ratio implied by participants’ reactions to the intervention (ER1) as well as the intervening time period without any explicit evidence (ER0). Then, we constructed a CPT consistent with ER1. For instance, with an evidence ratio below 1, we set:
+Where $x$ was a binary variable representing the presence (1) or absence (0) of evidence at posttest, and participants’ prior and posterior (pretest and posttest) credences were transformed by the logit function. This allowed us to estimate the log evidence ratio implied by participants’ reactions to the intervention ($ER_1$) as well as the intervening time period without any explicit evidence ($ER_0$). Then, we constructed a CPT consistent with $ER_1$. For instance, with an evidence ratio below 1, we set:
 
 $$ p(evidence = 1 | x ) = .50*ER_1$$ 
 $$ p(evidence = 0 | x) = .50. $$
@@ -679,7 +706,7 @@ We used this approach to predict how evidence (either interventions or real-worl
 
 Before discovering a network connecting beliefs, we first needed to identify a set of beliefs that might plausibly influence vaccination decisions and develop ways of measuring these beliefs.  
 
-To do this, we drew on a variety of sources, including a qualitative survey with participants in a previous study who had self-identified as vaccine skeptics. Out of 23 people invited to participate, n=16 participants completed the survey via Amazon Mechanical Turk (MTurk). All participants answered “yes” to the question “Are you concerned that childhood vaccinations might cause serious side-effects?” When asked, “Do you have concerns about all vaccines or only some specific vaccines?” nearly all participants (14 of 16) expressed being concerned about specific vaccines; 3 of these participants, as well as the remaining 2 participants, expressed concern about all vaccines.
+To do this, we drew on a variety of sources, including a qualitative survey with a set of pre-screened participants who had self-identified as vaccine skeptics. Out of 23 people invited to participate, n=16 participants completed the survey via Amazon Mechanical Turk (MTurk). All participants had previously answered “yes” to the question “Are you concerned that childhood vaccinations might cause serious side-effects?” When asked, “Do you have concerns about all vaccines or only some specific vaccines?” nearly all participants (14 of 16) expressed being concerned about specific vaccines; 3 of these participants, as well as the remaining 2 participants, expressed concern about all vaccines.
 
 The remainder of the survey was devoted to open-ended questions, which we will summarize here as they were a major source of inspiration for the development of the 14 “belief scales” employed in Studies 1-4. 
 
@@ -691,19 +718,21 @@ When asked whether it would be safer to vaccine a 2-month-old child for 5 separa
 
 Finally, when asked why most healthcare providers recommend vaccinating young children, most participants (7 of 15; 1 participant did not respond) stated explicitly that healthcare providers have financial incentives to recommend vaccination -- but many (7 of 15, including several who mentioned financial incentives) also acknowledged that healthcare providers likely believe (in the participants’ view, mistakenly) that vaccinations are harmless and effective. Some participants (6 of 15) stated that healthcare providers are following protocol  
 
-Drawing on these responses as well as anti-vaccine websites and academic articles on anti-vaccine skepticism (e.g., CITE), we generated a list of 13 underlying beliefs that might influence people’s decisions about whether to vaccinate their children (_vaccine intentions_, the last of our 14 beliefs). These included a variety of claims about vaccines, including beliefs about (1) the overall danger of vaccines (_vaccine danger_); (2) _toxic additives in vaccines_; and (3) _vaccine effectiveness_, how effective vaccines are in preventing disease; as well as a variety of specific claims about childhood diseases like measles, mumps, and rubella, including beliefs about (4) _disease rarity_ and (5) _disease severity_. Inspired by the many participants who invoked concerns about the effect of vaccines on infants’ immature immune systems, we also developed scales to assess beliefs that (6) the infant immune system is weak (_IIS: weakness_); (7) the infant immune system is limited in its capacity and can be easily overwhelmed (_IIS: limited capacity_); and (8) vaccines strain the infant immune system (_IIS: vaccines strain_). Beyond this, we developed two scales to assess general theories about parenting, including (9) general _parental protectiveness_; (10) _parental expertise_, namely the belief that parents usually know more about their children’s health than medical experts; and one scale to assess (12) _medical skepticism_, including concerns about pharmaceutical companies and corruption in the medical community. Finally, we decided to assess two broad worldviews: (12) _naturalism_, a general preference for natural over artificial things; and (13) _holistic balance_, one important aspect of attitudes toward alternative medicine (e.g., “The body is essentially self-healing and the task of a health care provider is to assist the healing process”; McFadden, Hernandez, & Ito, 2010). 
+Drawing on these responses as well as anti-vaccine websites and academic articles on anti-vaccine skepticism [@dube.etal2015, @larson.etal2015, @salmon.etal2015, @williams2014], we generated a list of 13 underlying beliefs that might influence people’s decisions about whether to vaccinate their children (_vaccine intentions_, the last of our 14 beliefs). These included a variety of claims about vaccines, including beliefs about (1) the overall danger of vaccines (_vaccine danger_); (2) _toxic additives in vaccines_; and (3) _vaccine effectiveness_, how effective vaccines are in preventing disease; as well as a variety of specific claims about childhood diseases like measles, mumps, and rubella, including beliefs about (4) _disease rarity _and (5) _disease severity_. Inspired by the many participants who invoked concerns about the effect of vaccines on infants’ immature immune systems, we also developed scales to assess beliefs that (6) the infant immune system is weak (_IIS: weakness_); (7) the infant immune system is limited in its capacity and can be easily overwhelmed (_IIS: limited capacity_); and (8) vaccines strain the infant immune system (_IIS: vaccines strain_). Beyond this, we developed two scales to assess general theories about parenting, including (9) general _parental protectiveness_; (10) _parental expertise_, namely the belief that parents usually know more about their children’s health than medical experts; and one scale to assess (12) _medical skepticism_, including concerns about pharmaceutical companies and corruption in the medical community. Finally, we decided to assess two broad worldviews: (12) _naturalism_, a general preference for natural over artificial things; and (13) _holistic balance_, one important aspect of attitudes toward alternative medicine (e.g., “The body is essentially self-healing and the task of a health care provider is to assist the healing process”; [@mcfadden.etal2010]. 
 
-_Holistic balance_ was the only belief for which we could identify a pre-existing psychometrically valid scale (McFadden et al., 2010). For each of the other 13 beliefs, we translated our qualitative insights into new psychometrically-valid scales through an iterative series of pilot studies not described here. We stipulated that each scale should be brief, composed of 4-6 statements for participants to evaluate; include at least one reverse-coded item; and be highly reliable (Cronbach’s α ≥ .80). 
-
+_Holistic balance_ was the only belief for which we could identify a pre-existing psychometrically valid scale [@mcfadden.etal2010]. For each of the other 13 beliefs, we translated our qualitative insights into new psychometrically-valid scales through an iterative series of pilot studies not described here. We stipulated that each scale should be brief, composed of 4-6 statements for participants to evaluate; include at least one reverse-coded item; and be highly reliable (Cronbach’s $\alpha \geq .80$). 
 
 ## General Methods: Studies 1-4
 
 Studies 1-4 were conducted using online surveys (administered with Qualtrics survey software) with participants recruited from Amazon’s mechanical turk (mTurk) work distribution website. All studies were conducted between [dates]. Repeat participation was prevented, with no participants involved in more than one study, except as noted in Study 4. A total of # participants completed their participation in these studies. All participants had gained approval for ≥ 95% of previous work (≥ 100 assignments); had verified US MTurk accounts; and indicated that they were ≥ 18 years old. See the participant demographics summary section below for full demographic information.
 
-_Method._ Participants in all of these studies were asked to respond at least once to 14 belief scales measuring beliefs relevant to vaccination decisions (as previously described). Across all studies, these scales were each presented on a separate survey page. On each page, participants were asked to rate “how much you agree or disagree” on a 7-point scale from Strongly disagree (coded as -3) to Strongly agree (+3). Scales, and questions within each scale, were presented in a random order for each participant. Two to four attention checks (“Please select somewhat agree” and “Please select somewhat disagree”) were embedded within two to four randomly chosen scales.
+### Method
 
-_Data processing._ For each scale, we generated a score for each participant by averaging their responses to each question in that scale (after reverse-coding where appropriate), and then rescaling these values to fall between 0 and 1, to represent a credence.
+Participants in all of these studies were asked to respond at least once to 14 belief scales measuring beliefs relevant to vaccination decisions (as previously described). Across all studies, these scales were each presented on a separate survey page. On each page, participants were asked to rate “how much you agree or disagree” on a 7-point scale from Strongly disagree (coded as -3) to Strongly agree (+3). Scales, and questions within each scale, were presented in a random order for each participant. Two to four attention checks (“Please select somewhat agree” and “Please select somewhat disagree”) were embedded within two to four randomly chosen scales.
 
+### Data processing
+
+For each scale, we generated a score for each participant by averaging their responses to each question in that scale (after reverse-coding where appropriate), and then rescaling these values to fall between 0 and 1, to represent a credence.
 
 ## Study 1
 
@@ -721,9 +750,9 @@ A total of `r s1_meta$n_total` people recruited from Amazon Mechanical Turk (mTu
 
 ### Results
 
-Figure X presents correlations among the 14 belief scales measured in Study 1. As the figure shows, there are strong correlations among many of the beliefs, suggesting they are related by an underlying intuitive theory.
+Figure \@ref(fig:corrplot) presents correlations among the 14 belief scales measured in Study 1. As the figure shows, there are strong correlations among many of the beliefs, suggesting they are related by an underlying intuitive theory.
 
-```{r, echo=FALSE, message=F, fig.height=7, fig.width=7, fig.align='center', fig.cap = "Correlations among 14 the belief scales measured in Study 1. Correlation matrix is arranged by hierarhical clustering algorithm to highlight connections among beliefs."}
+```{r corrplot, echo=FALSE, message=F, fig.height=7, fig.width=7, fig.align='center', fig.cap = "Correlations among 14 the belief scales measured in Study 1. Correlation matrix is arranged by hierarhical clustering algorithm to highlight connections among beliefs."}
 # plot correlation matrix
 library(corrplot)
 
@@ -854,13 +883,13 @@ fit_s2_vaccIntent %>%
 
 ```
 
-We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the disease risk intervention on responses to the _Vaccination Intentions_ scale items, using the “brms” package for R (CITE). We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention responses is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (see Table X). We consider this to be a full replication of Horne, Powell, et al.’s (XX) results.
+We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the disease risk intervention on responses to the _Vaccination Intentions_ scale items, using the “brms” package for R [@burkner2017]. We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention responses is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (see Table \@ref(tab:s2_model)). We consider this to be a full replication of Horne et al.’s [-@horne.etal2015] results.
 
 To model the changes in the belief network, we estimate the “evidence ratio” using the method described in the modeling section above. The maximum likelihood estimate of the evidence ratio was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio. Given that our cognitive model is parameterized via noisy-logical functions, the predicted influence of each belief is closely related to its first-order correlation.
 
-Figure X (right) shows the correlation between predicted and observed belief changes conditional on the disease risk intervention.
+Figure \@ref(fig:s2_plot) (right) shows the correlation between predicted and observed belief changes conditional on the disease risk intervention.
 
-```{r, echo=FALSE}
+```{r s2_plot, echo=FALSE}
 # create cognitive model for predicting change scores
 base_model <- create_bnlearn_cog_model(main_model, train)
 ```
@@ -920,19 +949,21 @@ s2_plt <- s2_diff_plot + s2_obs_pred_plot + plot_layout(ncol=2, widths = c(2,1))
 s2_plt
 ```
 
+The models’ predictions are strongly correlated with observed changes. Thus the model developed in Study 1 generalizes both across samples and across tasks: The model was developed from the correlations among beliefs in one sample of participants at a single time-point, and was able to accurately predict how a separate sample of participants revised their beliefs following evidence. 
+
 ## Studies 3a and 3b
 
 In our paper, we laid out three qualitative features of intuitive theories. 
 
-1) Where beliefs about two states of affairs, A and B, are related through a shared intuitive theory (e.g., A causes B), those beliefs will be systematically correlated across individuals (e.g., people who believe A will also tend to believe B); 
+1. Where beliefs about two states of affairs, A and B, are related through a shared intuitive theory (e.g., A causes B), those beliefs will be systematically correlated across individuals (e.g., people who believe A will also tend to believe B); 
 
-2) When two beliefs are related by an intuitive theory, evidence affecting one of those beliefs will also affect the other in accordance with their relationship in the intuitive theory (e.g., evidence for B will increase credence in A, and vice versa); and 
+2. When two beliefs are related by an intuitive theory, evidence affecting one of those beliefs will also affect the other in accordance with their relationship in the intuitive theory (e.g., evidence for B will increase credence in A, and vice versa); and 
 
-3) Following from the prior points, across individuals, the average change in one belief following evidence affecting another belief will be proportional to the correlation between those beliefs across individuals (evidence for B will increase credence in A in proportion to the correlation between beliefs A and B). 
+3. Following from the prior points, across individuals, the average change in one belief following evidence affecting another belief will be proportional to the correlation between those beliefs across individuals (evidence for B will increase credence in A in proportion to the correlation between beliefs A and B). 
 
-By assuming that these beliefs are connected via an intuitive theory, we can infer how any given belief in the network will change in response to evidence targeting any other belief in the network. We used the cognitive model to predict how vaccination intentions would be influenced by an intervention targeting each of the 13 other beliefs in the network. Given that our cognitive model is parameterized via noisy-logical functions, the predicted influence of each belief is closely related to its first-order correlation. This captures qualitative Feature 3 of intuitive theories. Figure X presents these predictions, assuming the changes in beliefs are designed to move vaccine intentions in a positive direction (e.g. increasing “disease severity” beliefs but decreasing “vaccine danger” beliefs).
+By assuming that these beliefs are connected via an intuitive theory, we can infer how any given belief in the network will change in response to evidence targeting any other belief in the network. We used the cognitive model to predict how vaccination intentions would be influenced by an intervention targeting each of the 13 other beliefs in the network. Given that our cognitive model is parameterized via noisy-logical functions, the predicted influence of each belief is closely related to its first-order correlation. This captures qualitative Feature 3 of intuitive theories. Figure \@ref(fig:predicted_impacts) presents these predictions, assuming the changes in beliefs are designed to move vaccine intentions in a positive direction (e.g. increasing “disease severity” beliefs but decreasing “vaccine danger” beliefs).
 
-```{r echo=F, message=F, fig.align='center', fig.height=3, fig.width=3, fig.cap="Predicted effects on Vaccine Intentions for hypothetical interventions targeting each of the 13 other beliefs"}
+```{r predicted_impacts, echo=F, message=F, fig.align='center', fig.height=3, fig.width=3, fig.cap="Predicted effects on Vaccine Intentions for hypothetical interventions targeting each of the 13 other beliefs"}
 
 # this is some code to genrate predictions of vacc intent change based on
 # hypothetical interventions
@@ -996,7 +1027,8 @@ interv_sim <- corrmat["vaccIntent",] %>%
   theme(aspect.ratio = 1))
   
 ```
-Guided by these predictions, we identified beliefs about toxins in vaccines as a potentially useful site of intervention--it is among the most strongly related and it is a concrete belief that could be addressed directly. We developed an educational intervention aimed at alleviating these concerns and tested its efficacy in two experiments.
+
+Guided by these predictions, we identified beliefs about toxins in vaccines as a potentially useful site of intervention--it is among the most strongly related and it is a concrete belief that could be addressed directly.Using information from the University of Oxford’s “Vaccine Knowledge Project”, the U.S. Department of Health and Human Services, Federal Drug Administration, and CDC, we developed an educational intervention aimed at alleviating these concerns and tested its efficacy in two experiments. 
 
 ### Participants.
 
@@ -1005,11 +1037,11 @@ We recruited `r s3_meta$n_recruited` people to participate in a two-day study vi
 
 ### Methods. 
 
-Procedures for studies 3a and 3b closely followed those of Study 2, but these studies tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. Full text of this intervention is available in appendix C of these supplementary materials. In both studies, participants were randomly assigned to either a no-intervention control condition or to the novel vaccine toxins intervention.
+Procedures for studies 3a and 3b closely followed those of Study 2, but these studies tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. Full text of this intervention is available in Appendix C of these supplementary materials. In both studies, participants were randomly assigned to either a no-intervention control condition or to the novel vaccine toxins intervention.
 
 ### Results. 
 
-Due to the similarity of their designs, we combined data from studies 3a and 3b for our primary analysis. However, for full transparency we first describe analyses for these studies individually. As in Experiment 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the vaccine toxins intervention on participants’ _Vaccination Intentions_ scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to a no-intervention control condition. Tables X-X show the results of these regression analyses for Experiment 3a, 3b, and the two studies combined. In each analysis, the coefficient representing the interaction between phase and condition is positive and credibly differs from zero, indicating that the vaccine toxins intervention positively impacted vaccination intentions.
+Due to the similarity of their designs, we combined data from studies 3a and 3b for our primary analysis. However, for full transparency we first describe analyses for these studies individually. As in Experiment 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the vaccine toxins intervention on participants’ _Vaccination Intentions_ scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to a no-intervention control condition. Tables below show the results of these regression analyses for Experiment 3a, 3b, and the two studies combined. In each analysis, the coefficient representing the interaction between phase and condition is positive and credibly differs from zero, indicating that the vaccine toxins intervention positively impacted vaccination intentions.
 
 However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions in both experiments (indicated by a credibly non-zero phase coefficient in each corresponding table). Observing this in Experiment 3a, we suspected that these attitudes were also being influenced by other factors during the course of the study. Approximately two months later we conducted Experiment 3b. However, we found similar patterns of changes in this later study as well. We now speculate that news of an ongoing measles outbreak at the time of these studies (Spring of 2019) may have influenced participants’ beliefs about vaccines, although it is not obvious what specific news stories could have caused these shifts from one day to the next.
 
@@ -1115,9 +1147,9 @@ make_table("Bayesian regression model coefficients for model of Vaccine Intentio
 
 To model the effect of the vaccine toxicity intervention, we followed the same procedure as in Study 2, but this time augmented the model with a node representing the vaccine toxicity intervention as a child of the vaccine toxins belief node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
 
-Figure X shows the correlation between predicted and observed belief changes conditional on the vaccine toxicity intervention.
+Figure \@ref(fig:s3_plot) (right) shows the correlation between predicted and observed belief changes conditional on the vaccine toxicity intervention.
 
-```{r echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Right, mean observed and model predicted change scores for the toxins intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Right, mean observed and model predicted change scores for the toxins intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 s3_diff_plot <- s3_scored %>% 
   # spread(phase, mean) %>% 
   drop_na(scale) %>% 
@@ -1125,7 +1157,7 @@ s3_diff_plot <- s3_scored %>%
   mutate(diff = post-pre) %>% 
   mutate(
     scale = recode_nodes2(scale),
-    condition = ifelse(condition=="noInterv", "Control", "Disease Risk")
+    condition = ifelse(condition=="noInterv", "Control", "Vaccine Ingredients")
     ) %>% 
   group_by(condition, scale) %>%
   summarize(M = mean(diff, na.rm=TRUE), se = sd(diff)/sqrt(n())) %>% 
@@ -1169,7 +1201,6 @@ s3_plt
 
 ## Study 4
 
-### _Participants_. 
 
 ```{r process_s4_data, include=FALSE}
 
@@ -1222,6 +1253,8 @@ s4_meta <- list(
 )
 ```
 
+### _Participants_. 
+
 We attempted to contact and re-recruit as many of the `r nrow(d_bn)` participants who completed Study 1 to participate in a follow-up study in May of 2019. We were able to re-recruit `r s4_meta$n_recruited` participants and of these`r s4_meta$n_complete` successfully completed the study including passing all attention checks.
 
 ### _Results._ 
@@ -1252,7 +1285,7 @@ rm(x)
 ```
 
 
-```{r, echo=FALSE, message=F, warning=F}
+```{r s4_table, echo=FALSE, message=F, warning=F}
 # compare conditions on vaccIntent w/ regression model
 # not run yet 5/25/21, 11:52 AM
 
@@ -1285,13 +1318,13 @@ make_table_df() %>%
 make_table("Bayesian regression model coefficients for model of Vaccine Intentions in Study 4.")
 ```
 
-Mirroring our analyses of interventions, we regressed responses to the _vaccine intentions_ scale items on predictors for phase (pre-outbreak in August and September 2017 vs. post-outbreak May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (see Table X). 
+Mirroring our analyses of interventions, we regressed responses to the _vaccine intentions_ scale items on predictors for phase (pre-outbreak in August and September 2017 vs. post-outbreak May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (see Table \@ref(tab:s4_table)). 
 
 To model the effects of news exposure we followed the same procedure as in previous studies, but here augmented the model with a node representing news exposure as a child of the vaccine intentions node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
 
-Figure X shows the correlation between predicted and observed belief changes for participants who were aware of the New York measles outbreak in May 2019.
+Figure \@ref(fig:s4_plot) (right) shows the correlation between predicted and observed belief changes for participants who were aware of the New York measles outbreak in May 2019.
 
-```{r echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
+```{r s4_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
 s4_diff_plot <- combined %>% 
   filter(returned==TRUE, !is.na(vacc_news)) %>% # somehow 5? participants slippd by without answering 
   mutate(posttest = rescale_beta(posttest, -3, 3), pretest = rescale_beta(pretest, -3, 3)) %>% 
@@ -1492,9 +1525,6 @@ saveRDS(results, "../local/paper-results.rds")
 
 \newpage
 
-# Appendix A
-
-
 ```{r, echo=FALSE}
 
 compute_alpha <- function(data, varName){
@@ -1521,16 +1551,223 @@ names(alpha_values) <- var_names
 
 ```
 
+# Appendix A
 
-Scale items + reliability coefficients
+At the beginning of the study, participants read the following instructions: “In this study, you will be asked to read a range of statements. Some of these statements may be controversial, and others less so. We are interested in your opinions about these issues. On each of the following screens, you'll see several statements. Please indicate how much you agree or disagree with each statement.”
+
+Participants then proceeded through 14 pages, with a different scale presented on each page. Scales, and questions within each scale, were presented in a random order for each participant. On each page, participants were asked to rate “how much you agree or disagree” on a 7-point scale from “Strongly disagree” to “Strongly agree.” After completing all 14 scales, participants were asked standard demographics questions (gender, age, race/ethnicity, religious affiliation, educational attainment, annual household income) as well as a handful of questions about whether they were or were expecting to be a parent. The study concluded with a brief statement about the safety of vaccines, as follows: “We very much appreciate hearing your opinions about these various issues. Some of these statements concerned vaccines. The overwhelming consensus in the scientific and medical communities is that vaccines are safe and effective. In case you're interested in learning more about this, below is a statement from the World Health Organization (WHO) on this topic, and a link to their website: ‘Vaccination is one of the most cost-effective health interventions available, saving millions of people from illness, disability and death each year. Effective and safe vaccines, which protect against a number of serious diseases, are available and many promising new vaccines are being developed.’ (WHO Website: www.who.int/immunization/diseases/en/).”
+
+The 14 scales are presented in their entirety below.
+
+_Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, and Conventional Medicine Attitudes Scale (CACMAS) (observed α=.82)
+
+
+
+1. The body is essentially self-healing and the task of a health care provider is to assist the healing process.
+2. Physical and mental health are maintained by an underlying energy or vital force.
+3. A patient’s symptoms should be regarded as a manifestation of a general imbalance or dysfunction affecting the whole body.
+4. Health and disease are a reflection of balance between positive life enhancing forces and negative destructive forces.
+
+_Naturalism_ (observed α=.77)
+
+
+
+1. Natural things are always better than synthetic alternatives.
+2. In some cases, it’s fair to say that science has improved on nature. (reversed)
+3. I’m always wary of any chemicals that were developed in a lab. 
+4. Overall, advances in chemistry and the creation of synthetic chemicals have done more harm than good for human health.
+5. Childbirth should take place at home rather than in a hospital.
+6. I’m not concerned about preservatives in food. (reversed)
+
+_Medical skepticism_ (observed α=.78)
+
+
+
+1. Pharmaceutical companies are more interested in making money than in helping people be healthy.
+2. FDA regulations ensure that approved pharmaceutical drugs are safe. (reversed)
+3. Pharmaceutical companies put pressure on the FDA and CDC to suppress negative findings.
+4. Most researchers are biased against the idea that medications or vaccinations could cause health problems.
+5. Pharmaceutical companies don’t make huge profits from the sale of vaccines. (reversed)
+6. For researchers developing vaccines, safety is a top priority. (reversed)
+
+_Disease rarity_ (observed α=.79)
+
+
+
+1. Diseases like measles and whooping cough are so rare that there is no real need to worry about them.
+2. Nowadays parents can feel certain their children will not contract measles or mumps.
+3. It’s not paranoid for parents to worry about their children getting measles. (reversed)
+4. It is almost impossible for a child currently living in the US to catch whooping cough.
+5. Measles and whooping cough are more common than people realize. (reversed)
+
+ 
+
+_Disease severity _(observed α=.84)
+
+
+
+1. Measles, mumps, and whooping cough are no more severe than the flu. (reversed)
+2. Childhood diseases are serious diseases.
+3. Diseases like measles, mumps, and whooping cough can cause permanent damage to a child who contracts them.
+4. Childhood diseases are not that big a deal. (reversed)
+5. Diseases like measles and whooping cough are extremely dangerous for young children. 
+
+_Vaccine effectiveness _(observed α=.84)
+
+
+
+1. Your chances of getting a disease after being vaccinated against it are incredibly low.
+2. Improved nutrition and sanitation played a larger role than vaccines in the decline of diseases like measles. (reversed)
+3. Recent outbreaks of diseases like measles and whooping cough show that vaccines don’t work very well. (reversed)
+4. Vaccines are one of the most effective medical treatments. 
+
+_Vaccine danger _(observed α=.88)
+
+
+
+1. Childhood vaccines can cause autism.
+2. It is safe for infants to receive multiple vaccines at once. (reversed)
+3. Many children have severe adverse reactions to the MMR vaccine.
+4. Vaccines are a very safe medical treatment. (reversed)
+
+_Toxic additives in vaccines _(observed α=.91)
+
+
+
+1. Vaccines do not contain dangerous amounts of toxins. (reversed)
+2. Vaccines are actually highly toxic to humans.
+3. Exposure to certain additives in vaccines can cause major health problems. 
+4. The quantities of chemical additives in vaccines are so small that they do not pose any health risks. (reversed)
+
+_Infant immune system: Vaccines strain _(observed α=.86)
+
+
+
+1. Vaccines strain the immune system much like the actual disease.
+2. One great benefit of vaccines is that they provide immunity without the immune system having to work so hard. (reversed)
+3. Vaccines can use up the capacity of the immune system, leaving a baby vulnerable.
+4. Vaccines are not very taxing for an infant's immune system. (reversed)
+5. Getting multiple vaccines at once can exhaust an infant’s immune system. 
+
+_Vaccination intentions _(observed α=.83)
+
+
+
+1. The risk of side effects outweighs any protective benefits of vaccines. (reversed)
+2. If I had a young baby I would have him or her vaccinated. 
+3. If I had a baby, I would opt to spread out his or her vaccinations, rather than following the traditional schedule. (reversed)
+4. I feel confident that vaccinating children is the right thing to do.
+5. I would never vaccinate my child. (reversed)
+
+_Parental expertise _(observed α=.83)
+
+
+
+1. Every individual is different and a parent knows their own child best.
+2. Parents have insights into their children’s health and well-being that no health professional can match.
+3. When a child encounters health problems, the child’s parents are often better equipped than doctors to identify the many subtle causes of those issues.
+4. Parents should trust a doctor’s advice even if it goes against their intuitions. (reversed)
+5. Advice from doctors is the best resource for keeping your child healthy. (reversed)
+
+_Infant immune system: Limited capacity_ (observed α=.86)
+
+
+
+1. When babies are exposed to one illness it leaves them especially vulnerable to other viruses and infections.
+2. Babies are able to fight off multiple viruses at the same time. (reversed)
+3. Babies’ immune systems can only develop a limited number of antibodies.
+4. Babies’ immune systems are severely limited in how much they can cope with at one time.
+5. Babies’ immune systems can deal with many threats at one time. (reversed)
+
+_Infant immune system: Weakness_ (observed α=.85)
+
+
+
+1. Babies should be sheltered from exposure to viruses and bacteria to the greatest extent possible.
+2. Babies have a very limited ability to fight off diseases.
+3. Babies’ immune systems are weak.
+4. Babies have an innate ability to fight off diseases. (reversed)
+5. Babies’ immune systems are more robust than many people think. (reversed)
+
+_Parental protectiveness _(observed α=.73)
+
+
+
+1. Parents should strive to control their baby’s environments as much as possible.
+2. Parents of babies should never leave anything to chance.
+3. There is no such thing as being overprotective of a baby.
+4. Many things that parents of babies worry about won’t actually have major consequences.
+5. Some parents go overboard trying to make everything perfect for their babies. (reversed)
 
 \newpage
 # Appendix B
 
-Disease severity intervention
+_Text of the Disease Risk intervention adapted from [@horne.etal2015]_
+
+All children should be vaccinated for measles, mumps, and rubella. These are serious diseases. Please read the descriptions of these diseases and carefully view the pictures.
+
+```{r measles-image, echo=F}
+# display measles image here
+```
+
+__Measles__
+
+Measles virus causes rash, cough, runny nose, eye irritation, and fever. It can lead to ear infections, pneumonia, seizures (jerking and staring), brain damage, and death.
+
+
+```{r mumps-image, echo=F}
+# display mumps image here
+```
+
+__Mumps__
+
+Mumps virus causes fever, headache, and swollen glands. It can lead to deafness, meningitis (infection of the brain and spinal cord covering), painful swelling of the testicles or ovaries, and, rarely, death.
+
+```{r rubellas-image, echo=F}
+# display rubella image here
+```
+
+__Rubella (German Measles)__
+
+Rubella virus causes rash, mild fever, and arthritis (mostly in women). If a woman gets rubella while she is pregnant, she could have a miscarriage or her baby could be born with serious birth defects.
+
+You or your child could catch these diseases by being around someone who has them. They spread from person to person through the air.
+
+Measles, mumps, and rubella (MMR) vaccine can prevent these diseases. Most children who get their MMR shots will not get these diseases. Many more children would get them if we stopped vaccinating.
+
+**Here is a true story that shows why vaccination is so important.**
+
+If you hear “106 degrees” you probably think “heat wave,” not a baby’s temperature. But for Megan Campbell’s 10-month-old son, a life-threatening bout of measles caused fevers spiking to 106 degrees and sent him to the hospital. “We spent 3 days in the hospital fearing we might lose our baby boy,” Campbell said. “He couldn't drink or eat, so he was on an IV, and for a while he seemed to be wasting away. When he could drink again, we got to take him home. But the doctors told us to expect the disease to continue to run its course, including high fever – which spiked as high as 106 degrees. We spent a week waking at all hours and soothing him with damp washcloths.”
+
+Thankfully, the baby recovered fully.
+
+Megan now knows that her son was exposed to measles when another mother brought her ill son into their pediatrician’s waiting room.
+ 
 
 \newpage
 # Appendix C
 
-Vaccine toxicity intervention
+_Text of the Vaccine Ingredients intervention targeting beliefs about toxins in vaccines._
 
+Vaccines are one of the most important medical advances in history, but some parents worry that vaccines contain toxins that could harm their babies. In fact, all of the ingredients in a vaccine serve important purposes that help ensure the safety and effectiveness of the vaccine. Decades of research have shown vaccine ingredients to be safe, even in much larger quantities than those found in vaccines.
+
+**What’s in a vaccine?**
+
+**Active ingredients**
+
+The key ingredient in all vaccines is one or more active ingredients, whose purpose is to train the immune system to recognize and combat the pathogens that cause diseases. To do this, certain molecules from the pathogen are introduced into the body to trigger an immune response. These molecules are called antigens, and they are present on all viruses and bacteria. By injecting these antigens into the body, the immune system can safely learn to recognize them as hostile invaders, produce antibodies, and remember them for the future. 
+
+**Other Ingredients**
+
+A typical dose of an injected vaccines is just 0.5 millilitres of liquid, which is just a few drops. Apart from active ingredients, the main ingredient in vaccines is water.  All other ingredients weigh a few thousandths of a gram or even less. All of the ingredients in vaccines have been proven to be safe for children in these minute quantities.
+
+All of the ingredients in a vaccine serve important purposes, and are present to ensure that the vaccine is safe and effective. Some of these added ingredients are adjuvants, added to enhance the immune system response; others are antibiotics, to prevent contamination during the manufacturing process; and still other ingredients act as preservatives and stabilizers.
+
+To take one example, consider one of the scariest things you may have heard about the ingredients in vaccines: that some vaccines contain formaldehyde. It may surprise you to learn that formaldehyde is actually produced by the human body as part of normal metabolic processes. Human bodies—even babies’ bodies—naturally produce, process, and safely excrete formaldehyde. The amount of formaldehyde in vaccines is extremely small compared to what our bodies produce on their own: the amount of formaldehyde naturally present in a 2-month-old infant’s blood (around 1.1 milligrams) is ten times greater than the amount found in any vaccine (less than 0.1 milligrams). In addition, many healthy foods--such as apples, grapes, bananas, and pears--naturally contain formaldehyde. A pear, for example, contains around 50 times more formaldehyde than is found in any vaccine.
+
+**Conclusion**
+
+Vaccines are extremely safe. A vaccine is just a few drops of liquid, the vast majority of which is water, and all of the ingredients in vaccines serve specific purposes to help make them safe and effective. Although some vaccine ingredients may sound scary, many of them are natural substances that are already in our bodies. In large quantities anything can be toxic, but extensive testing has shown that none of the ingredients in vaccines are toxic in the tiny quantities with which they’re used. Vaccines have been carefully studied to ensure both their safety and their effectiveness in protecting babies from serious diseases.
+
+\newpage
+# References
