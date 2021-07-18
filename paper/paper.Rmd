@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r load-required-data, include=FALSE}
-
+results <- readRDS("../local/paper-results.rds") 
 ```
 
 [add abstract]
