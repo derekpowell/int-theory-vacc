@@ -10,6 +10,7 @@ package_list <- c(
   "kableExtra",
   "DiagrammeR",
   "DiagrammeRsvg",
+  "rsvg",
   "corrplot",
   "cowplot",
   "caret"
