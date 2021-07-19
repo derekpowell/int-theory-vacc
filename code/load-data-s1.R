@@ -13,7 +13,7 @@ d_raw <- read.csv("../data/study1_data.csv", header = T)
 
 # filter rows and select columns
 d1 <- d_raw %>%
-  filter(grepl("2017", StartDate)) %>% # remove extra headers
+  filter(!grepl("Import", StartDate), !grepl("Start", StartDate)) %>% # remove extra headers
   filter(Status == "IP Address") %>% # remove survey previews (?)
   filter(Progress == 100) %>% # only get people who made it all the way through (?)
   filter(as.numeric(as.character(age)) >= 18) %>% # exclude people who said they were <18 yo (could be more stringent)
