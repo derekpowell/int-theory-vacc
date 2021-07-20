@@ -2,7 +2,7 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "Jul 18, 2021 (DRAFT)"
+date: "Jul 20, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -1107,13 +1107,18 @@ fit_s3_vaccIntent %>%
   rename(`$CI_{2.5\\%}$` = `l-95% CI`,`$CI_{97.5\\%}$` = `u-95% CI`) %>% 
   mutate(
     Term = case_when(
-      grepl("(intervention|post)", Term) ~ paste0("$\\beta_{",
-                                                 gsub("(intervention|phase)", "", Term),
-                                                 "}$"),
+      grepl("(intervention|post)", Term) ~ 
+        paste0("$\\beta_{",
+               gsub("(intervention|phase)", "", 
+                    gsub("study1", "3A", Term)),
+               "}$"),
+      grepl("(study1)", Term) ~ paste0("$\\beta_{",
+                                       gsub("(study1)", "3a", Term),
+                                       "}$"),
       grepl("Intercept\\[", Term) ~ gsub("Intercept\\[(.*)\\]","$\\\\alpha_{\\1}$", Term),
       Term == "item_sd(Intercept)" ~ "$\\sigma_{item}$",
       Term == "subj_sd(Intercept)" ~ "$\\sigma_{subj}$",
-      TRUE ~ gsub("(intervention|post)","", Term)
+      TRUE ~ gsub("(intervention|post)","", gsub("study1", "3a", Term))
     )
   ) %>% 
 make_table("Bayesian regression model coefficients for model of Vaccine Intentions combining data from Experiments 3a and 3b.")
