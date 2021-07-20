@@ -2,7 +2,7 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "Jul 17, 2021 (DRAFT)"
+date: "Jul 18, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
@@ -36,6 +36,7 @@ Figure \@ref(fig:dag-example) shows an example of a simple Bayesian Network. The
 
 library(DiagrammeR)
 library(DiagrammeRsvg)
+library(rsvg)
 
 grViz(
   diagram = "
@@ -298,7 +299,9 @@ boot_res %>%
 z2$nodes_df <- z2$nodes_df %>% mutate(label = recode_nodes(label))
 z2$nodes_df$fontname <- "Helvetica"
 z2$nodes_df$shape <- "ellipse"
-z2$nodes_df$fillcolor <- ifelse(z2$nodes_df$label=="Vaccination\nIntentions", "grey","white")
+z2$nodes_df$fillcolor <- ifelse(z2$nodes_df$label=="Vaccination\nIntentions", 
+                                "#fffaba","white")
+z2$nodes_df$fillalpha <- 0.1
 z2$nodes_df$fixedsize <- FALSE
 z2$edges_df$penwidth <- abs(edge_df_mod$strength)*2
 z2$edges_df$penwidth <- 1.5
@@ -327,16 +330,16 @@ cowplot::save_plot("../local/boot-graph-legend.svg", boot_graph_legend)
 ```
 
 
-```{r disp-bootgraph, echo=F, fig.width=8, fig.height=5, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across 200 bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown."}
+```{r disp-bootgraph, echo=F, fig.width=8, fig.height=5, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across 200 bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown. Our primary outcome of interest, vaccination intentions, is highlighted in yellow."}
 
 ## assemble bootstrapping graph and legend into pdf and display here
 knitr::include_graphics("../local/boot-graph.pdf") 
 ```
 
 
-Though we found the uncovered network structure to be quite revealing and informative, there are also some important limitations that should be acknowledged. In particular, the edges from the vaccine danger and vaccine effectiveness nodes to the vaccine toxicity node strike us as counterintuitive. Intuitively, we might imagine that vaccines having toxins could cause them to be dangerous and ineffective. Yet the edges in the model run from in the opposite direction, and so do not support a clear causal interpretation. 
+Though we found the uncovered network structure to be quite revealing and informative, there are also some important limitations that should be acknowledged. In particular, the edges from the vaccine danger and vaccine effectiveness nodes to the _vaccine toxicity_ node strike us as counterintuitive. Intuitively, we might imagine that vaccines having toxins could cause them to be dangerous and ineffective. Yet the edges in the model run from in the opposite direction, and so do not support a clear causal interpretation. 
 
-A Bayesian network is a factorized representation of a probability distribution and any given network is a member of a "Markov equivalence class"—a set of networks capable of factorizing the same distribution. This set of DAGs can be represented as a "completed partially directed acyclic graph" (CPDAG), a graph with both directed and undirected edges. The equivalence class for our model can be represented as a CPDAG with 14 directed edges and 15 undirected edges—indicating that the data do not constrain the directions of 15 of the edges in the final model. However, 10 of these edges’ directions are directly constrained by our top-down "generative model" constraints, which in turn constrains all but two of the remaining undirected edges, including the counterintuitive edges running toward vaccine toxins. This is also reflected in a bootstrapping analysis applying our chosen structure learning algorithm against 1000 bootstrapped replicates of our data. We found that the direction of some edges within the graph differed across bootstrapped runs (Holistic balance -- naturalism, medical skepticism -- parental expertise), but that these unintuitive relationships surrounding vaccine toxins were robust. 
+A Bayesian network is a factorized representation of a probability distribution and any given network is a member of a "Markov equivalence class"—a set of networks capable of factorizing the same distribution. This set of DAGs can be represented as a "completed partially directed acyclic graph" (CPDAG), a graph with both directed and undirected edges. The equivalence class for our model can be represented as a CPDAG with 14 directed edges and 15 undirected edges—indicating that the data do not constrain the directions of 15 of the edges in the final model. However, 10 of these edges’ directions are directly constrained by our top-down "generative model" constraints, which in turn constrains all but two of the remaining undirected edges, including the counterintuitive edges running toward _vaccine toxicity_. This is also reflected in a bootstrapping analysis applying our chosen structure learning algorithm against 1000 bootstrapped replicates of our data. We found that the direction of some edges within the graph differed across bootstrapped runs (Holistic balance -- naturalism, medical skepticism -- parental expertise), but that these unintuitive relationships surrounding _vaccine toxicity_ were robust. 
 
 Altogether, these findings might be seen as demonstrating the need for a heavier hand in establishing top-down constraints on the model fitting. Certainly, they call for caution in interpreting the relationships represented in this model. Due to their tight connections with structural causal networks, it is tempting to interpret the edges in Bayesian networks as “causal.” However, these relationships are best thought of as probabilistic dependencies or “influence” relations (Williamson, 2001). Indeed, there are other cases where it is unclear if an edge should be directed at all: e.g., it is not obvious to us what would be the “correct” direction for the edge between naturalism and holistic balance. We might even speculate there is an additional unmeasured variable that connects these beliefs and that would best account for their association. Ultimately, this model should be understood as offering a plausible, but not definitive, account for a cognitive model connecting these different beliefs. 
 
@@ -379,15 +382,12 @@ Finally, this model structure also helps explain some initially surprising findi
 
 
 ```{r, include=F}
-
 h <- HydeNetwork(as.formula(bnlearn_to_hyde_string(main_model)))
 
 c <- find_dag_coefs(main_model, train)
 ```
 
 ```{r main_model_plot, include=F}
-
-
 z <- custom_plot.HydeNetwork(h, attr_theme="tb")
 
 coefs <- tidy_coefs(c)
@@ -415,7 +415,7 @@ edge_df_mod <- uncompelled_edges %>%
 z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
 z$nodes_df$fontname <- "Helvetica"
 z$nodes_df$shape <- "ellipse"
-z$nodes_df$fillcolor <- ifelse(z$nodes_df$label=="Vaccination\nIntentions", "grey","white")
+z$nodes_df$fillcolor <- ifelse(z$nodes_df$label=="Vaccination\nIntentions", "#fffaba","white")
 z$nodes_df$fixedsize <- FALSE
 z$edges_df$penwidth <- abs(edge_df_mod$value)*2
 z$edges_df$penwidth <- 1.5
@@ -451,7 +451,7 @@ cowplot::save_plot("../local/graph-legend.svg", main_graph_legend)
 ```
 
 
-```{r disp-maingraph, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links."}
+```{r disp-maingraph, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links. Our primary outcome of interest, vaccination intentions, is highlighted in yellow."}
 
 ## assemble main model graph and legend into pdf and display here (main-graph-combined.pdf)
 ## currently just the output graph w/ no legend (main-graph.pdf)
@@ -678,7 +678,7 @@ Returning to the DAG shown in Figure \@ref(fig:dag_example) above, consider the 
 
 However, sometimes reasoners have only indirect evidence at their disposal. For instance, a person might not directly observe smoke, but instead hear from a witness who claimed to have seen it. Indirect or partial observations can be captured by augmenting the network, creating the graph $FIRE \rightarrow SMOKE \rightarrow WITNESS$. Here, a new node WITNESS represents another person’s testimony that they saw smoke, providing imperfect evidence for SMOKE, encoded by another probabilistic function. Observing WITNESS informs beliefs about SMOKE, in turn informing beliefs about FIRE. This approach to representing uncertain evidence is known as “virtual evidence” [@pearl1988].
 
-To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in Figure \@ref(fig:disp-maingraph)) with an additional node representing the evidence. For instance, to model the effects of the “disease risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node. To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
+To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in Figure \@ref(fig:disp-maingraph)) with an additional node representing the evidence. For instance, to model the effects of the “Disease Risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node. To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
 
 $$ log\big(O(h|d)\big) = log\big(O(h)\big) + ln\Big(\frac{P(d|h=1)}{P(d|h=0)}\Big) $$
 
@@ -837,7 +837,7 @@ fit_s2_vaccIntent <- brm(
   data = s2_reg,
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.99),
+  # control = list(adapt_delta=.99),
   seed = 46179,
   file = "../local/fit_s2_vaccIntent.rds"
 )
@@ -883,11 +883,11 @@ fit_s2_vaccIntent %>%
 
 ```
 
-We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the disease risk intervention on responses to the _Vaccination Intentions_ scale items, using the “brms” package for R [@burkner2017]. We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention responses is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (see Table \@ref(tab:s2_model)). We consider this to be a full replication of Horne et al.’s [-@horne.etal2015] results.
+We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the Disease Risk intervention on responses to the _Vaccination Intentions_ scale items, using the “brms” package for R [@burkner2017]. We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the Disease Risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention responses is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The Disease Risk intervention increased participants’ vaccination intention ratings (see Table \@ref(tab:s2_model)). We consider this to be a full replication of Horne et al.’s [-@horne.etal2015] results.
 
-To model the changes in the belief network, we estimate the “evidence ratio” using the method described in the modeling section above. The maximum likelihood estimate of the evidence ratio was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio. Given that our cognitive model is parameterized via noisy-logical functions, the predicted influence of each belief is closely related to its first-order correlation.
+To model the changes in the belief network, we estimate the “evidence ratio” using the method described in the modeling section above. The maximum likelihood estimate of the evidence ratio was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the _disease severity_ node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio. Given that our cognitive model is parameterized via noisy-logical functions, the predicted influence of each belief is closely related to its first-order correlation.
 
-Figure \@ref(fig:s2_plot) (right) shows the correlation between predicted and observed belief changes conditional on the disease risk intervention.
+Figure \@ref(fig:s2_plot) (right) shows the correlation between predicted and observed belief changes conditional on the Disease Risk intervention.
 
 ```{r s2_plot, echo=FALSE}
 # create cognitive model for predicting change scores
@@ -895,9 +895,24 @@ base_model <- create_bnlearn_cog_model(main_model, train)
 ```
 
 
-```{r echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiment 2. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Right, mean observed and model predicted change scores for the disease risk intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiment 2. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Disease Risk intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 ## combined plot for paper
 library(patchwork)
+
+s2_scale_order <- s2_scored %>% 
+  drop_na(scale) %>% 
+  spread(phase, mean) %>%
+  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>% 
+  mutate(diff = post-pre) %>% 
+  mutate(scale = recode_nodes2(scale)) %>% 
+  group_by(condition, scale) %>%
+  summarize(M = mean(diff, na.rm=TRUE)) %>%
+  ungroup() %>%
+  group_by(scale) %>%
+  summarize(diff_diff = mean(M, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(desc(diff_diff)) %>% # descending because intervention is expected to increase disease risk beliefs
+  mutate(order = 1:nrow(.))
 
 s2_diff_plot <- s2_scored %>% 
   spread(phase, mean) %>% 
@@ -908,28 +923,44 @@ s2_diff_plot <- s2_scored %>%
   mutate(diff = post-pre) %>% 
   mutate(
     scale = recode_nodes2(scale),
-    condition = ifelse(condition=="noInterv", "Control", "Disease Risk")
-    ) %>% 
+    condition = recode_factor(condition, 
+                              "noInterv" = "Control",
+                              .default = "Disease Risk")) %>% 
   group_by(condition, scale) %>%
   summarize(M = mean(diff, na.rm=TRUE), se = sd(diff)/sqrt(n())) %>% 
-  ggplot(aes(x = reorder(scale,M), y = M, ymin = M-se*2, ymax=M+se*2, color=condition, shape=condition)) +
+  ungroup() %>%
+  left_join(s2_scale_order) %>%
+  ggplot(aes(x = reorder(scale,order), y = M, 
+             ymin = M-se*2, ymax=M+se*2, 
+             color=condition, shape=condition)) +
+  scale_x_discrete() +
+  annotate("rect", 
+           xmin = s2_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) - 0.25,
+           xmax = s2_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.25,
+           ymin = -Inf,
+           ymax = Inf,
+           fill = "#fffaba") +
   geom_pointrange(position=position_dodge(width=.25)) +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=c("#0067b1","#c50024")) +
-  scale_shape_manual(values=c(17,16)) +
+  scale_shape_manual(values=c(16,17)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
     panel.grid = element_blank(),
-    legend.position = c(.35,.9),
+    legend.position = c(.5,.9),
     legend.direction = "horizontal",
+    legend.background = element_rect(fill = NA),
     aspect.ratio=.5
     ) +
-  labs(title="A", y = "Mean difference", x = "Belief scale", color="Intervention", shape="Intervention")
+  labs(title="A", y = "Mean difference", x = "Belief scale", 
+       color="Intervention", shape="Intervention")
 
 obs_pred <- make_pred_df(s2_mdf, base_model, "diseaseSevere")
 
-cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
+cor_val <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
 
 s2_obs_pred_plot <- obs_pred %>% # a bit of a hack
   ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
@@ -1037,11 +1068,11 @@ We recruited `r s3_meta$n_recruited` people to participate in a two-day study vi
 
 ### Methods. 
 
-Procedures for studies 3a and 3b closely followed those of Study 2, but these studies tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. Full text of this intervention is available in Appendix C of these supplementary materials. In both studies, participants were randomly assigned to either a no-intervention control condition or to the novel vaccine toxins intervention.
+Procedures for studies 3a and 3b closely followed those of Study 2, but these studies tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. Full text of this intervention is available in Appendix C of these supplementary materials. In both studies, participants were randomly assigned to either a no-intervention control condition or to the novel Vaccine Ingredients intervention.
 
 ### Results. 
 
-Due to the similarity of their designs, we combined data from studies 3a and 3b for our primary analysis. However, for full transparency we first describe analyses for these studies individually. As in Experiment 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the vaccine toxins intervention on participants’ _Vaccination Intentions_ scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to a no-intervention control condition. Tables below show the results of these regression analyses for Experiment 3a, 3b, and the two studies combined. In each analysis, the coefficient representing the interaction between phase and condition is positive and credibly differs from zero, indicating that the vaccine toxins intervention positively impacted vaccination intentions.
+Due to the similarity of their designs, we combined data from studies 3a and 3b for our primary analysis. However, for full transparency we first describe analyses for these studies individually. As in Experiment 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the Vaccine Ingredients intervention on participants’ _Vaccination Intentions_ scores. The Vaccine Ingredients intervention improved participant’s vaccination intention scores relative to a no-intervention control condition. Tables below show the results of these regression analyses for Experiment 3a, 3b, and the two studies combined. In each analysis, the coefficient representing the interaction between phase and condition is positive and credibly differs from zero, indicating that the Vaccine Ingredients intervention positively impacted vaccination intentions.
 
 However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions in both experiments (indicated by a credibly non-zero phase coefficient in each corresponding table). Observing this in Experiment 3a, we suspected that these attitudes were also being influenced by other factors during the course of the study. Approximately two months later we conducted Experiment 3b. However, we found similar patterns of changes in this later study as well. We now speculate that news of an ongoing measles outbreak at the time of these studies (Spring of 2019) may have influenced participants’ beliefs about vaccines, although it is not obvious what specific news stories could have caused these shifts from one day to the next.
 
@@ -1052,19 +1083,21 @@ However, it is worth noting that reliable changes were also observed from pretes
 s3_reg <- s3_long %>% 
   filter(scale=="vaccIntent") %>% 
   mutate(
+    study = relevel(factor(study), ref="A"),
     phase = relevel(factor(phase), ref="pre"),
     condition = relevel(factor(condition), ref="noInterv"),
     response = resp
     )
 
+contrasts(s3_reg$study) <- contr.sum(2)
 
 fit_s3_vaccIntent <- brm(
-  response ~ phase*condition + (1|item) + (1|workerId),
+  response ~ phase*condition*study + (1|item) + (1|workerId),
   family = cumulative("logit"),
   data = s3_reg,
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.95),
+  # control = list(adapt_delta=.99),
   seed = 69568,
   file = "../local/fit_s3_vaccIntent.rds"
 )
@@ -1096,7 +1129,7 @@ fit_s3a_vaccIntent <- brm(
   data = s3_reg %>% filter(study=="A"),
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.99),
+  # control = list(adapt_delta=.99),
   seed = 69568,
   file = "../local/fit_s3a_vaccIntent.rds"
 )
@@ -1107,7 +1140,7 @@ fit_s3b_vaccIntent <- brm(
   data = s3_reg %>% filter(study=="B"),
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.99),
+  # control = list(adapt_delta=.99),
   seed = 69568,
   file = "../local/fit_s3b_vaccIntent.rds"
 )
@@ -1145,11 +1178,26 @@ fit_s3b_vaccIntent %>%
 make_table("Bayesian regression model coefficients for model of Vaccine Intentions in Experiment 3b.")
 ```
 
-To model the effect of the vaccine toxicity intervention, we followed the same procedure as in Study 2, but this time augmented the model with a node representing the vaccine toxicity intervention as a child of the vaccine toxins belief node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
+To model the effect of the Vaccine Ingredients intervention, we followed the same procedure as in Study 2, but this time augmented the model with a node representing the Vaccine Ingredients intervention as a child of the _vaccine toxicity_ belief node. The maximum likelihood estimate of the evidence ratio for the Vaccine Ingredients intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the _vaccine toxicity_ node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
 
-Figure \@ref(fig:s3_plot) (right) shows the correlation between predicted and observed belief changes conditional on the vaccine toxicity intervention.
+Figure \@ref(fig:s3_plot) (right) shows the correlation between predicted and observed belief changes conditional on the Vaccine Ingredients intervention.
 
-```{r s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Right, mean observed and model predicted change scores for the toxins intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+
+s3_scale_order <- s3_scored %>% 
+  drop_na(scale) %>% 
+  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>% 
+  mutate(diff = post-pre) %>% 
+  mutate(scale = recode_nodes2(scale)) %>% 
+  group_by(condition, scale) %>%
+  summarize(M = mean(diff, na.rm=TRUE)) %>%
+  ungroup() %>%
+  group_by(scale) %>%
+  summarize(diff_diff = mean(M, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(diff_diff) %>% # ascending because intervention is expected to decrease vaccine toxicity beliefs
+  mutate(order = 1:nrow(.))
+
 s3_diff_plot <- s3_scored %>% 
   # spread(phase, mean) %>% 
   drop_na(scale) %>% 
@@ -1157,28 +1205,43 @@ s3_diff_plot <- s3_scored %>%
   mutate(diff = post-pre) %>% 
   mutate(
     scale = recode_nodes2(scale),
-    condition = ifelse(condition=="noInterv", "Control", "Vaccine Ingredients")
-    ) %>% 
+    condition = recode_factor(condition, 
+                              "noInterv" = "Control",
+                              .default = "Vaccine Ingredients")) %>% 
   group_by(condition, scale) %>%
   summarize(M = mean(diff, na.rm=TRUE), se = sd(diff)/sqrt(n())) %>% 
-  ggplot(aes(x = reorder(scale,M), y = M, ymin = M-se*2, ymax=M+se*2, color=condition, shape=condition)) +
+  ungroup() %>%
+  left_join(s3_scale_order) %>%
+  ggplot(aes(x = reorder(scale,order), y = M, ymin = M-se*2, ymax=M+se*2, 
+             color=condition, shape=condition)) +
+  scale_x_discrete() +
+  annotate("rect", 
+           xmin = s3_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) - 0.25,
+           xmax = s3_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.25,
+           ymin = -Inf,
+           ymax = Inf,
+           fill = "#fffaba") +
   geom_pointrange(position=position_dodge(width=.25)) +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=c("#0067b1","#c50024")) +
-  scale_shape_manual(values=c(17,16)) +
+  scale_shape_manual(values=c(16,17)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
     panel.grid = element_blank(),
-    legend.position = c(.6,.15),
+    legend.position = c(.5,.1),
     legend.direction = "horizontal",
+    legend.background = element_rect(fill = NA),
     aspect.ratio=.5
     ) +
-  labs(title="A", y = "Mean difference", x = "Belief scale", color="Intervention", shape="Intervention")
+  labs(title="A", y = "Mean difference", x = "Belief scale", 
+       color="Intervention", shape="Intervention")
 
 obs_pred <- make_pred_df(s3_mdf, base_model, "vaccTox")
 
-cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
+cor_val <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
 
 s3_obs_pred_plot <- obs_pred %>% 
   ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
@@ -1196,6 +1259,97 @@ s3_obs_pred_plot <- obs_pred %>%
 s3_plt <- s3_diff_plot + s3_obs_pred_plot + plot_layout(ncol=2, widths = c(2,1))
 
 s3_plt
+```
+
+```{r s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+
+# see previous chunk for scale order
+
+s3_diff_plot_bystudy <- s3_scored %>% 
+  # spread(phase, mean) %>% 
+  drop_na(scale) %>% 
+  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>% 
+  mutate(diff = post-pre) %>% 
+  mutate(
+    scale = recode_nodes2(scale),
+    condition = recode_factor(condition, 
+                              "noInterv" = "Control",
+                              .default = "Vaccine Ingredients")) %>% 
+  left_join(s3_demo %>% distinct(workerId, study)) %>%
+  mutate(study = recode_factor(study, "A" = "Expt. 3A", "B" = "Expt. 3B")) %>%
+  group_by(study, condition, scale) %>%
+  summarize(M = mean(diff, na.rm=TRUE), se = sd(diff)/sqrt(n())) %>% 
+  ungroup() %>%
+  left_join(s3_scale_order) %>%
+  ggplot(aes(x = reorder(scale,order), y = M, ymin = M-se*2, ymax=M+se*2, 
+             color = interaction(condition, study, sep = ": "), 
+             shape = interaction(condition, study, sep = ": "))) +
+  scale_x_discrete() +
+  annotate("rect", 
+           xmin = s3_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) - 0.35,
+           xmax = s3_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.35,
+           ymin = -Inf,
+           ymax = Inf,
+           fill = "#fffaba") +
+  geom_pointrange(aes(group = interaction(condition, study)),
+                  position=position_dodge(width=.4), fill = "white") +
+  geom_hline(yintercept=0, linetype="dashed", color="grey") +
+  scale_color_manual(values=rep(c("#0067b1","#c50024"), 2)) +
+  scale_shape_manual(values=c(16, 17, 21, 24)) +
+  theme_bw(base_size=11) +
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1),
+    panel.grid = element_blank(),
+    legend.position = c(.5,.1),
+    legend.direction = "horizontal",
+    legend.background = element_rect(fill = NA),
+    aspect.ratio=.5
+    ) +
+  labs(title="A", y = "Mean difference", x = "Belief scale", 
+       color="Intervention", shape="Intervention") +
+  guides(shape = guide_legend(nrow = 2, byrow = T),
+         color = guide_legend(nrow = 2, byrow = T))
+
+obs_pred_A <- make_pred_df(s3_mdf %>%
+                             filter(workerId %in% s3_demo$workerId[s3_demo$study == "A"]), 
+                           base_model, "vaccTox")
+obs_pred_B <- make_pred_df(s3_mdf %>%
+                             filter(workerId %in% s3_demo$workerId[s3_demo$study == "B"]), 
+                           base_model, "vaccTox")
+
+cor_val_A <- format(round(cor(obs_pred_A$predicted, obs_pred_A$observed),3), nsmall = 3)
+cor_val_B <- format(round(cor(obs_pred_B$predicted, obs_pred_B$observed),3), nsmall = 3)
+
+s3_obs_pred_plot_bystudy <- bind_rows(obs_pred_A %>% mutate(study = "A"),
+                                      obs_pred_B %>% mutate(study = "B")) %>%
+  mutate(study = recode_factor(study, "A" = "Expt. 3A", "B" = "Expt. 3B")) %>%
+  ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul,
+             shape = study)) +
+  geom_abline(slope=1, intercept=0, linetype="dashed", alpha =.5) +
+  geom_errorbar(alpha=.5, width=0) +
+  geom_point(size=2.5, fill = "white") +
+  scale_shape_manual(values=c(16, 21)) +
+  # coord_fixed(ratio=1) +
+  coord_cartesian(xlim=c(-.12,.08), ylim=c(-.12,.08)) +
+  annotate(geom = "text", x = .05, y = -.08, 
+           label = bquote(paste("r"["A"]*" = ", .(cor_val_A)))) +
+  annotate(geom = "text", x = .05, y = -.105, 
+           label = bquote(paste("r"["B"]*" = ", .(cor_val_B)))) +
+  theme_bw(base_size=11) +
+  theme(panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank(),
+        legend.position = c(.15,.85),
+        legend.background = element_rect(fill = NA)) +
+  theme(aspect.ratio = 1) +
+  labs(title = "B", y = "Observed change", x="Predicted change", 
+       shape = "Experiment")
+
+s3_plt_bystudy <- s3_diff_plot_bystudy + s3_obs_pred_plot_bystudy + 
+  plot_layout(ncol=2, widths = c(2,1))
+
+s3_plt_bystudy
 ```
 
 
@@ -1295,7 +1449,7 @@ fit_s4_vaccIntent <- brm(
   data = s4_reg %>% filter(scale=="vaccIntent"),
   chains = 6,
   cores = 6,
-  control = list(adapt_delta=.99),
+  # control = list(adapt_delta=.99),
   seed = 40725,
   file = "../local/fit_s4_vaccIntent.rds"
 )
@@ -1318,13 +1472,29 @@ make_table_df() %>%
 make_table("Bayesian regression model coefficients for model of Vaccine Intentions in Study 4.")
 ```
 
-Mirroring our analyses of interventions, we regressed responses to the _vaccine intentions_ scale items on predictors for phase (pre-outbreak in August and September 2017 vs. post-outbreak May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (see Table \@ref(tab:s4_table)). 
+Mirroring our analyses of interventions, we regressed responses to the _vaccine intentions_ scale items on predictors for phase (pre-outbreak in August and September 2017 vs. post-outbreak May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on _vaccine intentions_, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (see Table \@ref(tab:s4_table)). 
 
-To model the effects of news exposure we followed the same procedure as in previous studies, but here augmented the model with a node representing news exposure as a child of the vaccine intentions node. The maximum likelihood estimate of the evidence ratio for the vaccine toxicity intervention was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the disease severity node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
+To model the effects of news exposure we followed the same procedure as in previous studies, but here augmented the model with a node representing news exposure as a child of the _vaccine intentions_ node. The maximum likelihood estimate of the evidence ratio for news exposure was XXX. To simulate the impacts of this evidence, we supplied virtual evidence to the _vaccine intentions_ node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
 
 Figure \@ref(fig:s4_plot) (right) shows the correlation between predicted and observed belief changes for participants who were aware of the New York measles outbreak in May 2019.
 
-```{r s4_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
+```{r s4_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
+
+s4_scale_order <- combined %>% 
+  drop_na(scale) %>% 
+  mutate(posttest = rescale_beta(posttest, -3, 3), 
+         pretest = rescale_beta(pretest, -3, 3)) %>% 
+  mutate(diff = posttest-pretest) %>% 
+  mutate(scale = recode_nodes2(scale)) %>% 
+  group_by(vacc_news, scale) %>%
+  summarize(M = mean(diff, na.rm=TRUE)) %>%
+  ungroup() %>%
+  group_by(scale) %>%
+  summarize(diff_diff = mean(M, na.rm = T)) %>%
+  ungroup() %>%
+  arrange(diff_diff) %>% # ascending because news exposure is expected to increase vaccine intentions
+  mutate(order = 1:nrow(.))
+
 s4_diff_plot <- combined %>% 
   filter(returned==TRUE, !is.na(vacc_news)) %>% # somehow 5? participants slippd by without answering 
   mutate(posttest = rescale_beta(posttest, -3, 3), pretest = rescale_beta(pretest, -3, 3)) %>% 
@@ -1343,28 +1513,43 @@ s4_diff_plot <- combined %>%
     ll95 = mean - 1.96*se
   ) %>%
   ungroup() %>%
-  mutate(vacc_news = factor(vacc_news, c(1,0), labels=c("Yes","No"))) %>%
+  mutate(vacc_news = factor(vacc_news, 
+                            levels = c(0,1), 
+                            labels=c("No","Yes"))) %>%
   # mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
-  ggplot(aes(x=reorder(scale, mean), y = mean, ymin =ll95, ymax=ul95, color=vacc_news, shape=vacc_news)) +
+  left_join(s4_scale_order) %>%
+  ggplot(aes(x=reorder(scale, order), 
+             y = mean, ymin =ll95, ymax=ul95, 
+             color=vacc_news, shape=vacc_news)) +
+  scale_x_discrete() +
+  annotate("rect", 
+           xmin = s4_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) - 0.25,
+           xmax = s4_scale_order %>%
+             filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.25,
+           ymin = -Inf,
+           ymax = Inf,
+           fill = "#fffaba") +
   geom_point(position=position_dodge(width=.25), size=2) +
   geom_errorbar(position=position_dodge(width=.25), width=0) +
   # geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
   geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
-  scale_color_manual(values=c("#0067b1","grey")) +
-  # scale_shape_manual(values=c(17,16)) +
+  scale_color_manual(values=c("#0067b1","#ff7f00")) +
+  scale_shape_manual(values=c(16,17)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
     panel.grid = element_blank(),
-    legend.position = c(.35,.85),
+    legend.position = c(.5,.9),
     legend.direction = "horizontal",
     aspect.ratio=.5
     ) +
-  labs(title="A", y = "Mean difference", x = "Belief scale", color="News Exposure", shape="News Exposure")
+  labs(title="A", y = "Mean difference", x = "Belief scale", 
+       color="News Exposure", shape="News Exposure")
 
 obs_pred <- make_pred_df(s4_mdf, base_model, "vaccIntent")
 
-cor_val <- round(cor(obs_pred$predicted, obs_pred$observed),3)
+cor_val <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
 
 s4_obs_pred_plot <- obs_pred %>% # a bit of a hack
   ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
@@ -1508,6 +1693,7 @@ saveRDS(pred_change_plot, "../local/pred_change_plt.rds")
 ggsave("../local/valid_plt.png", plt.valid, height=4, width=8)
 ggsave("../local/s2_plt.png", s2_plt, height=4, width=8)
 ggsave("../local/s3_plt.png", s3_plt, height=4, width=8)
+ggsave("../local/s3_plt_bystudy.png", s3_plt_bystudy, height=4, width=8)
 ggsave("../local/s4_plt.png", s4_plt, height=4, width=8)
 ggsave("../local/pred_change_plt.png", pred_change_plot, height=4, width=4)
 
@@ -1545,8 +1731,8 @@ names(alpha_values) <- var_names
 
 # do something to pretty this up
 
-# as_tibble(alpha_values) %>% 
-#   gather(scale, alpha) %>% 
+# as_tibble(alpha_values) %>%
+#   gather(scale, alpha) %>%
 #   knitr::kable()
 
 ```
@@ -1559,7 +1745,7 @@ Participants then proceeded through 14 pages, with a different scale presented o
 
 The 14 scales are presented in their entirety below.
 
-_Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, and Conventional Medicine Attitudes Scale (CACMAS) (observed α=.82)
+_Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, and Conventional Medicine Attitudes Scale (CACMAS) (Study 1 observed $\alpha$ = `r format(round(alpha_values$hb, 2), nsmall = 2)`)
 
 
 
@@ -1568,7 +1754,7 @@ _Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, 
 3. A patient’s symptoms should be regarded as a manifestation of a general imbalance or dysfunction affecting the whole body.
 4. Health and disease are a reflection of balance between positive life enhancing forces and negative destructive forces.
 
-_Naturalism_ (observed α=.77)
+_Naturalism_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$nat, 2), nsmall = 2)`)
 
 
 
@@ -1579,7 +1765,7 @@ _Naturalism_ (observed α=.77)
 5. Childbirth should take place at home rather than in a hospital.
 6. I’m not concerned about preservatives in food. (reversed)
 
-_Medical skepticism_ (observed α=.78)
+_Medical skepticism_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$medSkept, 2), nsmall = 2)`)
 
 
 
@@ -1590,7 +1776,7 @@ _Medical skepticism_ (observed α=.78)
 5. Pharmaceutical companies don’t make huge profits from the sale of vaccines. (reversed)
 6. For researchers developing vaccines, safety is a top priority. (reversed)
 
-_Disease rarity_ (observed α=.79)
+_Disease rarity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$diseaseRare, 2), nsmall = 2)`)
 
 
 
@@ -1602,7 +1788,7 @@ _Disease rarity_ (observed α=.79)
 
  
 
-_Disease severity _(observed α=.84)
+_Disease severity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$diseaseSevere, 2), nsmall = 2)`)
 
 
 
@@ -1612,7 +1798,7 @@ _Disease severity _(observed α=.84)
 4. Childhood diseases are not that big a deal. (reversed)
 5. Diseases like measles and whooping cough are extremely dangerous for young children. 
 
-_Vaccine effectiveness _(observed α=.84)
+_Vaccine effectiveness_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccEff, 2), nsmall = 2)`)
 
 
 
@@ -1621,7 +1807,7 @@ _Vaccine effectiveness _(observed α=.84)
 3. Recent outbreaks of diseases like measles and whooping cough show that vaccines don’t work very well. (reversed)
 4. Vaccines are one of the most effective medical treatments. 
 
-_Vaccine danger _(observed α=.88)
+_Vaccine danger_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccDanger, 2), nsmall = 2)`)
 
 
 
@@ -1630,7 +1816,7 @@ _Vaccine danger _(observed α=.88)
 3. Many children have severe adverse reactions to the MMR vaccine.
 4. Vaccines are a very safe medical treatment. (reversed)
 
-_Toxic additives in vaccines _(observed α=.91)
+_Toxic additives in vaccines_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccTox, 2), nsmall = 2)`)
 
 
 
@@ -1639,7 +1825,7 @@ _Toxic additives in vaccines _(observed α=.91)
 3. Exposure to certain additives in vaccines can cause major health problems. 
 4. The quantities of chemical additives in vaccines are so small that they do not pose any health risks. (reversed)
 
-_Infant immune system: Vaccines strain _(observed α=.86)
+_Infant immune system: Vaccines strain_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccStrain, 2), nsmall = 2)`)
 
 
 
@@ -1649,7 +1835,7 @@ _Infant immune system: Vaccines strain _(observed α=.86)
 4. Vaccines are not very taxing for an infant's immune system. (reversed)
 5. Getting multiple vaccines at once can exhaust an infant’s immune system. 
 
-_Vaccination intentions _(observed α=.83)
+_Vaccination intentions_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccIntent, 2), nsmall = 2)`)
 
 
 
@@ -1659,7 +1845,7 @@ _Vaccination intentions _(observed α=.83)
 4. I feel confident that vaccinating children is the right thing to do.
 5. I would never vaccinate my child. (reversed)
 
-_Parental expertise _(observed α=.83)
+_Parental expertise_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$parentExpert, 2), nsmall = 2)`)
 
 
 
@@ -1669,7 +1855,7 @@ _Parental expertise _(observed α=.83)
 4. Parents should trust a doctor’s advice even if it goes against their intuitions. (reversed)
 5. Advice from doctors is the best resource for keeping your child healthy. (reversed)
 
-_Infant immune system: Limited capacity_ (observed α=.86)
+_Infant immune system: Limited capacity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$infantImmLimCap, 2), nsmall = 2)`)
 
 
 
@@ -1679,7 +1865,7 @@ _Infant immune system: Limited capacity_ (observed α=.86)
 4. Babies’ immune systems are severely limited in how much they can cope with at one time.
 5. Babies’ immune systems can deal with many threats at one time. (reversed)
 
-_Infant immune system: Weakness_ (observed α=.85)
+_Infant immune system: Weakness_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$infantImmWeak, 2), nsmall = 2)`)
 
 
 
@@ -1689,7 +1875,7 @@ _Infant immune system: Weakness_ (observed α=.85)
 4. Babies have an innate ability to fight off diseases. (reversed)
 5. Babies’ immune systems are more robust than many people think. (reversed)
 
-_Parental protectiveness _(observed α=.73)
+_Parental protectiveness_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$overpar, 2), nsmall = 2)`)
 
 
 
@@ -1771,3 +1957,4 @@ Vaccines are extremely safe. A vaccine is just a few drops of liquid, the vast m
 
 \newpage
 # References
+             
