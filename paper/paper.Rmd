@@ -10,12 +10,19 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ```{r load-required-data, include=FALSE}
+library(tidyverse)
 results <- readRDS("../local/paper-results.rds") 
 ```
 
-[add abstract]
+## Abstract
 
-[add significance statement]
+WIP
+
+## Significance Statement
+
+When people decide whether to vaccinate their children and themselves against dangerous diseases like measles and Covid-19, their decisions are affected by a network of interrelated beliefs about specific diseases, vaccine safety and efficacy, the immune system, the medical system, and health and nature more generally. By creating a computational model of the intuitive theory connecting these different beliefs, we were able to make accurate predictions about how these beliefs are revised in light of educational interventions, design an effective new intervention encouraging vaccination, and understand how these beliefs were affected by real-world events. This approach provides the foundation for richer understandings of intuitive theories more broadly and sheds new light on long-standing theoretical questions about belief revision. 
+
+\newpage
 
 One remarkable feature of human psychology is our ability to form rich mental representations of what is true, how things work, and how best to navigate the world around us. Much of this type of thinking can be understood as deriving from people’s *intuitive theories*---explanatory frameworks, analogous to scientific theories, that capture the causal and logical structure of the world within a domain. From early in life, people are driven to seek out such causal explanations and to use their mental representations of these causal systems to explain, predict, and intervene in the world; and to make sense of new information and experiences [see @carey2009; @gelman.legare2011; @gerstenberg.etal2021; @gopnik.wellman1994; @keil1994; @murphy.medin1985; @wellman.gelman1992 for influential treatments of this topic].  Intuitive theories inform reasoning in a wide variety of domains, from reasoning about physical systems [e.g., @baillargeon2004; @battaglia.etal2013; @spelke1994a; @ullman.etal2017], to reasoning about biological processes [e.g., @carey1985; @carey2009; @medin.atran1999] and about the contents of other people’s minds [e.g., @gopnik.wellman1994; @wellman2015; @baker.etal2017].
 
@@ -25,7 +32,7 @@ Even before the coronavirus pandemic, misconceptions about vaccine safety drove 
 
 The difficulty of convincing people to vaccinate themselves and their children illustrates a general pattern of findings showing that people often do not respond to evidence in ways that educators might wish [e.g. @lewandowsky.etal2012]. Part of the challenge in correcting misconceptions is that they are situated within larger, internally coherent belief systems---intuitive theories---that guide how people interpret and respond to evidence [e.g., @lewandowsky.etal2012; @jern.etal2014; @gershman2019]. 
 
-Consider some of the beliefs people who are skeptical of childhood vaccination expressed when we asked them to explain their views in an open-ended qualitative survey (conducted pre-pandemic; N=16). Several participants saw vaccines as "unnatural" and expressed concerns about toxic additives in vaccines, such as heavy metals and mercury. One said, “Vaccines are unnatural additions to the body. The human body should naturally fight off the disease and we should not be controlling how nature plays its role on mankind.” Some doubted whether certain diseases were worth worrying over, while others feared that the contents of vaccines “are too strong and too concentrated for a baby's body to properly handle.” A number of respondents were skeptical of the medical community’s objectivity in testing the safety of vaccines. One respondent wrote that vaccines were “A BIG MONEY MAKING SCAM BY THE BIG PHARMS” (emphasis theirs); another thought that health professionals “are brainwashed by the medical media and the government.” To people holding these beliefs, it could well seem unreasonable to vaccinate a 2-month-old baby against 5 or more diseases at once. Moreover, if skeptics believe that the medical community is unduly influenced by pharmaceutical companies, they might doubt the validity of medical studies coming out in favor of these companies’ interests. Altogether, these beliefs might sustain misconceptions about vaccine safety, even in the face of counter-evidence.
+Consider some of the beliefs people who are skeptical of childhood vaccination expressed when we asked them to explain their views in an open-ended qualitative survey (conducted pre-pandemic; *n* = 16). Several participants saw vaccines as "unnatural" and expressed concerns about toxic additives in vaccines, such as heavy metals and mercury. One said, “Vaccines are unnatural additions to the body. The human body should naturally fight off the disease and we should not be controlling how nature plays its role on mankind.” Some doubted whether certain diseases were worth worrying over, while others feared that the contents of vaccines “are too strong and too concentrated for a baby's body to properly handle.” A number of respondents were skeptical of the medical community’s objectivity in testing the safety of vaccines. One respondent wrote that vaccines were “A BIG MONEY MAKING SCAM BY THE BIG PHARMS” (emphasis theirs); another thought that health professionals “are brainwashed by the medical media and the government.” To people holding these beliefs, it could well seem unreasonable to vaccinate a 2-month-old baby against 5 or more diseases at once. Moreover, if skeptics believe that the medical community is unduly influenced by pharmaceutical companies, they might doubt the validity of medical studies coming out in favor of these companies’ interests. Altogether, these beliefs might sustain misconceptions about vaccine safety, even in the face of counter-evidence.
 
 The way in which evidence affects any particular belief is unavoidably shaped by other interrelated beliefs. Duhem [-@duhem1954] and Quine [-@quine1951] famously argued that scientific theories necessarily incorporate *auxiliary hypotheses* that influence how observations are interpreted: When an observation is inconsistent with a hypothesis under certain auxiliary assumptions, a scientist cannot necessarily know whether to revise the hypothesis or the auxiliary assumptions. Similarly, we argue that intuitive theories incorporate auxiliary beliefs that affect how other beliefs are revised in light of evidence [also see @gershman2019]. 
 
@@ -67,11 +74,11 @@ Our primary outcome of interest was participants’ intentions to vaccinate thei
 
 These included a variety of claims about vaccines, including beliefs about (1) the overall danger of vaccines (*vaccine danger*); (2) *toxic additives in vaccines*; and (3) *vaccine effectiveness*, how effective vaccines are in preventing disease; as well as a variety of specific claims about childhood diseases like measles, mumps, and rubella, including beliefs about (4) *disease rarity* and (5) *disease severity*. Beyond this, we theorized that participants’ understanding of the infant immune system might be relevant, including beliefs that (6) the infant immune system is weak (*IIS: weakness*); (7) the infant immune system is limited in its capacity and can be easily overwhelmed (*IIS: limited capacity*); and (8) vaccines strain the infant immune system (*IIS: vaccines strain*). We also included general theories about parenting and medicine: (11) general *parental protectiveness*; (12) *parental expertise*, namely the belief that parents usually know more about their children’s health than medical experts; and (13) *medical skepticism*, including concerns about pharmaceutical companies and corruption in the medical community; and two two broad worldviews: (9) *naturalism*, a general preference for natural over artificial things; and (10) *holistic balance*, one important aspect of attitudes toward alternative medicine (e.g., “The body is essentially self-healing and the task of a health care provider is to assist the healing process”; [@mcfadden.etal2010]).
 
-We developed psychometrically robust scales to measure these beliefs, then administered these 14 belief scales to participants and in an online survey with 1130 participants. There were strong intercorrelations among these 14 beliefs confirming that these beliefs are, in fact, closely related to each other and to intentions to vaccinate children (see SI).
+We developed psychometrically robust scales to measure these beliefs, then administered these 14 belief scales to participants and in an online survey with `r results$s1$demo$n_include` participants. There were strong intercorrelations among these 14 beliefs confirming that these beliefs are, in fact, closely related to each other and to intentions to vaccinate children (see SI).
 
 #### Structure learning 
 
-We used these intercorrelations to build a cognitive model of the relations among these beliefs using Bayesian network structure learning techniques, using an 80% training split of the data (n = 904). Based on the observed associations among participants' beliefs about each of theses issues, we sought to infer how these states of affairs (e.g., that vaccines are dangerous, that diseases are severe) are connected in people's intuitive theories--how people understand these states of affairs to cause, imply, or otherwise influence one another. 
+We used these intercorrelations to build a cognitive model of the relations among these beliefs using Bayesian network structure learning techniques, using an 80% training split of the data (*n* = 904). Based on the observed associations among participants' beliefs about each of theses issues, we sought to infer how these states of affairs (e.g., that vaccines are dangerous, that diseases are severe) are connected in people's intuitive theories--how people understand these states of affairs to cause, imply, or otherwise influence one another. 
 
 We assumed  that the intuitive theory is a generative model, so that these influence relations (“edges”) should flow from causes or other “generating” states of affairs toward effects. For instance, we stipulated that *vaccine intentions* would be a “child node,” with edges only flowing inwards and not outwards (since one’s intention to vaccinate cannot “generate” the facts about vaccinations safety, effectiveness, etc). These constraints and their consequences are considered in more detail in Methods.
 
@@ -82,9 +89,21 @@ Applying these techniques resulted in an estimate of the network shown in Figure
 knitr::include_graphics("../local/main-graph-combined.pdf")
 ```
 
-We evaluated the model’s performance by testing its accuracy in predicting responses in the 20% testing split (n = 226). We generated predictions for held-out participants’ responses for each variable by conditioning the network on the remaining 13 observed variables. Figure 2 compares the model’s predictions with participants’ actual responses. Collapsing across all variables, the average correlation between predicted and observed responses was r = .XXX, accounting for [\~70]% of the variance in observed responses.
+```{r, include=F}
 
-```{r fig2-validation, fig.align='center', fig.height=4, fig.width=7, fig.cap="Observed responses and model predictions for each belief among participants in the Study 1 testing split. Correlations between observed and predicted values ranged from XXX to XXX across the different belief scales. In general, the model showed greater predictive accuracy for more central beliefs (e.g., *vaccine danger*) than for more peripheral beliefs (e.g., *parental protectiveness;* see SI for details)."}
+avg_corr <- results$s1$validcorrs %>% 
+  mutate(z = psych::fisherz(cor)) %>% 
+  summarize(z = mean(z)) %>% 
+  mutate(cor = psych::fisherz2r(z)) %>% 
+  .$cor
+
+min_corr <- round(min(results$s1$validcorrs$cor),3)
+max_corr <- round(max(results$s1$validcorrs$cor),3)
+```
+
+We evaluated the model’s performance by testing its accuracy in predicting responses in the 20% testing split (*n* = 226). We generated predictions for held-out participants’ responses for each variable by conditioning the network on the remaining 13 observed variables. Figure 2 compares the model’s predictions with participants’ actual responses. Collapsing across all variables, the average correlation between predicted and observed responses was *r* = `r round(avg_corr, 3)`, accounting for `r round(100*avg_corr^2, 0)`% of the variance in observed responses.
+
+```{r fig2-validation, fig.align='center', fig.height=4, fig.width=7, fig.cap="Observed responses and model predictions for each belief among participants in the Study 1 testing split. Correlations between observed and predicted values ranged from .380 to .898 across the different belief scales. In general, the model showed greater predictive accuracy for more central beliefs (e.g., \\emph{vaccine danger}) than for more peripheral beliefs (e.g., \\emph{parental protectiveness}; see SI for details)."}
 knitr::include_graphics("../local/valid_plt.png")
 ```
 
@@ -113,7 +132,7 @@ Changes were also observed across the belief network identified in Study 1. Not 
 knitr::include_graphics("../local/s2_plt.png")
 ```
 
-How did this intervention---which focused solely on the dangers of childhood diseases---affect beliefs about *vaccine danger*, *medical skepticism*, *holistic balance*, and so on? One explanation is that this intervention provides direct evidence for *disease severity* beliefs and that other beliefs are revised as a result of their relationships with *disease severity* as captured in the intuitive theory. To examine this, we used the same model developed in Study 1 to simulate how the 13 other beliefs in the intuitive theory would change if we intervened directly on *disease severity* (see Methods). As shown in Figure 3, this simulation is a reasonable approximation of what we observed in Study 2: The model’s predictions correlate strongly with observed changes (R = .86). 
+How did this intervention---which focused solely on the dangers of childhood diseases---affect beliefs about *vaccine danger*, *medical skepticism*, *holistic balance*, and so on? One explanation is that this intervention provides direct evidence for *disease severity* beliefs and that other beliefs are revised as a result of their relationships with *disease severity* as captured in the intuitive theory. To examine this, we used the same model developed in Study 1 to simulate how the 13 other beliefs in the intuitive theory would change if we intervened directly on *disease severity* (see Methods). As shown in Figure 3, this simulation is a reasonable approximation of what we observed in Study 2: The model’s predictions correlate strongly with observed changes (*r* = `r results$s2$modcorr`). 
 
 ### Study 3a and 3b: Targeting beliefs about vaccine toxicity
 
@@ -127,13 +146,13 @@ knitr::include_graphics("../local/pred_change_plt.png")
 
 We developed a novel educational intervention that addresses fears about toxic additives in vaccines. This Vaccine Ingredients intervention explained the common components of vaccines, emphasized the minute quantities of all vaccine ingredients, and explained the roles that various vaccine additives play in ensuring the stability and safety of vaccines, such as antibiotics, adjuvants, and stabilizers. We gave special attention to defusing concerns about the use of formaldehyde in vaccines because our assessment of anti-vaccination websites suggested that this was a particular concern for many vaccine skeptics. The intervention acknowledged that some vaccines contain trace amounts of formaldehyde, but also pointed out that formaldehyde is a naturally-occurring metabolic byproduct in all living things and that it is already present in children’s bodies (and even in foods like pears) in far larger quantities than contained in any vaccine. The full intervention text can be found in SI. 
 
-We conducted two preregistered experiments (3a and 3b) testing the effects of this novel intervention using the same pretest-posttest design as Study 2. Collapsing across these two studies, Figure 5 shows the change in participants’ (n = XXX) attitudes across all 14 belief scales from pretest to posttest. Most importantly, the Vaccine Ingredients intervention significantly improved participants’ vaccination intentions compared to the no-intervention control condition. Changes were also evident across many of the 14 beliefs, with the largest changes being a reduction in vaccine toxicity beliefs. 
+We conducted two preregistered experiments (3a and 3b) testing the effects of this novel intervention using the same pretest-posttest design as Study 2. Collapsing across these two studies, Figure 5 shows the change in participants’ (*n* = `r results$s3$demo$n_complete`) attitudes across all 14 belief scales from pretest to posttest. Most importantly, the Vaccine Ingredients intervention significantly improved participants’ vaccination intentions compared to the no-intervention control condition. Changes were also evident across many of the 14 beliefs, with the largest changes being a reduction in vaccine toxicity beliefs. 
 
 ```{r fig5-s3, fig.align='center', fig.height=4, fig.width=7, fig.cap="Belief changes following the intervention in studies 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Right, mean observed and model predicted change scores for the disease risk intervention condition. In both plots, changes were calculated after combining data from both studies and transforming responses to lie between 0 and 1 and error bars represent 95\\% confidence intervals."}
 knitr::include_graphics("../local/s3_plt.png")
 ```
 
-As in Study 2, we used our model to predict how the 13 other beliefs in the intuitive theory should be expected to change given the average magnitude of the change observed in participants’ vaccine toxicity beliefs following the intervention. As shown in Figure 5, the model’s predictions are significantly related to the observed changes, but the correlations are relatively weaker (r = .XX) than those observed in our other studies. 
+As in Study 2, we used our model to predict how the 13 other beliefs in the intuitive theory should be expected to change given the average magnitude of the change observed in participants’ vaccine toxicity beliefs following the intervention. As shown in Figure 5, the model’s predictions are significantly related to the observed changes, but the correlations are relatively weaker (*r* = `r results$s3$modcorr`) than those observed in our other studies. 
 
 In Study 3a, we were surprised to observe that beliefs also changed significantly from pretest to posttest among participants in the no-intervention control condition. Two months later we conducted a direct replication (Study 3b) in the hopes that any transient factors that might have caused these changes in beliefs might have dissipated, but we obtained very similar results (see SI). 
 
@@ -145,15 +164,15 @@ Nevertheless, the success of this intervention in changing people’s responses 
 
 The early months of 2019 saw the worst U.S. measles outbreak in decades, with over 1000 cases reported by June, mostly in the state of New York. These outbreaks were covered in every major newspaper and by every major news program. Would learning about these tragic events lead people to revise their beliefs about vaccines?
 
-```{r fig6-s4, fig.align='center', fig.height=4, fig.width=7, fig.cap="Participants’ belief changes from participation in Study 1 to Study 4. Left, mean difference scores comparing beliefs reported in September 2017 and May 2019 for the 14 belief scales, across participants who did and did not report exposure to news of the ongoing New York measles outbreak. Right, mean observed and model predicted change scores for those participants who did report exposure to this news. In both plots, changes were calculated after transforming responses to lie between 0 and 1 and error bars represent 95\\% confidence intervals."}
+```{r fig6-s4, fig.align='center', fig.height=4, fig.width=7, fig.cap="Participants’ belief changes from participation in Study 1 to Study 4. Left, mean difference scores comparing beliefs reported in September 2017 and May 2019 for the 14 belief scales, across participants who did and did not report exposure to news of the ongoing New York measles outbreak. Right, mean observed and model predicted change scores for those participants who did report exposure to this news. Belief changes were modeled assuming that news of the outbreak directly impacted participant's vaccine intentions, the most central of the 14 beliefs, in order to evaluate the overall coherence of these belief changes. In both plots, changes were calculated after transforming responses to lie between 0 and 1 and error bars represent 95\\% confidence intervals."}
 knitr::include_graphics("../local/s4_plt.png")
 ```
 
-To examine this possibility, we invited participants from Study 1 (conducted in September 2017) to participate in a new study measuring each of those 14 beliefs again (conducted on May 1st, 2019; approximately 18 months later). Of the 1130 participants in Study 1, 555 returned. Approximately [80]% of participants reported recently seeing, hearing, or reading about measles outbreaks.
+To examine this possibility, we invited participants from Study 1 (conducted in September 2017) to participate in a new study measuring each of those 14 beliefs again (conducted on May 1st, 2019; approximately 18 months later). Of the `r results$s1$demo$n_include` participants in Study 1, `r results$s4$demo$n_complete` returned and completed the study. Approximately `r round(100*(results$s4$demo$n_news/results$s4$demo$n_complete),0) `% of participants reported recently seeing, hearing, or reading about measles outbreaks.
 
 Figure 6 shows the average change in participants’ beliefs following the outbreaks of 2019. Among participants who were exposed to relevant news covered, we observed changes in a number of beliefs, with notable increases in intentions to vaccinate, perceptions of vaccine efficacy, and perceptions of disease severity, as well as notable decreases in concern about vaccine danger. In contrast, most beliefs remained unchanged for those participants who did not report exposure to media, although there were modest changes in their beliefs about disease severity and disease rarity. These outbreaks appear to have significantly impacted people’s beliefs surrounding vaccination.
 
-Were these changes coherent with respect to the intuitive theory specified by the model developed in Study 1? Unlike in the intervention studies, where a specific belief was targeted by the intervention, it is likely that many beliefs were addressed by media coverage of these outbreaks. To assess whether these changes were coherent, we examined how they were related to the most central of the beliefs we measured, *vaccine intentions*, using our model to predict how the 13 other beliefs in the intuitive theory should be expected to change given the average magnitude of the change observed in *vaccine intentions.* As shown in Figure 6, the changes in participants’ beliefs are very similar to the model’s predictions (r = XX), suggesting that the changes in their beliefs were highly coherent with respect to their intuitive theories of the domain. Modeling these beliefs as united by an intuitive theory not only captures how these beliefs are revised immediately in light of evidence, but also how they are changed by real-world events. 
+Were these changes coherent with respect to the intuitive theory specified by the model developed in Study 1? Unlike in the intervention studies, where a specific belief was targeted by the intervention, it is likely that many beliefs were addressed by media coverage of these outbreaks. To assess whether these changes were coherent, we examined how they were related to the most central of the beliefs we measured, *vaccine intentions*, using our model to predict how the 13 other beliefs in the intuitive theory should be expected to change given the average magnitude of the change observed in *vaccine intentions.* As shown in Figure 6, the changes in participants’ beliefs are very similar to the model’s predictions (*r* = `r results$s4$modcorr`), suggesting that the changes in their beliefs were highly coherent with respect to their intuitive theories of the domain. Modeling these beliefs as united by an intuitive theory not only captures how these beliefs are revised immediately in light of evidence, but also how they are changed by real-world events. 
 
 ## Discussion
 
@@ -193,7 +212,7 @@ We scored each belief scale by averaging a participant’s responses to each ite
 
 ### Method
 
-Participants (final *n* = 1130) responded to the 14 belief scales, followed by demographics questions and a handful of questions about whether they were or were expecting to be a parent. They were then debriefed with a brief statement noting that vaccines are safe and pointing them toward a WHO website for further information. 
+Participants (final *n* = `r results$s1$demo$n_include`) responded to the 14 belief scales, followed by demographics questions and a handful of questions about whether they were or were expecting to be a parent. They were then debriefed with a brief statement noting that vaccines are safe and pointing them toward a WHO website for further information. 
 
 ### Analyses
 
@@ -203,7 +222,8 @@ The goal of this study was to use these data to conduct a bottom-up search for a
 
 A Bayesian network is a directed acyclic graph that represents variables as nodes connected by directed edges. Each set of “child” and “parent” nodes in the larger network is a “family”. The network’s directed edges encode conditional dependencies among variables, and many parameterizations for the individual families are possible. In our model, the probability of some “child” belief node $y$ can be expressed as a noisy-logical function of the influence of one or more “parent” belief nodes $x$:
 
-$$P(y) = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$ 
+$$P(y) = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$
+
 Here, each parent node $x$ is either a generative ($i$) or preventive ($j$) influence, that generates or prevents the child node with some probability weight ($w_i$ or $w_j$). The weight $w_0$ represents the “leak” probability, or the baseline probability that the child occurs without any other generating influences. The first term in brackets represents the probability that $y$ is generated (or, put another way, that not all of the possible generating forces fail to generate it). The second term represents the probability that it is not then prevented [i.e., that all the preventing forces fail; see @maaskant.druzdzel2008].
 
 Having transformed participants’ averaged belief scale responses to fall between 0 and 1, we estimated the parameters of the model as a beta regression using maximum likelihood methods (see SI).
@@ -232,9 +252,9 @@ In Study 2 we used this model to understand belief revision in the context of an
 
 ### Method
 
-Procedures for Phase 1 were nearly identical to Study 1, but the debriefing statement was moved to the end of Phase 2. In Phase 2 (XX days later), participants completed a study very similar to Horne et al.’s (2015) original intervention study. Participants were randomly assigned to either the disease risk condition or the No Intervention condition, with the constraint that the distributions of participants’ Phase 1 *vaccine intentions* scores should be similar across the two conditions; we accomplished this by stratifying participants into three groups based on their pretest vaccine intentions, and randomly assigning them to conditions in equal numbers within each group. 
+Procedures for Phase 1 were nearly identical to Study 1, but the debriefing statement was moved to the end of Phase 2. In Phase 2 (approximately two days later), participants completed a study very similar to Horne et al.’s (2015) original intervention study. Participants were randomly assigned to either the disease risk condition or the No Intervention condition, with the constraint that the distributions of participants’ Phase 1 *vaccine intentions* scores should be similar across the two conditions; we accomplished this by stratifying participants into three groups based on their pretest vaccine intentions, and randomly assigning them to conditions in equal numbers within each group. 
 
-Participants (n = XX passed attention checks in total) in the intervention conditions were presented with a version of Horne et al.’s  “disease risk” intervention, modified to present subparts in a fixed (rather than randomized) order, with slight changes to wording to improve clarity, and with a final statement summarizing the take-home message of the intervention; see SI. They then completed the same 14 belief scales and demographic questions that they had completed in Phase 1. 
+Participants (*n* = `r results$s2$demo$n_complete` passed attention checks in total) in the intervention conditions were presented with a version of Horne et al.’s  “disease risk” intervention, modified to present subparts in a fixed (rather than randomized) order, with slight changes to wording to improve clarity, and with a final statement summarizing the take-home message of the intervention; see SI. They then completed the same 14 belief scales and demographic questions that they had completed in Phase 1. 
 
 Participants in the No Intervention condition completed the belief scales and demographics questions without reading any material first.
 
@@ -242,7 +262,11 @@ Participants in the No Intervention condition completed the belief scales and de
 
 #### Regression analyses.
 
-We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the disease risk intervention on responses to the *Vaccination Intentions* scale items, using the “brms” package for R [@burkner2017]. We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the disease risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention scores is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (interaction effect: *b* = -0.15, 95% CI: [-0.27, -0.04]). We consider this to be a full replication of Horne, Powell, et al.’s [-@horne.etal2015] results. See Figure 3, panel A.
+```{r, include=F}
+s2_reg <- summary(results$s2$reg)
+```
+
+We conducted a mixed-effects Bayesian ordinal regression to assess the effects of the disease risk intervention on responses to the *Vaccination Intentions* scale items, using the “brms” package for R [@burkner2017]. We regressed responses on phase (Phase 1 vs. 2, dummy-coded with Phase 1 as the baseline), condition (dummy-coded with the disease risk condition as the baseline, so as to assess difference scores in our condition of primary interest), and the interaction between phase and condition. We included random intercepts by subject and scale item. In this model, the unique effect of the intervention on vaccination intention scores is assessed by the interaction term (indicating the unique effect of Phase 2 for intervention versus no-intervention participants). The disease risk intervention increased participants’ vaccination intention ratings (interaction effect: $b$ = `r round(s2_reg$fixed[9,1],3)`, 95% CI: [`r round(s2_reg$fixed[9,3], 3)`, `r round(s2_reg$fixed[9,4], 3)`]). We consider this to be a full replication of Horne, Powell, et al.’s [-@horne.etal2015] results. See Figure 3, panel A.
 
 #### Modeling belief revision.
 
@@ -264,13 +288,17 @@ In Studies 3a and 3b we developed a novel intervention targeting the misconcepti
 
 ### Methods
 
-Study 3a and 3b tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. These studies followed similar design procedures as Study 2, with phase 2 conducted XX days after phase 1. In both Study 3a (April 2019; final n = XX) and Study 3b (May 2019; final n = XX) the vaccine toxin intervention was compared against no-intervention control.
+Study 3a and 3b tested the effects of a novel intervention aimed at dispelling concerns about toxic additives in vaccines. These studies followed similar design procedures as Study 2, with phase 2 conducted 1-2 days after phase 1. In both Study 3a (April 2019) and Study 3b (May 2019; combined final *n* = `r results$s3$demo$n_complete`) the vaccine toxin intervention was compared against no-intervention control.
 
 ### Analyses
 
 #### Regression analyses. 
 
-As they shared the same design, we combined data from studies 3a and 3b for analysis. As in study 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the vaccine toxins intervention on participants’ *vaccination intentions* scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to the control conditions (interaction effect: b = [statistics]); see Figure 5, panel A. However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions (phase effect: b = [statistics]), suggesting that these attitudes were also being influenced by other factors during the course of the study.
+```{r, include=F}
+s3_reg <- summary(results$s3$reg)
+```
+
+As they shared the same design, we combined data from studies 3a and 3b for analysis. As in study 2, we conducted a mixed-effects Bayesian ordinal regression to assess the effects of the vaccine toxins intervention on participants’ *vaccination intentions* scores. The vaccine toxins intervention improved participant’s vaccination intention scores relative to the control conditions (interaction effect: $b$ = `r round(s3_reg$fixed[9,1],3)`, 95% CI: [`r round(s3_reg$fixed[9,3], 3)`, `r round(s3_reg$fixed[9,4], 3)`]); see Figure 5, panel A. However, it is worth noting that reliable changes were also observed from pretest to posttest in the control conditions (phase effect: $b$ = `r round(s3_reg$fixed[7,1],3)`, 95% CI: [`r round(s3_reg$fixed[7,3], 3)`, `r round(s3_reg$fixed[7,4], 3)`]), suggesting that these attitudes were also being influenced by other factors during the course of the study.
 
 #### Modeling belief revision.
 
@@ -282,13 +310,18 @@ In Study 4 we used the same model to understand belief revision in the context o
 
 ### Participants and Methods
 
-We contacted as many of the 1130 participants who completed Study 1 as we could and invited them to participate in Study 4, in which they completed the same 14 belief scales and answered questions about their exposure to media coverage of the measles outbreaks. A total of 555 participants returned and XXX successfully completed the study including passing attention checks. These participants completed all 14 belief scales and also indicated whether they had seen or heard anything about measles in the news recently.
+We contacted as many of the `r results$s1$demo$n_include` participants who completed Study 1 as we could and invited them to participate in Study 4, in which they completed the same 14 belief scales and answered questions about their exposure to media coverage of the measles outbreaks. A total of `r results$s4$demo$n_recruited` participants returned and `r results$s4$demo$n_complete` successfully completed the study including passing attention checks. These participants completed all 14 belief scales and also indicated whether they had seen or heard anything about measles in the news recently.
 
 ### Analyses
 
 #### Regression analyses. 
 
-Mirroring our analyses of interventions, we regressed responses to the *vaccine intentions* scale items on predictors for phase (September 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (stats); see Figure 6, panel A. 
+
+```{r, include=F}
+s4_reg <- summary(results$s4$reg)
+```
+
+Mirroring our analyses of interventions, we regressed responses to the *vaccine intentions* scale items on predictors for phase (September 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (interaction effect: $b$ = `r round(s4_reg$fixed[9,1],3)`, 95% CI: [`r round(s4_reg$fixed[9,3], 3)`, `r round(s4_reg$fixed[9,4], 3)`]); see Figure 6, panel A. 
 
 #### Modeling belief revision.
 
