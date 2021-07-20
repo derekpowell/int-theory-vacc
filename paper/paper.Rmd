@@ -133,7 +133,7 @@ We conducted two preregistered experiments (3a and 3b) testing the effects of th
 knitr::include_graphics("../local/s3_plt.png")
 ```
 
-As in Study 2, we used our model to predict how the 13 other beliefs in the intuitive theory should be expected to change given the average magnitude of the change observed in participants’ vaccine toxicity beliefs following the intervention. As shown in Figure 5, the model’s predictions are significantly related to the observed changes, but the correlations are relatively weaker R = .XX than those observed in our other studies. 
+As in Study 2, we used our model to predict how the 13 other beliefs in the intuitive theory should be expected to change given the average magnitude of the change observed in participants’ vaccine toxicity beliefs following the intervention. As shown in Figure 5, the model’s predictions are significantly related to the observed changes, but the correlations are relatively weaker (r = .XX) than those observed in our other studies. 
 
 In Study 3a, we were surprised to observe that beliefs also changed significantly from pretest to posttest among participants in the no-intervention control condition. Two months later we conducted a direct replication (Study 3b) in the hopes that any transient factors that might have caused these changes in beliefs might have dissipated, but we obtained very similar results (see SI). 
 
@@ -282,13 +282,13 @@ In Study 4 we used the same model to understand belief revision in the context o
 
 ### Participants and Methods
 
-We contacted XXX of the 1130 participants who completed Study 1 and invited them to participate in Study 4, in which they completed the same 14 belief scales and answered questions about their exposure to media coverage of the measles outbreaks. Of these, 555 participants returned and XXX successfully completed the study including passing attention checks. These participants completed all 14 belief scales and also indicated whether they had seen or heard anything about measles in the news recently.
+We contacted as many of the 1130 participants who completed Study 1 as we could and invited them to participate in Study 4, in which they completed the same 14 belief scales and answered questions about their exposure to media coverage of the measles outbreaks. A total of 555 participants returned and XXX successfully completed the study including passing attention checks. These participants completed all 14 belief scales and also indicated whether they had seen or heard anything about measles in the news recently.
 
 ### Analyses
 
 #### Regression analyses. 
 
-Mirroring our analyses of interventions, we regressed responses to the *vaccine intentions* scale items on predictors for phase (X 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (stats); see Figure 6, panel A. 
+Mirroring our analyses of interventions, we regressed responses to the *vaccine intentions* scale items on predictors for phase (September 2017 vs. May 2019, dummy-coded), news exposure (dummy-coded with non-exposure as the baseline), and an interaction between phase and news exposure onto participants’ scores, using a Bayesian mixed-effects ordinal regression including random intercepts by subject and item. To assess the effects of recent news exposure on vaccine intentions, we examined the interaction between phase and news exposure. Participants’ vaccine intentions were increased by recent news exposure compared to their responses 18 months ago (stats); see Figure 6, panel A. 
 
 #### Modeling belief revision.
 

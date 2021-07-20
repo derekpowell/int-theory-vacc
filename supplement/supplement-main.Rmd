@@ -278,7 +278,7 @@ hyde_str <- df_to_hyde_string(boot_res %>% filter(strength>.2, direction>0) %>% 
 h2 <- HydeNetwork(as.formula(hyde_str))
 # plot(h2)
 
-z2 <- custom_plot.HydeNetwork(h2)
+z2 <- custom_plot.HydeNetwork(h2, attr_theme="tb")
 
 boot_res %>%
   filter(direction>0, strength>.2) %>%
@@ -300,7 +300,7 @@ z2$nodes_df <- z2$nodes_df %>% mutate(label = recode_nodes(label))
 z2$nodes_df$fontname <- "Helvetica"
 z2$nodes_df$shape <- "ellipse"
 z2$nodes_df$fillcolor <- ifelse(z2$nodes_df$label=="Vaccination\nIntentions", 
-                                "#fffaba","white")
+                                "#dcdcdc","white")
 z2$nodes_df$fillalpha <- 0.1
 z2$nodes_df$fixedsize <- FALSE
 z2$edges_df$penwidth <- abs(edge_df_mod$strength)*2
@@ -310,7 +310,7 @@ z2$edges_df$penwidth <- 1.5
 z2$edges_df$color <- map_to_brewer(edge_df_mod$strength, bins=9, option="RdPu")
 # z2$edges_df$color <- map_to_viridis(edge_df_mod$strength, option="magma")
 # 
-# render_graph(z2)
+render_graph(z2)
 
 export_graph(z2, "../local/boot-graph.pdf")
 ```
@@ -415,7 +415,7 @@ edge_df_mod <- uncompelled_edges %>%
 z$nodes_df <- z$nodes_df %>% mutate(label = recode_nodes(label))
 z$nodes_df$fontname <- "Helvetica"
 z$nodes_df$shape <- "ellipse"
-z$nodes_df$fillcolor <- ifelse(z$nodes_df$label=="Vaccination\nIntentions", "#fffaba","white")
+z$nodes_df$fillcolor <- ifelse(z$nodes_df$label=="Vaccination\nIntentions", "#dcdcdc","white")
 z$nodes_df$fixedsize <- FALSE
 z$edges_df$penwidth <- abs(edge_df_mod$value)*2
 z$edges_df$penwidth <- 1.5
@@ -941,16 +941,16 @@ s2_diff_plot <- s2_scored %>%
              filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.25,
            ymin = -Inf,
            ymax = Inf,
-           fill = "#fffaba") +
+           fill = "#dcdcdc") +
   geom_pointrange(position=position_dodge(width=.25)) +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=c("#0067b1","#c50024")) +
-  scale_shape_manual(values=c(16,17)) +
+  scale_shape_manual(values=c(17,16)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
     panel.grid = element_blank(),
-    legend.position = c(.5,.9),
+    legend.position = c(.6,.9),
     legend.direction = "horizontal",
     legend.background = element_rect(fill = NA),
     aspect.ratio=.5
@@ -1227,11 +1227,11 @@ s3_diff_plot <- s3_scored %>%
              filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.25,
            ymin = -Inf,
            ymax = Inf,
-           fill = "#fffaba") +
+           fill = "#dcdcdc") +
   geom_pointrange(position=position_dodge(width=.25)) +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=c("#0067b1","#c50024")) +
-  scale_shape_manual(values=c(16,17)) +
+  scale_shape_manual(values=c(17,16)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
@@ -1297,12 +1297,12 @@ s3_diff_plot_bystudy <- s3_scored %>%
              filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.35,
            ymin = -Inf,
            ymax = Inf,
-           fill = "#fffaba") +
+           fill = "#dcdcdc") +
   geom_pointrange(aes(group = interaction(condition, study)),
                   position=position_dodge(width=.4), fill = "white") +
   geom_hline(yintercept=0, linetype="dashed", color="grey") +
   scale_color_manual(values=rep(c("#0067b1","#c50024"), 2)) +
-  scale_shape_manual(values=c(16, 17, 21, 24)) +
+  scale_shape_manual(values=c(17, 16, 24, 21)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
@@ -1534,13 +1534,13 @@ s4_diff_plot <- combined %>%
              filter(grepl("intent", tolower(scale))) %>% pull(order) + 0.25,
            ymin = -Inf,
            ymax = Inf,
-           fill = "#fffaba") +
+           fill = "#dcdcdc") +
   geom_point(position=position_dodge(width=.25), size=2) +
   geom_errorbar(position=position_dodge(width=.25), width=0) +
   # geom_errorbar(aes(ymin=ll95, ymax = ul95), width=0, position=position_dodge(width=.25), alpha=.5) +
   geom_hline(yintercept = 0, linetype="dashed",alpha=.5) +
-  scale_color_manual(values=c("#0067b1","#ff7f00")) +
-  scale_shape_manual(values=c(16,17)) +
+  scale_color_manual(values=c("gray50","#C50024")) +
+  scale_shape_manual(values=c(17,16)) +
   theme_bw(base_size=11) +
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
@@ -1897,8 +1897,9 @@ _Text of the Disease Risk intervention adapted from [@horne.etal2015]_
 
 All children should be vaccinated for measles, mumps, and rubella. These are serious diseases. Please read the descriptions of these diseases and carefully view the pictures.
 
-```{r measles-image, echo=F}
+```{r measles-image, echo=F, fig.align='center', out.height='2in'}
 # display measles image here
+knitr::include_graphics("img_0.png")
 ```
 
 __Measles__
@@ -1906,16 +1907,18 @@ __Measles__
 Measles virus causes rash, cough, runny nose, eye irritation, and fever. It can lead to ear infections, pneumonia, seizures (jerking and staring), brain damage, and death.
 
 
-```{r mumps-image, echo=F}
+```{r mumps-image, echo=F, fig.align='center', out.height='2in'}
 # display mumps image here
+knitr::include_graphics("img_1.jpg")
 ```
 
 __Mumps__
 
 Mumps virus causes fever, headache, and swollen glands. It can lead to deafness, meningitis (infection of the brain and spinal cord covering), painful swelling of the testicles or ovaries, and, rarely, death.
 
-```{r rubellas-image, echo=F}
+```{r rubellas-image, echo=F, fig.align='center', out.width='2in'}
 # display rubella image here
+knitr::include_graphics("img_2.jpg")
 ```
 
 __Rubella (German Measles)__
