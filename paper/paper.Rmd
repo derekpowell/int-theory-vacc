@@ -86,7 +86,7 @@ Applying these techniques resulted in an estimate of the network shown in Figure
 
 ```{r fig1-maingraph, fig.align='center', fig.height=8, fig.width=5, fig.cap="Bayesian network model resulting from hill-climbing algorithm applied to data in Study 1 training test split (n = 904). The network has 29 edges connecting these 14 variables. Edge polarity and weights are indicated by color, with red hues indicating negative or preventive influences, and blue hues indicating positive or generating influences. The direction of the edge was not determinable from the data and modeling constraints for two edges: $\\text{Naturalism} \\rightarrow \\text{Holistic Balance}$ and $\\text{Medical Skepticism} \\rightarrow \\text{Parental Expertise}$; see SI."}
 
-knitr::include_graphics("../local/main-graph-combined.pdf")
+knitr::include_graphics("../outputs/main-combined.pdf")
 ```
 
 ```{r, include=F}

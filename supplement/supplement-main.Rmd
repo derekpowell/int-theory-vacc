@@ -326,7 +326,7 @@ z2$edges_df$color <- map_to_brewer(edge_df_mod$strength, bins=9, option="RdPu")
 # 
 render_graph(z2)
 
-export_graph(z2, "../local/boot-graph.pdf")
+export_graph(z2, "../outputs/boot-graph.pdf")
 ```
 
 ```{r, include=F}
@@ -339,7 +339,7 @@ boot_graph_legend <- (tibble(
 ) %>%
   cowplot::get_legend()
 
-cowplot::save_plot("../local/boot-graph-legend.svg", boot_graph_legend)
+cowplot::save_plot("../outputs/boot-graph-legend.svg", boot_graph_legend)
 # cowplot::ggdraw(boot_graph_legend)
 ```
 
@@ -347,7 +347,7 @@ cowplot::save_plot("../local/boot-graph-legend.svg", boot_graph_legend)
 ```{r fig3-disp-bootgraph, echo=F, fig.width=8, fig.height=5, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across 200 bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown. Our primary outcome of interest, vaccination intentions, is highlighted in yellow."}
 
 ## assemble bootstrapping graph and legend into pdf and display here
-knitr::include_graphics("../local/boot-graph.pdf") 
+knitr::include_graphics("../outputs/boot-combined.pdf") 
 ```
 
 
@@ -443,7 +443,7 @@ graph_text <- DiagrammeR::generate_dot(z)
 write_file(graph_text, "graph-dot-code.txt")
 
 # export graph image
-export_graph(z, "../local/main-graph.pdf")
+export_graph(z, "../outputs/main-graph.pdf")
 # render_graph(z)
 ```
 
@@ -459,7 +459,7 @@ main_graph_legend <- (tibble(
   scale_fill_distiller(palette="RdBu", direction=1)) %>% 
   cowplot::get_legend()
 
-cowplot::save_plot("../local/graph-legend.svg", main_graph_legend)
+cowplot::save_plot("../outputs/graph-legend.svg", main_graph_legend)
 # cowplot::ggdraw(main_graph_legend)
 
 ```
@@ -469,7 +469,7 @@ cowplot::save_plot("../local/graph-legend.svg", main_graph_legend)
 
 ## assemble main model graph and legend into pdf and display here (main-graph-combined.pdf)
 ## currently just the output graph w/ no legend (main-graph.pdf)
-knitr::include_graphics("../local/main-graph.pdf") 
+knitr::include_graphics("../outputs/main-combined.pdf") 
 ```
 
 Altogether, these findings might be seen as demonstrating the need for a heavier hand in establishing top-down constraints on the model fitting. Certainly, they call for caution in interpreting the relationships represented in this model. Due to their tight connections with structural causal networks, it is tempting to interpret the edges in Bayesian networks as “causal”. However, these relationships are best thought of simply as probabilistic dependencies or “influence” relations (cite). Indeed, there are other cases where it is unclear if an edge should be directed at all: e.g., it is not obvious to us what would be the “correct” direction for the edge between naturalism and holistic balance. We might even speculate there is an additional unmeasured variable that connects these beliefs and that would best account for their association. Ultimately, this model should be understood as offering a plausible, but not definitive, account for a cognitive model connecting these different beliefs. 
