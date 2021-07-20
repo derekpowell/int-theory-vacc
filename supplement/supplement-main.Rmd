@@ -782,10 +782,10 @@ recode_nodes2 <- function(x){
          "overpar" = "Parental Protectiveness",
          "parentExpert" = "Parental Expertise",
          "vaccDanger" = "Vaccine Danger",
-         "vaccEff" = "Vaccine Eff.",
+         "vaccEff" = "Vaccine Effectiveness",
          "vaccIntent" = "Vaccination Intentions",
          "vaccStrain" = "IIS: Vaccines Strain",
-         "vaccTox" = "Vaccines Toxicity")}
+         "vaccTox" = "Vaccine Toxicity")}
 
 
 temp_order <- corrMatOrder(cor(d_bn))
@@ -1511,7 +1511,7 @@ s4_scale_order <- combined %>%
   group_by(scale) %>%
   summarize(diff_diff = mean(M, na.rm = T)) %>%
   ungroup() %>%
-  arrange(diff_diff) %>% # ascending because news exposure is expected to increase vaccine intentions
+  arrange(desc(diff_diff)) %>% # ascending because news exposure is expected to increase vaccine intentions
   mutate(order = 1:nrow(.))
 
 s4_diff_plot <- combined %>% 
