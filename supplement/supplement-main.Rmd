@@ -1266,7 +1266,7 @@ s3_plt <- s3_diff_plot + s3_obs_pred_plot + plot_layout(ncol=2, widths = c(2,1))
 s3_plt
 ```
 
-```{r s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=10, fig.height=5, fig.cap="Belief changes following the intervention in Experiments 3a and 3b, broken out by experiment. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
 # see previous chunk for scale order
 
@@ -1307,7 +1307,7 @@ s3_diff_plot_bystudy <- s3_scored %>%
   theme(
     axis.text.x = element_text(angle=45, hjust=1),
     panel.grid = element_blank(),
-    legend.position = c(.5,.1),
+    legend.position = c(.5,.15),
     legend.direction = "horizontal",
     legend.background = element_rect(fill = NA),
     aspect.ratio=.5
@@ -1345,7 +1345,7 @@ s3_obs_pred_plot_bystudy <- bind_rows(obs_pred_A %>% mutate(study = "A"),
   theme_bw(base_size=11) +
   theme(panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank(),
-        legend.position = c(.15,.85),
+        legend.position = c(.2,.8),
         legend.background = element_rect(fill = NA)) +
   theme(aspect.ratio = 1) +
   labs(title = "B", y = "Observed change", x="Predicted change", 
@@ -1750,7 +1750,7 @@ Participants then proceeded through 14 pages, with a different scale presented o
 
 The 14 scales are presented in their entirety below.
 
-_Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, and Conventional Medicine Attitudes Scale (CACMAS) (Study 1 observed $\alpha$ = `r format(round(alpha_values$hb, 2), nsmall = 2)`)
+_Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, and Conventional Medicine Attitudes Scale (CACMAS) (Study 1: observed $\alpha$ = `r format(round(alpha_values$hb, 2), nsmall = 2)`)
 
 
 
@@ -1759,7 +1759,7 @@ _Holistic balance_, from McFadden et al.’s (2010) Complementary, Alternative, 
 3. A patient’s symptoms should be regarded as a manifestation of a general imbalance or dysfunction affecting the whole body.
 4. Health and disease are a reflection of balance between positive life enhancing forces and negative destructive forces.
 
-_Naturalism_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$nat, 2), nsmall = 2)`)
+_Naturalism_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$nat, 2), nsmall = 2)`)
 
 
 
@@ -1770,7 +1770,7 @@ _Naturalism_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$nat, 2), 
 5. Childbirth should take place at home rather than in a hospital.
 6. I’m not concerned about preservatives in food. (reversed)
 
-_Medical skepticism_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$medSkept, 2), nsmall = 2)`)
+_Medical skepticism_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$medSkept, 2), nsmall = 2)`)
 
 
 
@@ -1781,7 +1781,7 @@ _Medical skepticism_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$m
 5. Pharmaceutical companies don’t make huge profits from the sale of vaccines. (reversed)
 6. For researchers developing vaccines, safety is a top priority. (reversed)
 
-_Disease rarity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$diseaseRare, 2), nsmall = 2)`)
+_Disease rarity_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$diseaseRare, 2), nsmall = 2)`)
 
 
 
@@ -1793,7 +1793,7 @@ _Disease rarity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$disea
 
  
 
-_Disease severity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$diseaseSevere, 2), nsmall = 2)`)
+_Disease severity_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$diseaseSevere, 2), nsmall = 2)`)
 
 
 
@@ -1803,7 +1803,7 @@ _Disease severity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$dis
 4. Childhood diseases are not that big a deal. (reversed)
 5. Diseases like measles and whooping cough are extremely dangerous for young children. 
 
-_Vaccine effectiveness_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccEff, 2), nsmall = 2)`)
+_Vaccine effectiveness_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$vaccEff, 2), nsmall = 2)`)
 
 
 
@@ -1812,7 +1812,7 @@ _Vaccine effectiveness_ (Study 1 observed $\alpha$ = `r format(round(alpha_value
 3. Recent outbreaks of diseases like measles and whooping cough show that vaccines don’t work very well. (reversed)
 4. Vaccines are one of the most effective medical treatments. 
 
-_Vaccine danger_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccDanger, 2), nsmall = 2)`)
+_Vaccine danger_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$vaccDanger, 2), nsmall = 2)`)
 
 
 
@@ -1821,7 +1821,7 @@ _Vaccine danger_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccD
 3. Many children have severe adverse reactions to the MMR vaccine.
 4. Vaccines are a very safe medical treatment. (reversed)
 
-_Toxic additives in vaccines_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccTox, 2), nsmall = 2)`)
+_Toxic additives in vaccines_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$vaccTox, 2), nsmall = 2)`)
 
 
 
@@ -1830,7 +1830,7 @@ _Toxic additives in vaccines_ (Study 1 observed $\alpha$ = `r format(round(alpha
 3. Exposure to certain additives in vaccines can cause major health problems. 
 4. The quantities of chemical additives in vaccines are so small that they do not pose any health risks. (reversed)
 
-_Infant immune system: Vaccines strain_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccStrain, 2), nsmall = 2)`)
+_Infant immune system: Vaccines strain_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$vaccStrain, 2), nsmall = 2)`)
 
 
 
@@ -1840,7 +1840,7 @@ _Infant immune system: Vaccines strain_ (Study 1 observed $\alpha$ = `r format(r
 4. Vaccines are not very taxing for an infant's immune system. (reversed)
 5. Getting multiple vaccines at once can exhaust an infant’s immune system. 
 
-_Vaccination intentions_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$vaccIntent, 2), nsmall = 2)`)
+_Vaccination intentions_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$vaccIntent, 2), nsmall = 2)`)
 
 
 
@@ -1850,7 +1850,7 @@ _Vaccination intentions_ (Study 1 observed $\alpha$ = `r format(round(alpha_valu
 4. I feel confident that vaccinating children is the right thing to do.
 5. I would never vaccinate my child. (reversed)
 
-_Parental expertise_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$parentExpert, 2), nsmall = 2)`)
+_Parental expertise_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$parentExpert, 2), nsmall = 2)`)
 
 
 
@@ -1860,7 +1860,7 @@ _Parental expertise_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$p
 4. Parents should trust a doctor’s advice even if it goes against their intuitions. (reversed)
 5. Advice from doctors is the best resource for keeping your child healthy. (reversed)
 
-_Infant immune system: Limited capacity_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$infantImmLimCap, 2), nsmall = 2)`)
+_Infant immune system: Limited capacity_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$infantImmLimCap, 2), nsmall = 2)`)
 
 
 
@@ -1870,7 +1870,7 @@ _Infant immune system: Limited capacity_ (Study 1 observed $\alpha$ = `r format(
 4. Babies’ immune systems are severely limited in how much they can cope with at one time.
 5. Babies’ immune systems can deal with many threats at one time. (reversed)
 
-_Infant immune system: Weakness_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$infantImmWeak, 2), nsmall = 2)`)
+_Infant immune system: Weakness_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$infantImmWeak, 2), nsmall = 2)`)
 
 
 
@@ -1880,7 +1880,7 @@ _Infant immune system: Weakness_ (Study 1 observed $\alpha$ = `r format(round(al
 4. Babies have an innate ability to fight off diseases. (reversed)
 5. Babies’ immune systems are more robust than many people think. (reversed)
 
-_Parental protectiveness_ (Study 1 observed $\alpha$ = `r format(round(alpha_values$overpar, 2), nsmall = 2)`)
+_Parental protectiveness_ (Study 1: observed $\alpha$ = `r format(round(alpha_values$overpar, 2), nsmall = 2)`)
 
 
 
