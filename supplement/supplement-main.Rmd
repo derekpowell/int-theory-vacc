@@ -2,7 +2,7 @@
 title: "Supplemental Materials"
 subtitle: "Untitled vaccination intuitive theory paper"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "Jul 20, 2021 (DRAFT)"
+date: "Jul 21, 2021 (DRAFT)"
 output:
   pdf_document: 
     latex_engine: xelatex
