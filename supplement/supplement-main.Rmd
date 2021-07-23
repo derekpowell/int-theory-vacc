@@ -177,7 +177,7 @@ Without any clear guidance from cross validation and with a clear need to apply 
 
 ## Interpreting the model
 
-We used a bootstrapping procedure to estimate the confidence in each of the links in this model, conducting the structure learning procedure repeatedly for 200 bootstrapped resamples of the original training data. Figure 3 visualizes the frequency with which each arc appeared in the resulting model across these replicates, and figure \@ref(fig:disp-maingraph) visualizes the model with the coefficients for each link encoded by color. 
+We used a bootstrapping procedure to estimate the confidence in each of the links in this model, conducting the structure learning procedure repeatedly for 200 bootstrapped resamples of the original training data. Figure 3 visualizes the frequency with which each arc appeared in the resulting model across these replicates, and Figure 4 visualizes the model with the coefficients for each link encoded by color. 
 
 ```{r fit_main_model, include=FALSE, cache=TRUE}
 set.seed(73566)
@@ -344,7 +344,7 @@ cowplot::save_plot("../outputs/boot-graph-legend.svg", boot_graph_legend)
 ```
 
 
-```{r fig3-disp-bootgraph, echo=F, fig.width=8, fig.height=5, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across 200 bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown. Our primary outcome of interest, vaccination intentions, is highlighted in yellow."}
+```{r fig3-disp-bootgraph, echo=F, fig.width=8, fig.height=5, fig.cap="Bootstrapped confidence estimates for Bayesian network edges. Edge color indicates frequency with which edges appeared when conducting search across 200 bootstrap replicates. Only edges appearing in at least 20\\% of graphs are shown. Our primary outcome of interest, vaccination intentions, is highlighted in gray."}
 
 ## assemble bootstrapping graph and legend into pdf and display here
 knitr::include_graphics("../outputs/boot-combined.pdf") 
@@ -465,7 +465,7 @@ cowplot::save_plot("../outputs/graph-legend.svg", main_graph_legend)
 ```
 
 
-```{r fig4-disp-maingraph, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links. Our primary outcome of interest, vaccination intentions, is highlighted in yellow."}
+```{r fig4-disp-maingraph, echo=F, fig.width=8, fig.height=5, fig.align='center', fig.cap="Bayesian network model of intuitive theory surrounding vaccination decisions. Edge color indicates the magnitude of the generative (blue) or preventive (red) coeffient for the links. Our primary outcome of interest, vaccination intentions, is highlighted in gray."}
 
 ## assemble main model graph and legend into pdf and display here (main-graph-combined.pdf)
 ## currently just the output graph w/ no legend (main-graph.pdf)
@@ -730,15 +730,15 @@ When asked whether vaccines were effective in preventing the diseases they were 
 
 When asked whether it would be safer to vaccine a 2-month-old child for 5 separate diseases in one doctor’s visit (as the CDC recommends) or to spread these vaccinations out at a rate of 1 every 2 months, nearly all participants (15 of 16) said it would be safer to spread the vaccinations out. Many of these participants (8 of 15) indicated that this would be safer because it would prevent the  immature system from being overwhelmed (e.g., “It gives a [child’s] body time to adapt and doesn't overwhelm their tiny immune systems”); and several (4 of 15) suggested that this would be preferable because it would allow the parent more control over the process (e.g., “Ideally I would choose neither for my child, but if forced to choose between the two I would pick the latter.  This would allow me to stop the vaccination process if things are not progressing well”; “I think a parent should have a choice which ones to have given to their child”). At least two participants expressed being deeply appalled by this choice, e.g., “He is only 8 weeks old. Who in their right mind decided it was safe to put 5 disease substances in a baby? Dead or alive, still horrific”; Honestly I do not think either is safe I think in both instances the child's body and health is actually being raped.”
 
-Finally, when asked why most healthcare providers recommend vaccinating young children, most participants (7 of 15; 1 participant did not respond) stated explicitly that healthcare providers have financial incentives to recommend vaccination -- but many (7 of 15, including several who mentioned financial incentives) also acknowledged that healthcare providers likely believe (in the participants’ view, mistakenly) that vaccinations are harmless and effective. Some participants (6 of 15) stated that healthcare providers are following protocol  
+Finally, when asked why most healthcare providers recommend vaccinating young children, most participants (7 of 15; 1 participant did not respond) stated explicitly that healthcare providers have financial incentives to recommend vaccination -- but many (7 of 15, including several who mentioned financial incentives) also acknowledged that healthcare providers likely believe (in the participants’ view, mistakenly) that vaccinations are harmless and effective. Some participants (6 of 15) stated that healthcare providers are following protocol.
 
 Drawing on these responses as well as anti-vaccine websites and academic articles on anti-vaccine skepticism [@dube.etal2015, @larson.etal2015, @salmon.etal2015, @williams2014], we generated a list of 13 underlying beliefs that might influence people’s decisions about whether to vaccinate their children (_vaccine intentions_, the last of our 14 beliefs). These included a variety of claims about vaccines, including beliefs about (1) the overall danger of vaccines (_vaccine danger_); (2) _toxic additives in vaccines_; and (3) _vaccine effectiveness_, how effective vaccines are in preventing disease; as well as a variety of specific claims about childhood diseases like measles, mumps, and rubella, including beliefs about (4) _disease rarity _and (5) _disease severity_. Inspired by the many participants who invoked concerns about the effect of vaccines on infants’ immature immune systems, we also developed scales to assess beliefs that (6) the infant immune system is weak (_IIS: weakness_); (7) the infant immune system is limited in its capacity and can be easily overwhelmed (_IIS: limited capacity_); and (8) vaccines strain the infant immune system (_IIS: vaccines strain_). Beyond this, we developed two scales to assess general theories about parenting, including (9) general _parental protectiveness_; (10) _parental expertise_, namely the belief that parents usually know more about their children’s health than medical experts; and one scale to assess (12) _medical skepticism_, including concerns about pharmaceutical companies and corruption in the medical community. Finally, we decided to assess two broad worldviews: (12) _naturalism_, a general preference for natural over artificial things; and (13) _holistic balance_, one important aspect of attitudes toward alternative medicine (e.g., “The body is essentially self-healing and the task of a health care provider is to assist the healing process”; [@mcfadden.etal2010]. 
 
-_Holistic balance_ was the only belief for which we could identify a pre-existing psychometrically valid scale [@mcfadden.etal2010]. For each of the other 13 beliefs, we translated our qualitative insights into new psychometrically-valid scales through an iterative series of pilot studies not described here. We stipulated that each scale should be brief, composed of 4-6 statements for participants to evaluate; include at least one reverse-coded item; and be highly reliable (Cronbach’s $\alpha \geq .80$). 
+_Holistic balance_ was the only belief for which we could identify a pre-existing psychometrically valid scale [@mcfadden.etal2010]. For each of the other 13 beliefs, we translated our qualitative insights into new psychometrically-valid scales through an iterative series of pilot studies not described here. We stipulated that each scale should be brief, composed of 4-6 statements for participants to evaluate; include at least one reverse-coded item; and be highly reliable in these pilot studies (observed reliability in final pilot study: all Cronbach’s $\alpha \geq .80$). 
 
 ## General Methods: Studies 1-4
 
-Studies 1-4 were conducted using online surveys (administered with Qualtrics survey software) with participants recruited from Amazon’s mechanical turk (mTurk) work distribution website. All studies were conducted between [dates]. Repeat participation was prevented, with no participants involved in more than one study, except as noted in Study 4. A total of # participants completed their participation in these studies. All participants had gained approval for ≥ 95% of previous work (≥ 100 assignments); had verified US MTurk accounts; and indicated that they were ≥ 18 years old. See the participant demographics summary section below for full demographic information.
+Studies 1-4 were conducted using online surveys (administered with Qualtrics survey software) with participants recruited from Amazon’s mechanical turk (mTurk) work distribution website. All studies were conducted between August 2017 and June 2019. Repeat participation was prevented, with no participants involved in more than one study, except as noted in Study 4. A total of # participants completed their participation in these studies. All participants had gained approval for ≥ 95% of previous work (≥ 100 assignments); had verified US MTurk accounts; and indicated that they were ≥ 18 years old. See the participant demographics summary section below for full demographic information.
 
 ### Method
 
@@ -909,7 +909,7 @@ base_model <- create_bnlearn_cog_model(main_model, train)
 ```
 
 
-```{r fig7-s2_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiment 2. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Disease Risk intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig7-s2_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiment 2. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for the Disease Risk intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 ## combined plot for paper
 library(patchwork)
 
@@ -1201,7 +1201,7 @@ To model the effect of the Vaccine Ingredients intervention, we followed the sam
 
 Figure 9 (right) shows the correlation between predicted and observed belief changes conditional on the Vaccine Ingredients intervention.
 
-```{r fig9-s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig9-s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
 s3_scale_order <- s3_scored %>% 
   drop_na(scale) %>% 
@@ -1280,7 +1280,7 @@ s3_plt <- s3_diff_plot + s3_obs_pred_plot + plot_layout(ncol=2, widths = c(2,1))
 s3_plt
 ```
 
-```{r fig10-s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=10, fig.height=5, fig.cap="Belief changes following the intervention in Experiments 3a and 3b, broken out by experiment. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig10-s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=10, fig.height=5, fig.cap="Belief changes following the intervention in Experiments 3a and 3b, broken out by experiment. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
 # see previous chunk for scale order
 
@@ -1428,7 +1428,7 @@ s4_meta <- list(
 
 ### _Participants_. 
 
-We attempted to contact and re-recruit as many of the `r nrow(d_bn)` participants who completed Study 1 to participate in a follow-up study in May of 2019. We were able to re-recruit `r s4_meta$n_recruited` participants and of these`r s4_meta$n_complete` successfully completed the study including passing all attention checks.
+We attempted to contact and re-recruit as many of the `r nrow(d_bn)` participants who completed Study 1 to participate in a follow-up study in May of 2019. We were able to re-recruit `r s4_meta$n_recruited` participants and, of these, `r s4_meta$n_complete` successfully completed the study including passing all attention checks.
 
 ### _Results._ 
 
@@ -1497,7 +1497,7 @@ To model the effects of news exposure we followed the same procedure as in previ
 
 Figure 11 (right) shows the correlation between predicted and observed belief changes for participants who were aware of the New York measles outbreak in May 2019.
 
-```{r fig11-s4_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig11-s4_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York; our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
 
 s4_scale_order <- combined %>% 
   drop_na(scale) %>% 
@@ -1758,9 +1758,13 @@ names(alpha_values) <- var_names
 
 # Appendix A
 
-At the beginning of the study, participants read the following instructions: “In this study, you will be asked to read a range of statements. Some of these statements may be controversial, and others less so. We are interested in your opinions about these issues. On each of the following screens, you'll see several statements. Please indicate how much you agree or disagree with each statement.”
+_Text of the belief scales used in Studies 1-4_
 
-Participants then proceeded through 14 pages, with a different scale presented on each page. Scales, and questions within each scale, were presented in a random order for each participant. On each page, participants were asked to rate “how much you agree or disagree” on a 7-point scale from “Strongly disagree” to “Strongly agree.” After completing all 14 scales, participants were asked standard demographics questions (gender, age, race/ethnicity, religious affiliation, educational attainment, annual household income) as well as a handful of questions about whether they were or were expecting to be a parent. The study concluded with a brief statement about the safety of vaccines, as follows: “We very much appreciate hearing your opinions about these various issues. Some of these statements concerned vaccines. The overwhelming consensus in the scientific and medical communities is that vaccines are safe and effective. In case you're interested in learning more about this, below is a statement from the World Health Organization (WHO) on this topic, and a link to their website: ‘Vaccination is one of the most cost-effective health interventions available, saving millions of people from illness, disability and death each year. Effective and safe vaccines, which protect against a number of serious diseases, are available and many promising new vaccines are being developed.’ (WHO Website: www.who.int/immunization/diseases/en/).”
+At the beginning of each study, participants read the following instructions: “In this study, you will be asked to read a range of statements. Some of these statements may be controversial, and others less so. We are interested in your opinions about these issues. On each of the following screens, you'll see several statements. Please indicate how much you agree or disagree with each statement.”
+
+Participants then proceeded through 14 pages, with a different scale presented on each page. Scales, and questions within each scale, were presented in a random order for each participant. On each page, participants were asked to rate “how much you agree or disagree” on a 7-point scale from “Strongly disagree” to “Strongly agree.” After completing all 14 scales, participants were asked standard demographics questions (gender, age, race/ethnicity, religious affiliation, educational attainment, annual household income) as well as a handful of questions about whether they were or were expecting to be a parent. 
+
+In Study 1, but not Studies 2-4, the study concluded with a brief statement about the safety of vaccines, as follows: “We very much appreciate hearing your opinions about these various issues. Some of these statements concerned vaccines. The overwhelming consensus in the scientific and medical communities is that vaccines are safe and effective. In case you're interested in learning more about this, below is a statement from the World Health Organization (WHO) on this topic, and a link to their website: ‘Vaccination is one of the most cost-effective health interventions available, saving millions of people from illness, disability and death each year. Effective and safe vaccines, which protect against a number of serious diseases, are available and many promising new vaccines are being developed.’ (WHO Website: www.who.int/immunization/diseases/en/).”
 
 The 14 scales are presented in their entirety below.
 
