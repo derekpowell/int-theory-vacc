@@ -1199,8 +1199,6 @@ make_table("Bayesian regression model coefficients for model of Vaccine Intentio
 
 To model the effect of the Vaccine Ingredients intervention, we followed the same procedure as in Study 2, but this time augmented the model with a node representing the Vaccine Ingredients intervention as a child of the _vaccine toxicity_ belief node.  To simulate the impacts of this evidence, we supplied virtual evidence to the _vaccine toxicity_ node by adding a child node to the cognitive-model network with a CPT capturing this evidence ratio.
 
-Figure 9 (right) shows the correlation between predicted and observed belief changes conditional on the Vaccine Ingredients intervention.
-
 ```{r fig9-s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
 s3_scale_order <- s3_scored %>% 
@@ -1279,6 +1277,12 @@ s3_plt <- s3_diff_plot + s3_obs_pred_plot + plot_layout(ncol=2, widths = c(2,1))
 
 s3_plt
 ```
+
+Figure 9 (right) shows the correlation between predicted and observed belief changes conditional on the Vaccine Ingredients intervention.  the model’s predictions are significantly related to the observed changes, but the correlations are relatively weaker (*r* = `r cor_val_s3`) than those observed in our other studies. 
+
+In Study 3a, we observed smaller differences than predicted for vaccineeffectiveness (observed minus predicted difference: -0.07), IIS: weak (-0.06), and vaccine intentions (-0.06); and larger differences than predicted for vaccine danger (+0.06), and parental expertise (+0.05); all other discrepancies were smaller than ±0.05.
+
+In Study 3b, we again observed smaller differences than predicted for vaccine effectiveness (observed minus predicted difference: -0.06) and vaccine intentions (-0.05); and in this case we observed larger differences than predicted for naturalism (+0.05); all other discrepancies were smaller than ± 0.05.
 
 ```{r fig10-s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=10, fig.height=5, fig.cap="Belief changes following the intervention in Experiments 3a and 3b, broken out by experiment. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
