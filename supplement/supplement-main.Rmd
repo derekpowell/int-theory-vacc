@@ -1,5 +1,5 @@
 ---
-title: "Supplemental Information"
+title: "Supporting Information"
 subtitle: "Modeling and leveraging intuitive theories to improve vaccine attitudes"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
 output:
@@ -65,7 +65,7 @@ grViz(
 
 In this graph, the edge $FIRE \rightarrow SMOKE$ captures that fire causes smoke.^[The example of cause and effect is especially intuitive, but these edges need not be causal. Instead, they are better thought of as representing “influence relations”, which may also include relationships like logical implication and set membership (Williamson, 2001).] This relationship is represented as a probabilistic function, where the probability of smoke depends on the probability of fire. The probability of a node Y can be defined from its parents X in many different ways. For binary nodes, the most flexible specification is a conditional probability table (CPT) with 2^n^ entries specifying the probability of Y given the entire joint probability distribution over X, where n is the number of parents X. Given the exponential complexity of the CPT, simpler functions are often used to specify the probability of the child node, such as the noisy-or and noisy-and-not functions. A noisy-or function assumes each of the parents are independent generative forces, each with a probability of generating the effect. A noisy-and-not function assumes each of the parents are independent preventive forces, specifying the probability of the child node as the probability that it is generated _and not_ prevented by any one of its possible preventers. We construct our cognitive model parameterization using a combination of these two functions, using a distribution sometimes referred to as a “DeMorgan gate” [@maaskant.druzdzel2008]. In our model, the probability of the child node Y can be expressed as:
 
-$$P(y) = 1 \big[1-(1-w_0)\prod_i(1-w_i)^{x_i}\big]\prod_j(1-w_j)^{x_j}$$
+$$P(y) = \Big(1-(1-w_0)\prod_i(1-w_i)^{x_i}\Big)\prod_j(1-w_j)^{x_j}$$
 
 Here, each parent is either a generative (i) or preventive (j) influence, that generates or prevents the child node with probability weight $w_i$ or $w_j$. The weight $w_0$ represents the “leak” probability, or the baseline probability that the child occurs without any other generating influences. The first term in brackets represents the probability that y is generated, or alternately, that not all of the possible generating forces fail to generate it. The second term represents the probability that it is not then prevented, or that all the preventing forces fail.
 
