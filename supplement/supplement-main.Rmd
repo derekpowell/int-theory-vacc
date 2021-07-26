@@ -1,8 +1,7 @@
 ---
-title: "Supplemental Materials"
-subtitle: "Untitled vaccination intuitive theory paper"
+title: "Supplemental Information"
+subtitle: "Modeling and leveraging intuitive theories to improve vaccine attitudes"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-date: "Jul 21, 2021 (DRAFT)"
 output:
   pdf_document:
     latex_engine: xelatex
@@ -1731,6 +1730,13 @@ results <- list(
 saveRDS(results, "../local/paper-results.rds")
 ```
 
+\newpage
+
+# Data Availability
+
+Data and code for this project are available at: https://github.com/derekpowell/int-theory-vacc
+
+Preregistrations information is available at: https://osf.io/uemq4
 
 \newpage
 
