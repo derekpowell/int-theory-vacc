@@ -30,6 +30,7 @@ docker run -d -p 8787:8787 -v "`pwd`":/home/rstudio/working \
  -e PASSWORD=my_password_here cogdatasci/rstudio
  ```
 then navigate to `localhost:8787` in your browser to access the rstudio interface.
+
 3. Install required packages by running `install-packages.R` to make sure you have all packages needed.
 4. Open and knit `supplement/supplement-main.Rmd` to generate supplement PDF and save files needed for reproduction of manuscript.
 5. Open and knit `paper/paper-main.Rmd` to generate manuscript PDF.
