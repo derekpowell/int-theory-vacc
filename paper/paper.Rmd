@@ -327,4 +327,5 @@ Mirroring our analyses of interventions, we regressed responses to the *vaccine 
 To model the effects of news exposure we followed the same procedure as in previous studies, but here augmented the model with a node representing media exposure as a child of the *vaccine intentions* node (for details, see SI); see Figure 6, panel B.
 
 \newpage
+\singlespacing
 # References
