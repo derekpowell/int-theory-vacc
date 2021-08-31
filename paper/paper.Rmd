@@ -4,6 +4,8 @@ author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
 output: pdf_document
 bibliography: "../supplement/references.bib"
 csl: "../supplement/pnas.csl"
+header-includes:
+    - \usepackage{setspace}\doublespacing
 ---
 
 ```{r setup, include=FALSE}
@@ -20,6 +22,8 @@ results <- readRDS("../local/paper-results.rds")
 Much of the richness of human thought is supported by people’s intuitive theories---mental frameworks capturing the perceived structure of the world. But intuitive theories can sometimes contain and reinforce misconceptions, such as misconceptions about vaccine safety that discourage vaccination. We argue that addressing misconceptions requires awareness of the broader conceptual contexts in which they are embedded. Here, we developed a cognitive model of the intuitive theory surrounding vaccination decisions. Using this model, we were able to make accurate predictions about how people's beliefs would be revised in light of educational interventions, design an effective new intervention encouraging vaccination, and understand how these beliefs were affected by real-world events. This approach provides the foundation for richer understandings of intuitive theories and belief revision more broadly.
 
 \newpage
+
+# Main text
 
 One remarkable feature of human psychology is our ability to form rich mental representations of what is true, how things work, and how best to navigate the world around us. Much of this type of thinking can be understood as deriving from people’s *intuitive theories*---explanatory frameworks, analogous to scientific theories, that capture the causal and logical structure of the world within a domain. From early in life, people are driven to seek out such causal explanations and to use their mental representations of these causal systems to explain, predict, and intervene in the world [see @carey2009; @gelman.legare2011; @gerstenberg.etal2021; @gopnik.wellman1994; @keil1994; @murphy.medin1985; @wellman.gelman1992 for influential treatments of this topic].  Intuitive theories inform reasoning in a wide variety of domains, including reasoning about physical systems [e.g., @baillargeon2004; @battaglia.etal2013; @spelke1994a; @ullman.etal2017], biological processes [e.g., @carey2009; @carey1985; @medin.atran1999] and the contents of other people’s minds [e.g., @gopnik.wellman1994; @wellman2015; @baker.etal2017].
 
