@@ -11,7 +11,8 @@ csl: pnas.csl
 figsintext : yes
 always_allow_html: true
 header-includes:
- \usepackage{float}
+  - \usepackage{float}
+  - \usepackage{setspace}\doublespacing
 ---
 
 ```{r setup, include=FALSE}
