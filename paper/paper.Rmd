@@ -1,9 +1,14 @@
 ---
 title: "Modeling and leveraging intuitive theories to improve vaccine attitudes"
-author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
-output: pdf_document
+author: 
+  - Derek Powell^[Arizona State University, dmpowell@asu.edu]
+  - Kara Weisman^[University of California, Riverside]
+  - Ellen M. Markman^[Stanford University]
+output:
+  pdf_document:
+    keep_tex: true
 bibliography: "../supplement/references.bib"
-csl: "../supplement/apa.csl"
+csl: "../supplement/science.csl"
 header-includes:
     - \usepackage{setspace}\doublespacing
 ---
@@ -17,7 +22,11 @@ library(tidyverse)
 results <- readRDS("../local/paper-results.rds") 
 ```
 
-# Abstract
+## One sentence summary
+
+We developed a cognitive model of the intuitive theory surrounding vaccination decisions capable of predicting how people's beliefs about vaccination would be revised in light of evidence and real-world events.
+
+## Abstract
 
 Much of the richness of human thought is supported by people’s intuitive theories---mental frameworks capturing the perceived structure of the world. But intuitive theories can sometimes contain and reinforce misconceptions, such as misconceptions about vaccine safety that discourage vaccination. We argue that addressing misconceptions requires awareness of the broader conceptual contexts in which they are embedded. Here, we developed a cognitive model of the intuitive theory surrounding vaccination decisions. Using this model, we were able to make accurate predictions about how people's beliefs would be revised in light of educational interventions, design an effective new intervention encouraging vaccination, and understand how these beliefs were affected by real-world events. This approach provides the foundation for richer understandings of intuitive theories and belief revision more broadly.
 
