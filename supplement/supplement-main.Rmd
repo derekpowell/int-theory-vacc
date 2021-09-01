@@ -7,7 +7,7 @@ output:
     latex_engine: xelatex
     fig_caption: yes
 bibliography: references.bib
-csl: pnas.csl
+csl: apa.csl
 figsintext : yes
 always_allow_html: true
 header-includes:

@@ -3,7 +3,7 @@ title: "Modeling and leveraging intuitive theories to improve vaccine attitudes"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
 output: pdf_document
 bibliography: "../supplement/references.bib"
-csl: "../supplement/pnas.csl"
+csl: "../supplement/apa.csl"
 header-includes:
     - \usepackage{setspace}\doublespacing
 ---
