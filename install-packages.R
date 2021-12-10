@@ -1,6 +1,5 @@
 ## this will install all required packages
 ## untested 6/22/21, 11:03 AM
-BiocManager::install("graph")
 
 package_list <- c(
   "tidyverse",
@@ -20,5 +19,3 @@ package_list <- c(
 install.packages(package_list)
 
 devtools::install_github("thomasp85/patchwork")
-
-webshot::install_phantomjs()

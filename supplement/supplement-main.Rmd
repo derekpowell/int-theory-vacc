@@ -7,12 +7,11 @@ output:
     latex_engine: xelatex
     fig_caption: yes
 bibliography: references.bib
-csl: science.csl
+csl: pnas.csl
 figsintext : yes
 always_allow_html: true
 header-includes:
-  - \usepackage{float}
-  - \usepackage{setspace}\doublespacing
+ \usepackage{float}
 ---
 
 ```{r setup, include=FALSE}
@@ -1993,5 +1992,4 @@ To take one example, consider one of the scariest things you may have heard abou
 Vaccines are extremely safe. A vaccine is just a few drops of liquid, the vast majority of which is water, and all of the ingredients in vaccines serve specific purposes to help make them safe and effective. Although some vaccine ingredients may sound scary, many of them are natural substances that are already in our bodies. In large quantities anything can be toxic, but extensive testing has shown that none of the ingredients in vaccines are toxic in the tiny quantities with which they’re used. Vaccines have been carefully studied to ensure both their safety and their effectiveness in protecting babies from serious diseases.
 
 \newpage
-\singlespace
 # References
