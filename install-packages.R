@@ -1,6 +1,8 @@
 ## this will install all required packages
 ## untested 6/22/21, 11:03 AM
 
+devtools::install_bioc("graph")
+
 package_list <- c(
   "tidyverse",
   "brms",

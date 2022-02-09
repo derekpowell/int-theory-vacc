@@ -38,6 +38,9 @@ vignettes/*.pdf
 *.png
 *.tiff
 *.svg
+*.log
+*.fff
+*.tex
 
 # Private directories
 /*_private/
