@@ -20,4 +20,4 @@ package_list <- c(
 
 install.packages(package_list)
 
-devtools::install_github("thomasp85/patchwork")
+devtools::install_github("thomasp85/patchwork", "crsh/papaja")

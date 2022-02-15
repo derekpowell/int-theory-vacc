@@ -1,0 +1,76 @@
+digraph {
+
+graph [layout = 'dot',
+       rankdir = 'TB',
+       outputorder = 'edgesfirst',
+       bgcolor = 'white']
+
+node [fontname = 'Helvetica',
+      fontsize = '10',
+      shape = 'circle',
+      fixedsize = 'true',
+      width = '0.5',
+      style = 'filled',
+      fillcolor = 'aliceblue',
+      color = 'gray70',
+      fontcolor = 'gray50']
+
+edge [fontname = 'Helvetica',
+     fontsize = '8',
+     len = '1.5',
+     color = 'gray80',
+     arrowsize = '0.5']
+
+  '1' [label = 'Vaccine
+Danger', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '2' [label = 'Vaccine
+Effectiveness', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '3' [label = 'Medical
+Skepticism', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '4' [label = 'Naturalism', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '5' [label = 'Parental
+Expertise', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '6' [label = 'Disease Severity', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '7' [label = 'IIS: Weakness', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '8' [label = 'Parental
+Protectiveness', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '9' [label = 'Vaccines
+Toxicity', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '10' [label = 'Holistic Balance', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '11' [label = 'IIS: Vaccines
+Strain', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '12' [label = 'Vaccination
+Intentions', fillcolor = '#dcdcdc', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '13' [label = 'Disease Rarity', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+  '14' [label = 'IIS: Limited
+Capacity', fillcolor = 'white', shape = 'ellipse', fontcolor = 'black', color = 'black', style = 'filled', fontname = 'Helvetica', fixedsize = 'FALSE'] 
+'2'->'1' [penwidth = '1.5', color = '#67001F'] 
+'3'->'1' [penwidth = '1.5', color = '#053061'] 
+'4'->'1' [penwidth = '1.5', color = '#053061'] 
+'3'->'2' [penwidth = '1.5', color = '#F4A582'] 
+'4'->'2' [penwidth = '1.5', color = '#F4A582'] 
+'5'->'2' [penwidth = '1.5', color = '#F4A582'] 
+'4'->'3' [penwidth = '1.5', color = '#4393C3'] 
+'5'->'3' [penwidth = '1.5', color = '#92C5DE'] 
+'4'->'5' [penwidth = '1.5', color = '#4393C3'] 
+'10'->'5' [penwidth = '1.5', color = '#D1E5F0'] 
+'2'->'6' [penwidth = '1.5', color = '#2166AC'] 
+'7'->'6' [penwidth = '1.5', color = '#4393C3'] 
+'8'->'7' [penwidth = '1.5', color = '#2166AC'] 
+'10'->'7' [penwidth = '1.5', color = '#F4A582'] 
+'4'->'8' [penwidth = '1.5', color = '#D1E5F0'] 
+'1'->'9' [penwidth = '1.5', color = '#053061'] 
+'2'->'9' [penwidth = '1.5', color = '#F4A582'] 
+'4'->'9' [penwidth = '1.5', color = '#92C5DE'] 
+'4'->'10' [penwidth = '1.5', color = '#2166AC'] 
+'1'->'11' [penwidth = '1.5', color = '#2166AC'] 
+'2'->'11' [penwidth = '1.5', color = '#F4A582'] 
+'3'->'11' [penwidth = '1.5', color = '#D1E5F0'] 
+'9'->'11' [penwidth = '1.5', color = '#92C5DE'] 
+'1'->'12' [penwidth = '1.5', color = '#D6604D'] 
+'2'->'12' [penwidth = '1.5', color = '#053061'] 
+'6'->'12' [penwidth = '1.5', color = '#2166AC'] 
+'6'->'13' [penwidth = '1.5', color = '#67001F'] 
+'7'->'14' [penwidth = '1.5', color = '#2166AC'] 
+'11'->'14' [penwidth = '1.5', color = '#D1E5F0'] 
+}
