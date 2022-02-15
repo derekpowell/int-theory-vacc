@@ -41,7 +41,7 @@ affiliation:
     institution   : "Stanford University"
 
 note: |
-  This manuscript has not yet been peer-reviewed. 
+  This manuscript has not yet been peer-reviewed (2/15/2022). 
   
 authornote: |
   All data, and analysis code for this project are available at https://osf.io/sdfpj/. Preregistration information for Studies 3a and 3b is available at https://osf.io/csnez/registrations.
@@ -52,7 +52,7 @@ abstract: |
   <!-- https://tinyurl.com/ybremelq -->
   
 keywords          : "Intuitive theories; Belief revision; Vaccine attitudes; Cognitive modeling"
-wordcount         : "9163"
+wordcount         : "9161"
 
 bibliography      : ["../supplement/references.bib"]
 
