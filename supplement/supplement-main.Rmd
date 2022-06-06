@@ -25,6 +25,60 @@ First, we describe in further detail the modeling process for developing a Bayes
 
 Then, we describe our empirical methods in detail. This begins with the qualitative research we conducted with vaccine skeptics to develop psychometrically-valid quantitative scales measuring a network of 14 beliefs related to vaccine skepticism. Then, we report the detailed methods for each of the empirical studies reported in the paper. In Study 1, we used Bayesian network structure learning algorithms to develop a cognitive model of the relationships among these beliefs in a large sample of people. This model can predict how beliefs correlate across people and how they would be revised in the face of evidence. In Study 2, we replicated the success of an existing intervention emphasizing the dangers of childhood diseases [@horne.etal2015] and used our model to provide a more detailed understanding of _how and why_ this intervention increases vaccine intentions. In Study 3, we drew inspiration from our model to create and validate the success of  a novel intervention aimed at debunking concerns about toxic additives. Finally, in Study 4 we tested whether people's beliefs changed coherently following relevant real-world events, by examining beliefs before and after serious outbreaks of measles in the United States in early 2019.
 
+# Theory of intuitive theories
+
+Quine argued that all of one’s beliefs are intertwined in a “web of belief” [@quine1951; @quine.ullian1978]---an apt metaphor for intuitive theories. Intuitive theories consist of relations between beliefs that specify how states of affairs causally, logically, or otherwise interconnect with one another. Specifically, we consider intuitive theories to be generative mental models that entail probabilistic dependencies among possible states of affairs. 
+
+Given this definition, we argue that any pair of beliefs related by a intuitive theory can be expected to exhibit several qualitative features:
+
+1. When two beliefs are related by an intuitive theory, evidence affecting one of those beliefs will also affect the other in accordance with their relationship in the intuitive theory (e.g. evidence for B will increase credence in A, and vice versa). This is a clear and direct consequence of the laws of probability and Bayes' rule.
+2. Where beliefs about two states of affairs, A and B, are related through an intuitive theory (e.g., A causes B), those beliefs will be systematically correlated across individuals in proportion to the average conditional probabilities (e.g. people who believe A will also tend to believe B); 
+
+In the case of beliefs about binary states of affairs, this can be seen through an application of the law of total probability and some algebra, which reveals a linear relationship between the two beliefs across individuals. To derive this result, we assume each individual i holds a specific degree of belief in x and y, $p_i(x)$ and $p_i(y)$. Moreover, these degrees of belief are determined by an intuitive theory: a generative mental model encoding a conditional dependency between the two, i.e. $p_i(y|x)$ and $p_i(y|\neg x)$.
+
+From the law of total probability, we can write:
+
+$p_i(y) = p_i(y|x)p_i(x) + p_i(y|\neg x)(1-p_i(x))$
+
+With some algebra, we can rearrange these terms:
+
+$p_i(y) = p_i(y|\neg x) + (p_i(y|x)p_i(x) - p_i(y|\neg x))p_i(x)$
+
+This equation has a familiar form $y  = \alpha + \beta x$. We know that a least-squares solution for $\beta$ will return $\frac{1}{n}\sum_i p_i(y|x)p_i(x) - p_i(y|\neg x) = \overline{p_i(y|x) - p_i(y|\neg x)}$, and that such an estimate for $\beta \propto corr(p_i(x),p_i(y))$. 
+
+3. Thus we can often reasonably expect there will be some systematic relationship between the average change in each belief following evidence and the correlation among those beliefs across individuals. More specifically, if we assume that the changes in beliefs A following evidence are uncorrelated with the conditional probabilties connecting A and B in people's intuitive theories, then the average change in belief A and B following evidence affecting A will be proportional to the correlation of those beliefs across individuals.
+
+Again we consider this in the case of beliefs about binary states of affairs. We define $p_i(x)$ to be the prior probability of $x$ before observing some evidence, and $p_i(x|e)$ to be the posterior probability of $x$ after observing the evidence, $e$. 
+
+We define the change in $p_i(x)$ as $\Delta p_i(x) = p_i(x|e) -p_i(x)$.  
+
+We can write $\Delta p_i(y)$ in terms of $\Delta p_i(x)$. We assume that the evidence has a direct impact on the probability of $x$, but that the evidence only affects $p_i(y)$ through its impact on $p_i(x)$, i.e.  $y \perp e |x$. This implies that $p_i(y|e) = p(y|x)p(x|e)$. 
+
+First, we expand $\Delta p_i(y)$ via the law of total probability and rearrange terms
+$$
+\begin{align*}
+\Delta p_i(y)  &= p_i(y|e) - p_i(y)\\
+ &= p_i(y|x)p_i(x|e) + p_i(y|\neg x)(1-p_i(x|e)) - p_i(y|x)p_i(x) + p_i(y|\neg x)(1-p_i(x)) \\
+&= \big(p_i(x|e) - p_i(x)\big)\cdot \big(p_i(y|x) - p_i(y|\neg x)\big)
+\end{align*}
+$$
+Taking the average, we have
+$$
+\overline{\Delta p_i(y)} = \overline{p(y|e) - p(y)} = \frac{1}{n}\sum_i\big(p_i(x|e) - p_i(x)\big)\big(p_i(y|x) - p_i(y|\neg x)\big)
+$$
+From the definition of covariance we have
+$$
+cov(X,Y) = E(XY) - E(X)E(Y)
+$$
+If we assume that the change in belief in x following the evidence, $\Delta p_i(x)$ is uncorrelated with the conditional probabilities encoded in the intuitive theory $p_i(y|x)p_i(x) - p_i(y|\neg x)$ (i.e. covariance equals zero) and apply this definition, we can then rewrite the average change as
+$$
+\overline{\Delta p_i(y)} = \overline{p(y|e) - p(y)} = \frac{1}{n}\sum_ip_i(x|e) - p_i(x) \frac{1}{n}\sum_ip_i(y|x) - p_i(y|\neg x)
+$$
+And we have thus shown that $\overline{\Delta p_i(y)} \propto \overline{p_i(y|x)p_i(x) - p_i(y|\neg x)} \propto corr(p_i(x),p_i(y))$
+
+In practice we did not measure probabilistic credences directly, but rather asked participants to report on a agree/disagree scale. We assume these actual measurements are some monotonic function of these credences, $f(p_i(x))$. Allowing that $f$ could be non-linear, the proportionality conclusions are no longer guaranteed.
+
+
 # Modeling
 
 ## Bayesian network parameterization
@@ -78,6 +132,8 @@ $$\mu = \exp\Bigg(\ln\Big(1 - \exp\big(\ln\big(1-w_0) + \sum_i(1-w_i)x_i\big)\bi
 
 Via maximum likelihood estimation, we estimate for each parent a discrete parameter $x_i$ determining whether the relationship is generative or preventive, and a continuous weight $w_i$ determining its strength. We also estimate $w_0$, the “leak probability” which is assumed to be generative, and $k$, a measure of dispersion in the responses $y$.
 
+One way to satisfy the assumption that changes in some belief following evidence are uncorrelated with the conditional probabilties connecting that belief to others in people's intuitive theories is to assume that all people hold the same conditional probabilities in their intuitive theory. This is essentially the assumption that we are making by assuming a single network structure where parents are parameterized as independent generative and preventive forces on their children. Thus, the resulting network we develop can be expected to make predictions in accord with point #3 above: the average predicted change in each belief following evidence directly impacting another belief will be proportional to the correlation between those beliefs across people.
+
 
 ## Structure learning
 
@@ -88,6 +144,7 @@ Fortunately, the formalism of Bayesian Networks provides tools for navigating th
 $$BIC = k \ln (n) - 2\sum_{i}\hat{\ell}(x_i|x_{va(x_i)})$$
 
 Which we estimate using the maximum log-likelihood estimated for our statistical model, calculated as the sum of the maximum log-likelihood for each node given its parents, from a total of $k$ parameters and $n$ data points.
+
 
 ### Generative model principle
 
@@ -472,15 +529,6 @@ knitr::include_graphics("../outputs/main-combined.pdf")
 ```
 
 Altogether, these findings might be seen as demonstrating the need for a heavier hand in establishing top-down constraints on the model fitting. Certainly, they call for caution in interpreting the relationships represented in this model. Due to their tight connections with structural causal networks, it is tempting to interpret the edges in Bayesian networks as “causal”. However, these relationships are best thought of simply as probabilistic dependencies or “influence” relations [@williamson2001]. Indeed, there are other cases where it is unclear if an edge should be directed at all: e.g., it is not obvious to us what would be the “correct” direction for the edge between naturalism and holistic balance. We might even speculate there is an additional unmeasured variable that connects these beliefs and that would best account for their association. Ultimately, this model should be understood as offering a plausible, but not definitive, account for a cognitive model connecting these different beliefs.
-
-What does the resulting model reveal about the intuitive theory undergirding vaccination decisions?
-
-The three nodes with direct connections to _vaccine intentions_ are beliefs about _vaccine effectiveness_, _vaccine danger_, and the severity of childhood diseases (_disease severity_)--concrete beliefs that are, at face value, especially closely related to vaccination decisions. The directionality of these edges is informed by the constraints we applied via the generative model principle, but the identification of these three factors as the most proximal to vaccine intentions is a product of the structure learning approach. This gives us some confidence that the model is capturing important relationships.
-
-Other parts of the model shed new light on the role of lay theories in vaccine decisions. For example, _naturalism_—the general view that natural things are better than artificial things—appears to be strongly related to _medical skepticism_ and _parental expertise_; all three of these abstract beliefs are related to concrete beliefs that, in turn, feed into participants’ vaccination intentions. This hierarchical structure is at least partly a product of our constraints that sorted these beliefs into “tiers” of abstractness. However, the fact that a model with these constraints provides similarly strong fits as those without these constraints demonstrates that this hierarchical structure is plausible.
-
-Finally, this model structure also helps explain some initially surprising findings. For example, before collecting these data we speculated that dispelling the misconceptions about the capacity of the infant immune system could promote positive attitudes toward vaccination. We were disappointed to observe the weak first-order correlation between this belief and vaccine intentions in our behavioral data (r = -.097 in our training split). The model sheds light on this surprising (lack of) relationship: Although the belief that the infant immune system is limited in capacity is positively related to the belief that vaccines strain the immune system—discouraging vaccination, as we had assumed—it also seems to promote the belief that childhood diseases have severe consequences for young children (_disease severity_), which might, in turn, encourage vaccination. These countervailing forces—which, on average, seem to have cancelled each other out in this sample—dissuaded us from our plans to develop an intervention aimed at dispelling misconceptions about limited capacity in order to encourage childhood vaccination.
-
 
 ## Validating the model
 
@@ -908,24 +956,34 @@ base_model <- create_bnlearn_cog_model(main_model, train)
 ```
 
 
-```{r fig7-s2_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiment 2. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for the disease risk intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig7-s2_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiment 2. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Belief scales are ordered by model-predicted changes based on the observed effect on disease severity. Our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for the disease risk intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 ## combined plot for paper
 library(patchwork)
 
-s2_scale_order <- s2_scored %>%
-  drop_na(scale) %>%
-  spread(phase, mean) %>%
-  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>%
-  mutate(diff = post-pre) %>%
+
+obs_pred <- make_pred_df(s2_mdf, base_model, "diseaseSevere")
+
+cor_val_s2 <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
+
+s2_scale_order <- obs_pred %>%
   mutate(scale = recode_nodes2(scale)) %>%
-  group_by(condition, scale) %>%
-  summarize(M = mean(diff, na.rm=TRUE)) %>%
-  ungroup() %>%
-  group_by(scale) %>%
-  summarize(diff_diff = mean(M, na.rm = T)) %>%
-  ungroup() %>%
-  arrange(desc(diff_diff)) %>% # descending because intervention is expected to increase disease risk beliefs
+  arrange(desc(predicted)) %>% # descending because intervention is expected to increase disease risk beliefs
   mutate(order = 1:nrow(.))
+
+# s2_scale_order <- s2_scored %>%
+#   drop_na(scale) %>%
+#   spread(phase, mean) %>%
+#   mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>%
+#   mutate(diff = post-pre) %>%
+#   mutate(scale = recode_nodes2(scale)) %>%
+#   group_by(condition, scale) %>%
+#   summarize(M = mean(diff, na.rm=TRUE)) %>%
+#   ungroup() %>%
+#   group_by(scale) %>%
+#   summarize(diff_diff = mean(M, na.rm = T)) %>%
+#   ungroup() %>%
+#   arrange(desc(diff_diff)) %>% # descending because intervention is expected to increase disease risk beliefs
+#   mutate(order = 1:nrow(.))
 
 s2_diff_plot <- s2_scored %>%
   spread(phase, mean) %>%
@@ -943,7 +1001,7 @@ s2_diff_plot <- s2_scored %>%
   summarize(M = mean(diff, na.rm=TRUE), se = sd(diff)/sqrt(n())) %>%
   ungroup() %>%
   left_join(s2_scale_order) %>%
-  ggplot(aes(x = reorder(scale,order), y = M,
+  ggplot(aes(x = reorder(scale, order), y = M,
              ymin = M-se*2, ymax=M+se*2,
              color=condition, shape=condition)) +
   scale_x_discrete() +
@@ -971,9 +1029,6 @@ s2_diff_plot <- s2_scored %>%
   labs(title="A", y = "Mean difference", x = "Belief scale",
        color="Intervention", shape="Intervention")
 
-obs_pred <- make_pred_df(s2_mdf, base_model, "diseaseSevere")
-
-cor_val_s2 <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
 
 s2_obs_pred_plot <- obs_pred %>% # a bit of a hack
   ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
@@ -994,6 +1049,32 @@ s2_plt
 ```
 
 The models’ predictions are strongly correlated with observed changes. Thus the model developed in Study 1 generalizes both across samples and across tasks: The model was developed from the correlations among beliefs in one sample of participants at a single time-point, and was able to accurately predict how a separate sample of participants revised their beliefs following evidence.
+
+```{r, include=F}
+## effect size for study 2
+
+s2_reg %>% 
+  group_by(workerId, condition, phase) %>% 
+  summarize(mresp = mean(response, na.rm=TRUE)) %>% 
+  spread(phase, mresp) %>% 
+  ungroup() %>% 
+  group_by(condition) %>% 
+  mutate(
+    sd_pre = sd(pre),
+    diff = post - pre
+    ) %>% 
+  summarize(
+    m_diff = mean(diff),
+    sd_pre = mean(sd_pre)
+  ) %>% 
+  mutate(
+    cohen_d = m_diff/sd_pre
+  )
+
+effect_size_s2 <- (.124 - -.0292)/sqrt( (1.26^2 + 1.30^2)/2 ) # standardized cond diff = .12
+
+```
+
 
 ## Studies 3a and 3b
 
@@ -1200,21 +1281,32 @@ To model the effect of the Vaccine Ingredients intervention, we followed the sam
 
 After our initial preregistration for Study 3a and 3b, we did slightly modify our model-fitting approach for the data in Study 1. This means that the final model being compared differs slightly from the exact numerical predictions of the preregistration. 
 
-```{r fig9-s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig9-s3_plot, echo=F, message=F, warning=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Experiments 3a and 3b. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions. Belief scales are ordered by model-predicted changes based on the observed effect on disease severity. Our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
-s3_scale_order <- s3_scored %>%
-  drop_na(scale) %>%
-  mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>%
-  mutate(diff = post-pre) %>%
+
+
+obs_pred <- make_pred_df(s3_mdf, base_model, "vaccTox")
+
+cor_val_s3 <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
+
+s3_scale_order <- obs_pred %>%
   mutate(scale = recode_nodes2(scale)) %>%
-  group_by(condition, scale) %>%
-  summarize(M = mean(diff, na.rm=TRUE)) %>%
-  ungroup() %>%
-  group_by(scale) %>%
-  summarize(diff_diff = mean(M, na.rm = T)) %>%
-  ungroup() %>%
-  arrange(diff_diff) %>% # ascending because intervention is expected to decrease vaccine toxicity beliefs
+  arrange(desc(predicted)) %>% # descending because intervention is expected to increase disease risk beliefs
   mutate(order = 1:nrow(.))
+
+# s3_scale_order <- s3_scored %>%
+#   drop_na(scale) %>%
+#   mutate(post = rescale_beta(post, -3, 3), pre = rescale_beta(pre, -3, 3)) %>%
+#   mutate(diff = post-pre) %>%
+#   mutate(scale = recode_nodes2(scale)) %>%
+#   group_by(condition, scale) %>%
+#   summarize(M = mean(diff, na.rm=TRUE)) %>%
+#   ungroup() %>%
+#   group_by(scale) %>%
+#   summarize(diff_diff = mean(M, na.rm = T)) %>%
+#   ungroup() %>%
+#   arrange(diff_diff) %>% # ascending because intervention is expected to decrease vaccine toxicity beliefs
+#   mutate(order = 1:nrow(.))
 
 s3_diff_plot <- s3_scored %>%
   # spread(phase, mean) %>%
@@ -1257,9 +1349,6 @@ s3_diff_plot <- s3_scored %>%
   labs(title="A", y = "Mean difference", x = "Belief scale",
        color="Intervention", shape="Intervention")
 
-obs_pred <- make_pred_df(s3_mdf, base_model, "vaccTox")
-
-cor_val_s3 <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
 
 s3_obs_pred_plot <- obs_pred %>%
   ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
@@ -1285,7 +1374,7 @@ In Study 3a, we observed smaller differences than predicted for vaccine effectiv
 
 In Study 3b, we again observed smaller differences than predicted for vaccine effectiveness (observed minus predicted difference: -0.06) and vaccine intentions (-0.05); and in this case we observed larger differences than predicted for naturalism (+0.05); all other discrepancies were smaller than ± 0.05.
 
-```{r fig10-s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=10, fig.height=5, fig.cap="Belief changes following the intervention in Experiments 3a and 3b, broken out by experiment. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in yellow. Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
+```{r fig10-s3_plot_bystudy, echo=F, message=F, warning=F, fig.width=10, fig.height=5, fig.cap="Belief changes following the intervention in Experiments 3a and 3b, broken out by experiment. Left, mean difference scores from pretest to posttest for the 14 belief scales across experimental conditions; our primary outcome of interest, vaccination intentions, is highlighted in grey Right, mean observed and model predicted change scores for the Vaccine Ingredients intervention condition. In both plots, error bars represent 95\\% confidence intervals."}
 
 # see previous chunk for scale order
 
@@ -1300,7 +1389,7 @@ s3_diff_plot_bystudy <- s3_scored %>%
                               "noInterv" = "Control",
                               .default = "Vaccine Ingredients")) %>%
   left_join(s3_demo %>% distinct(workerId, study)) %>%
-  mutate(study = recode_factor(study, "A" = "Expt. 3A", "B" = "Expt. 3B")) %>%
+  mutate(study = recode_factor(study, "A" = "Expt. 3a", "B" = "Expt. 3b")) %>%
   group_by(study, condition, scale) %>%
   summarize(M = mean(diff, na.rm=TRUE), se = sd(diff)/sqrt(n())) %>%
   ungroup() %>%
@@ -1374,6 +1463,29 @@ s3_plt_bystudy <- s3_diff_plot_bystudy + s3_obs_pred_plot_bystudy +
   plot_layout(ncol=2, widths = c(2,1))
 
 s3_plt_bystudy
+```
+
+```{r}
+## Effect size for study 3
+s3_reg %>% 
+  group_by(workerId, condition, phase) %>% 
+  summarize(mresp = mean(response, na.rm=TRUE)) %>% 
+  spread(phase, mresp) %>% 
+  ungroup() %>% 
+  group_by(condition) %>% 
+  mutate(
+    sd_pre = sd(pre),
+    diff = post - pre
+  ) %>% 
+  summarize(
+    m_diff = mean(diff),
+    sd_pre = mean(sd_pre)
+  ) %>% 
+  mutate(
+    cohen_d = m_diff/sd_pre
+  )
+
+effect_size_s3 <- (.0564 - -.11)/sqrt( (1.35^2 + 1.20^2)/2 ) # standardized cond diff = .13
 ```
 
 
@@ -1504,20 +1616,29 @@ Figure 11 (right) shows the correlation between predicted and observed belief ch
 
 ```{r fig11-s4_plot, echo=F, warning=F, message=F, fig.width=8, fig.height=4, fig.cap="Belief changes following the intervention in Study 4. Left, mean difference scores from pretest to posttest for the 14 belief scales among participants who did and did not report exposure to news of the 2019 Measles outbreak in New York; our primary outcome of interest, vaccination intentions, is highlighted in gray. Right, mean observed and model predicted change scores for those who were exposed to news of the outbreak. In both plots, error bars represent 95\\% confidence intervals."}
 
-s4_scale_order <- combined %>%
-  drop_na(scale) %>%
-  mutate(posttest = rescale_beta(posttest, -3, 3),
-         pretest = rescale_beta(pretest, -3, 3)) %>%
-  mutate(diff = posttest-pretest) %>%
+obs_pred <- make_pred_df(s4_mdf, base_model, "vaccIntent")
+
+cor_val_s4 <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
+
+s4_scale_order <- obs_pred %>%
   mutate(scale = recode_nodes2(scale)) %>%
-  group_by(vacc_news, scale) %>%
-  summarize(M = mean(diff, na.rm=TRUE)) %>%
-  ungroup() %>%
-  group_by(scale) %>%
-  summarize(diff_diff = mean(M, na.rm = T)) %>%
-  ungroup() %>%
-  arrange(desc(diff_diff)) %>% # ascending because news exposure is expected to increase vaccine intentions
+  arrange(desc(predicted)) %>% # descending because intervention is expected to increase disease risk beliefs
   mutate(order = 1:nrow(.))
+
+# s4_scale_order <- combined %>%
+#   drop_na(scale) %>%
+#   mutate(posttest = rescale_beta(posttest, -3, 3),
+#          pretest = rescale_beta(pretest, -3, 3)) %>%
+#   mutate(diff = posttest-pretest) %>%
+#   mutate(scale = recode_nodes2(scale)) %>%
+#   group_by(vacc_news, scale) %>%
+#   summarize(M = mean(diff, na.rm=TRUE)) %>%
+#   ungroup() %>%
+#   group_by(scale) %>%
+#   summarize(diff_diff = mean(M, na.rm = T)) %>%
+#   ungroup() %>%
+#   arrange(desc(diff_diff)) %>% # ascending because news exposure is expected to increase vaccine intentions
+#   mutate(order = 1:nrow(.))
 
 s4_diff_plot <- combined %>%
   filter(returned==TRUE, !is.na(vacc_news)) %>% # somehow 5? participants slippd by without answering
@@ -1541,7 +1662,7 @@ s4_diff_plot <- combined %>%
                             levels = c(0,1),
                             labels=c("No","Yes"))) %>%
   # mutate(phase = ordered(phase, levels=c("pretest","posttest"))) %>%
-  left_join(s4_scale_order) %>%
+  left_join(s4_scale_order, by ="scale") %>%
   ggplot(aes(x=reorder(scale, order),
              y = mean, ymin =ll95, ymax=ul95,
              color=vacc_news, shape=vacc_news)) +
@@ -1571,9 +1692,6 @@ s4_diff_plot <- combined %>%
   labs(title="A", y = "Mean difference", x = "Belief scale",
        color="News Exposure", shape="News Exposure")
 
-obs_pred <- make_pred_df(s4_mdf, base_model, "vaccIntent")
-
-cor_val_s4 <- format(round(cor(obs_pred$predicted, obs_pred$observed),3), nsmall = 3)
 
 s4_obs_pred_plot <- obs_pred %>% # a bit of a hack
   ggplot(aes(x=predicted, y = observed, ymin = ll, ymax=ul)) +
