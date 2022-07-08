@@ -1,5 +1,5 @@
 ---
-title: "Supporting Information"
+title: "Supplementary Materials"
 subtitle: "Modeling and leveraging intuitive theories to improve vaccine attitudes"
 author: "Derek Powell, Kara Weisman, and Ellen M. Markman"
 output:
@@ -31,22 +31,28 @@ Quine argued that all of one’s beliefs are intertwined in a “web of belief�
 
 Given this definition, we argue that any pair of beliefs related by a intuitive theory can be expected to exhibit several qualitative features:
 
-1. When two beliefs are related by an intuitive theory, evidence affecting one of those beliefs will also affect the other in accordance with their relationship in the intuitive theory (e.g. evidence for B will increase credence in A, and vice versa). This is a clear and direct consequence of the laws of probability and Bayes' rule.
-2. Where beliefs about two states of affairs, A and B, are related through an intuitive theory (e.g., A causes B), those beliefs will be systematically correlated across individuals in proportion to the average conditional probabilities (e.g. people who believe A will also tend to believe B); 
+1\. When two beliefs are related by an intuitive theory, evidence affecting one of those beliefs will also affect the other in accordance with their relationship in the intuitive theory (e.g. evidence for B will increase credence in A, and vice versa). This is a clear and direct consequence of the laws of probability and Bayes' rule.
+
+2\. Where beliefs about two states of affairs, A and B, are related through an intuitive theory (e.g., A causes B), those beliefs will be systematically correlated across individuals in proportion to the average conditional probabilities (e.g. people who believe A will also tend to believe B); 
 
 In the case of beliefs about binary states of affairs, this can be seen through an application of the law of total probability and some algebra, which reveals a linear relationship between the two beliefs across individuals. To derive this result, we assume each individual i holds a specific degree of belief in x and y, $p_i(x)$ and $p_i(y)$. Moreover, these degrees of belief are determined by an intuitive theory: a generative mental model encoding a conditional dependency between the two, i.e. $p_i(y|x)$ and $p_i(y|\neg x)$.
 
 From the law of total probability, we can write:
 
-$p_i(y) = p_i(y|x)p_i(x) + p_i(y|\neg x)(1-p_i(x))$
+\begin{equation}
+p_i(y) = p_i(y|x)p_i(x) + p_i(y|\neg x)(1-p_i(x))
+\end{equation}
 
 With some algebra, we can rearrange these terms:
 
-$p_i(y) = p_i(y|\neg x) + (p_i(y|x)p_i(x) - p_i(y|\neg x))p_i(x)$
+\begin{equation}
+p_i(y) = p_i(y|\neg x) + (p_i(y|x)p_i(x) - p_i(y|\neg x))p_i(x)
+\end{equation}
+
 
 This equation has a familiar form $y  = \alpha + \beta x$. We know that a least-squares solution for $\beta$ will return $\frac{1}{n}\sum_i p_i(y|x)p_i(x) - p_i(y|\neg x) = \overline{p_i(y|x) - p_i(y|\neg x)}$, and that such an estimate for $\beta \propto corr(p_i(x),p_i(y))$. 
 
-3. Thus we can often reasonably expect there will be some systematic relationship between the average change in each belief following evidence and the correlation among those beliefs across individuals. More specifically, if we assume that the changes in beliefs A following evidence are uncorrelated with the conditional probabilties connecting A and B in people's intuitive theories, then the average change in belief A and B following evidence affecting A will be proportional to the correlation of those beliefs across individuals.
+3\. Thus we can often reasonably expect there will be some systematic relationship between the average change in each belief following evidence and the correlation among those beliefs across individuals. More specifically, if we assume that the changes in beliefs A following evidence are uncorrelated with the conditional probabilties connecting A and B in people's intuitive theories, then the average change in belief A and B following evidence affecting A will be proportional to the correlation of those beliefs across individuals.
 
 Again we consider this in the case of beliefs about binary states of affairs. We define $p_i(x)$ to be the prior probability of $x$ before observing some evidence, and $p_i(x|e)$ to be the posterior probability of $x$ after observing the evidence, $e$. 
 
@@ -55,28 +61,38 @@ We define the change in $p_i(x)$ as $\Delta p_i(x) = p_i(x|e) -p_i(x)$.
 We can write $\Delta p_i(y)$ in terms of $\Delta p_i(x)$. We assume that the evidence has a direct impact on the probability of $x$, but that the evidence only affects $p_i(y)$ through its impact on $p_i(x)$, i.e.  $y \perp e |x$. This implies that $p_i(y|e) = p(y|x)p(x|e)$. 
 
 First, we expand $\Delta p_i(y)$ via the law of total probability and rearrange terms
-$$
-\begin{align*}
+
+
+\begin{align}
 \Delta p_i(y)  &= p_i(y|e) - p_i(y)\\
  &= p_i(y|x)p_i(x|e) + p_i(y|\neg x)(1-p_i(x|e)) - p_i(y|x)p_i(x) + p_i(y|\neg x)(1-p_i(x)) \\
 &= \big(p_i(x|e) - p_i(x)\big)\cdot \big(p_i(y|x) - p_i(y|\neg x)\big)
-\end{align*}
-$$
+\end{align}
+
+
 Taking the average, we have
-$$
+
+\begin{equation}
 \overline{\Delta p_i(y)} = \overline{p(y|e) - p(y)} = \frac{1}{n}\sum_i\big(p_i(x|e) - p_i(x)\big)\big(p_i(y|x) - p_i(y|\neg x)\big)
-$$
+\end{equation}
+
+
 From the definition of covariance we have
-$$
+
+\begin{equation}
 cov(X,Y) = E(XY) - E(X)E(Y)
-$$
+\end{equation}
+
 If we assume that the change in belief in x following the evidence, $\Delta p_i(x)$ is uncorrelated with the conditional probabilities encoded in the intuitive theory $p_i(y|x)p_i(x) - p_i(y|\neg x)$ (i.e. covariance equals zero) and apply this definition, we can then rewrite the average change as
-$$
+
+\begin{equation}
 \overline{\Delta p_i(y)} = \overline{p(y|e) - p(y)} = \frac{1}{n}\sum_ip_i(x|e) - p_i(x) \frac{1}{n}\sum_ip_i(y|x) - p_i(y|\neg x)
-$$
+\end{equation}
+
+
 And we have thus shown that $\overline{\Delta p_i(y)} \propto \overline{p_i(y|x)p_i(x) - p_i(y|\neg x)} \propto corr(p_i(x),p_i(y))$
 
-In practice we did not measure probabilistic credences directly, but rather asked participants to report on a agree/disagree scale. We assume these actual measurements are some monotonic function of these credences, $f(p_i(x))$. Allowing that $f$ could be non-linear, the proportionality conclusions are no longer guaranteed.
+In practice we did not measure probabilistic credences directly, but rather asked participants to report on a agree/disagree scale. We assume these actual measurements are some monotonic function of these credences, $f(p_i(x))$. Allowing that $f$ could be non-linear, the proportionality conclusions are no longer guaranteed, though a monotonic association would remain.
 
 
 # Modeling
@@ -85,41 +101,17 @@ In practice we did not measure probabilistic credences directly, but rather aske
 
 Figure 1 shows an example of a simple Bayesian Network. The network itself is a _directed acyclic graph_ (DAG), a type of graphical model. Graphical models represent variables as nodes connected by edges. In a DAG, these edges are directed, flowing from parent to child, and are constrained so that they cannot form cycles or loops. In a Bayesian network, these directed edges encode conditional dependencies among variables, so that the conditional probability distribution for a given variable is defined only in terms of its direct parents. Together, a child node and its parents are called a _family_.
 
-```{r fig1-dag-example, echo=F, message=F, warning=F, fig.align='center', out.width = '40%', fig.cap="Example DAG illustrating some variables related to wildfires."}
 
-library(DiagrammeR)
-library(DiagrammeRsvg)
-library(rsvg)
-
-grViz(
-  diagram = "
-  digraph causal {
-
-	  # Nodes
-	  node [shape = oval]
-	  D [label = 'Dry']
-	  H [label = 'Heat']
-	  F [label = 'Fire']
-	  S [label = 'Smoke']
-
-
-	  # Edges
-	  edge [color = black,
-	        arrowhead = vee]
-	  rankdir = LR
-	  D->F
-	  H->F
-	  F->S
-
-	  # Graph
-	  graph [overlap = true, fontsize = 8]
-	}"
-)
+```{r, out.width='100%', fig.align='center', fig.cap = 'Several examples illustrating different features of Bayesian Networks. \\newline A) A graphical representation of influence relations: Fire causes smoke. This influence is represented by the conditional dependencies captured in a conditional probability table (CPT). \\newline B) A “parent” node can be linked to multiple “children” and a “child” node can be linked to multiple “parents”: A child and its parents together compose a “family”. This graph has three families: {Accidents, lightning, drought, fire}, {fire, smoke}, and {fire, ash} described by a corresponding CPT (not pictured). \\newline C) Not all influence relations correspond to causation: A storm consists of rain, thunder, and lightning (marked as dashed arrows). Causes can be generative or preventive, e.g. rain prevents drought and fire (red arrows). Some nodes may exert countervailing influences on others: A storm consists of rain, which can prevent fires, but a storm also consists of lightning, which can cause fires. In addition, parents may influence their children independently or interactively. Lightning and accidents could be seen as independent causes of fire—an accident may cause a fire whether or not there is lightning, and vice versa. However, drought conditions interact with both of these other parent nodes, making them more likely to produce a fire. In the present work, we will consider only the role of independent influence relations.'}
+knitr::include_graphics("../paper/fig-bn-examples.png")
 ```
+
 
 In this graph, the edge $FIRE \rightarrow SMOKE$ captures that fire causes smoke.^[The example of cause and effect is especially intuitive, but these edges need not be causal. Instead, they are better thought of as representing “influence relations”, which may also include relationships like logical implication and set membership [@williamson2001].] This relationship is represented as a probabilistic function, where the probability of smoke depends on the probability of fire. The probability of a node Y can be defined from its parents X in many different ways. For binary nodes, the most flexible specification is a conditional probability table (CPT) with 2^n^ entries specifying the probability of Y given the entire joint probability distribution over X, where n is the number of parents X. Given the exponential complexity of the CPT, simpler functions are often used to specify the probability of the child node, such as the noisy-or and noisy-and-not functions. A noisy-or function assumes each of the parents are independent generative forces, each with a probability of generating the effect. A noisy-and-not function assumes each of the parents are independent preventive forces, specifying the probability of the child node as the probability that it is generated _and not_ prevented by any one of its possible preventers. We construct our cognitive model parameterization using a combination of these two functions, using a distribution sometimes referred to as a “DeMorgan gate” [@maaskant.druzdzel2008]. In our model, the probability of the child node Y can be expressed as:
 
-$$P(y) = \Big(1-(1-w_0)\prod_i(1-w_i)^{x_i}\Big)\prod_j(1-w_j)^{x_j}$$
+\begin{equation}
+P(y) = \Big(1-(1-w_0)\prod_i(1-w_i)^{x_i}\Big)\prod_j(1-w_j)^{x_j}
+\end{equation}
 
 Here, each parent is either a generative (i) or preventive (j) influence, that generates or prevents the child node with probability weight $w_i$ or $w_j$. The weight $w_0$ represents the “leak” probability, or the baseline probability that the child occurs without any other generating influences. The first term in brackets represents the probability that y is generated, or alternately, that not all of the possible generating forces fail to generate it. The second term represents the probability that it is not then prevented, or that all the preventing forces fail.
 
@@ -127,8 +119,11 @@ A cognitive model composed of these types of relations is capable of capturing a
 
 This gives us a formalism for representing relations within an intuitive theory. Now we need methods for estimating the relationship that are actually represented within people’s intuitive theories. Given measures of participants’ credences in each of the parent beliefs $x_i$ and the child belief $y$, we assume the following beta regression model:
 
-$$y \sim beta\big(\mu k, (1-\mu)k\big)$$
-$$\mu = \exp\Bigg(\ln\Big(1 - \exp\big(\ln\big(1-w_0) + \sum_i(1-w_i)x_i\big)\big) \Big) + \ln\Big(\sum_i(1-w_i)(1-x_i)\Big)\Bigg)$$
+\begin{align}
+y &\sim beta\big(\mu k, (1-\mu)k\big) \\
+\mu &= \exp\Bigg(\ln\Big(1 - \exp\big(\ln\big(1-w_0) + \sum_i(1-w_i)x_i\big)\big) \Big) + \ln\Big(\sum_i(1-w_i)(1-x_i)\Big)\Bigg)
+\end{align}
+
 
 Via maximum likelihood estimation, we estimate for each parent a discrete parameter $x_i$ determining whether the relationship is generative or preventive, and a continuous weight $w_i$ determining its strength. We also estimate $w_0$, the “leak probability” which is assumed to be generative, and $k$, a measure of dispersion in the responses $y$.
 
@@ -139,9 +134,12 @@ One way to satisfy the assumption that changes in some belief following evidence
 
 Where the structure of an intuitive theory is known, Bayesian networks offer powerful tools for predicting and understanding how evidence will affect people's beliefs. However, there are many cases where the structure of the intuitive theory is unknown and is itself the very question under investigation.
 
-Fortunately, the formalism of Bayesian Networks provides tools for navigating these challenges. Here, we used Bayesian network structure learning algorithms to construct a model of the intuitive theory of vaccine decisions (see Scutari & Denis, 2021). One way to learn a Bayesian network structure from data is to search through a space of networks, “score” each and choose the best scoring network. Many scoring metrics are possible, but a directly meaningful one is p(d|G), the likelihood of the data given the graph structure. Asymptotically, this can be estimated using the Bayesian Information Criterion (BIC) (citation):
+Fortunately, the formalism of Bayesian Networks provides tools for navigating these challenges. Here, we used Bayesian network structure learning algorithms to construct a model of the intuitive theory of vaccine decisions (see Scutari & Denis, 2021). One way to learn a Bayesian network structure from data is to search through a space of networks, “score” each and choose the best scoring network. Many scoring metrics are possible, but a directly meaningful one is p(d|G), the likelihood of the data given the graph structure. Asymptotically, this can be estimated using the Bayesian Information Criterion (BIC):
 
-$$BIC = k \ln (n) - 2\sum_{i}\hat{\ell}(x_i|x_{va(x_i)})$$
+\begin{equation}
+BIC = k \ln (n) - 2\sum_{i}\hat{\ell}(x_i|x_{va(x_i)})
+\end{equation}
+
 
 Which we estimate using the maximum log-likelihood estimated for our statistical model, calculated as the sum of the maximum log-likelihood for each node given its parents, from a total of $k$ parameters and $n$ data points.
 
@@ -170,6 +168,7 @@ library(brms)
 library(bnlearn)
 library(HydeNet)
 library(parallel)
+library(DiagrammeR)
 
 source("../code/custom-structure-learning/cog-model-main.R", chdir = TRUE)
 source("../code/graph-model-tools.R")
@@ -741,21 +740,30 @@ However, sometimes reasoners have only indirect evidence at their disposal. For 
 
 To model the effects of participants observing evidence, we augmented the Bayesian network representing the cognitive model (shown in Figure 4) with an additional node representing the evidence. For instance, to model the effects of the “disease risk” intervention (Study 2), we added an evidence node as a child of “disease severity,” acting as virtual evidence for this node. To compute the CPT for this node as a function of disease severity beliefs, we estimated an _evidence ratio_ based on participants’ pretest and posttest credences in disease severity. To so do, we made use of the log-odds expression of Bayes rule,
 
-$$ log\big(O(h|d)\big) = \ln\big(O(h)\big) + \ln\Big(\frac{P(d|h=1)}{P(d|h=0)}\Big) $$
+\begin{equation}
+log\big(O(h|d)\big) = \ln\big(O(h)\big) + \ln\Big(\frac{P(d|h=1)}{P(d|h=0)}\Big) 
+\end{equation}
 
 Where the final term is the evidence ratio, defined as:
 
-$$ER = \frac{P(d|h=1)}{P(d|h=0)}$$
+\begin{equation}
+ER = \frac{P(d|h=1)}{P(d|h=0)}
+\end{equation}
+
 
 The evidence ratio can be estimated from a model that is linear in the log-odds. This allows for estimation of the evidence ratio from the with the following beta-regression model:
 
-$$y \sim beta\big(\mu k, (1-\mu)k\big)$$
-$$logit(\mu) = logit(pretest) + \ln(ER_0) + x\ln(ER_{1})$$
+\begin{align}
+y &\sim beta\big(\mu k, (1-\mu)k\big) \\
+logit(\mu) &= logit(pretest) + \ln(ER_0) + x\ln(ER_{1})
+\end{align}
 
 Where $x$ was a binary variable representing the presence (1) or absence (0) of evidence at posttest, and participants’ prior and posterior (pretest and posttest) credences were transformed by the logit function. This allowed us to estimate the log evidence ratio implied by participants’ reactions to the intervention ($ER_1$) as well as the intervening time period without any explicit evidence ($ER_0$). Then, we constructed a CPT consistent with $ER_1$. For instance, with an evidence ratio below 1, we set:
 
-$$ p(evidence = 1 | x ) = .50*ER_1$$
-$$ p(evidence = 0 | x) = .50. $$
+\begin{align}
+p(evidence = 1 | x ) &= .50*ER_1 \\
+p(evidence = 0 | x) &= .50. 
+\end{align}
 
 We used this approach to predict how evidence (either interventions or real-world events) would change participants’ beliefs in Studies 2-4 (see results for each study below). It should be noted that, with the exception of the data used to estimate this evidence ratio, these are out-of-sample and out-of-task predictions.
 
@@ -1465,7 +1473,7 @@ s3_plt_bystudy <- s3_diff_plot_bystudy + s3_obs_pred_plot_bystudy +
 s3_plt_bystudy
 ```
 
-```{r}
+```{r, include=F}
 ## Effect size for study 3
 s3_reg %>% 
   group_by(workerId, condition, phase) %>% 
