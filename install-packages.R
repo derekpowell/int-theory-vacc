@@ -15,7 +15,8 @@ package_list <- c(
   "rsvg",
   "corrplot",
   "cowplot",
-  "caret"
+  "caret",
+  "table1"
 )
 
 install.packages(package_list)
